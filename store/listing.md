@@ -34,9 +34,9 @@
 - 태그 후보: 지역 뉴스, 재난문자, 날씨 특보, 지도
 
 ## 연락처
-- 이메일: (개인 이메일 — 회사 메일 X)
-- 웹사이트: https://<GitHub사용자명>.github.io/nallae/
-- 개인정보처리방침: https://<GitHub사용자명>.github.io/nallae/privacy.html
+- 이메일: rehyyn@gmail.com
+- 웹사이트: https://soulret10-ux.github.io/nallae/
+- 개인정보처리방침: https://soulret10-ux.github.io/nallae/privacy.html
 
 ## 그래픽 자료
 | 항목 | 규격 | 파일 |
