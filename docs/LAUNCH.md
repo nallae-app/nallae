@@ -41,11 +41,10 @@
 ## 4단계 — Android 패키지 만들기 (TWA)
 
 - [x] 패키지 이름: **`com.rehyyn.nallae`** (출시 후 변경 불가)
-- [ ] ✋ [PWABuilder](https://www.pwabuilder.com) 에 배포 주소 입력 → Package for stores → **Android** → Google Play
-  - Package ID: 위 패키지 이름 / App name: 날래 / Launcher name: 날래
-  - Signing key: **New** (PWABuilder가 만들어 줌)
-  - 내려받은 zip 안의 **서명 키(.keystore)와 비밀번호 파일은 절대 잃어버리거나 저장소에 올리지 말 것** — 잃으면 앱 업데이트 불가 (Play 앱 서명을 쓰면 '업로드 키'만 재설정 가능)
-- [ ] 🤖 zip 안의 `assetlinks.json`을 `web/.well-known/assetlinks.json`으로 넣고 배포 → 앱 상단 주소창이 사라지는지 확인
+- [x] PWABuilder로 패키지 생성 (2026-10-20). 결과물은 `android/`(git 제외): `.aab`(Play 업로드용), `.apk`(휴대폰 직접 설치 시험용), `signing.keystore` + `signing-key-info.txt`
+  - **서명 키와 비밀번호 파일은 개인 클라우드·USB에 따로 백업.** 잃으면 업데이트 불가
+- [x] `assetlinks.json`을 조직 루트 저장소 [nallae-app/nallae-app.github.io](https://github.com/nallae-app/nallae-app.github.io)의 `.well-known/`에 배포 (TWA는 도메인 맨 위에서만 찾는다)
+- [ ] 🤖 **Play Console에 처음 업로드한 뒤**: 설정 → 앱 무결성 → **앱 서명 키 SHA-256**을 `assetlinks.json`에 추가 (Play가 앱을 자기 키로 다시 서명하기 때문. 안 하면 스토어에서 받은 앱 위에 주소창이 보인다)
 
 ## 5단계 — Google Play Console
 
