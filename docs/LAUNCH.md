@@ -48,7 +48,7 @@
 
 ## 5단계 — Google Play Console
 
-- [ ] ✋ [Play Console](https://play.google.com/console) 개발자 계정 등록 ($25, 1회) + 본인 인증
+- [x] ✋ [Play Console](https://play.google.com/console) 개발자 계정 등록 (2026-10-20, 개인 계정, 개발자 이름 비실명) — 본인 인증 진행
 - [ ] ✋ 앱 만들기 → 무료 앱 / 앱(게임 아님)
 - [ ] ✋ 스토어 등록정보 입력 — 문구와 그림은 `store/` 폴더 (`store/listing.md`)
   - 스크린샷은 지금 데모 데이터 화면이다. **실제 데이터가 들어온 뒤 다시 찍어 교체**한다 (`node scripts/screenshots.mjs`를 실데이터 주소로).
