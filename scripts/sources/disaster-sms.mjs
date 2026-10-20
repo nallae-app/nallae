@@ -56,9 +56,11 @@ export async function fetchItems({ key, since }) {
   if (!key) return { skipped: 'SAFETYDATA_KEY 없음' };
   const ymd = (d) => new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, '');
   const rows = [];
-  for (let page = 1; page <= 5; page++) {
+  // 하루 호출 한도(최대 1,000) 안에 들도록: 최근 하루 치만, 한 번에 최대 3페이지 (10분 x 144회 x 3 = 432)
+  const from = new Date(Math.max(since.getTime(), Date.now() - 86400e3));
+  for (let page = 1; page <= 3; page++) {
     const url = new URL(ENDPOINT);
-    url.search = new URLSearchParams({ serviceKey: key, pageNo: page, numOfRows: 100, returnType: 'json', crtDt: ymd(since) });
+    url.search = new URLSearchParams({ serviceKey: key, pageNo: page, numOfRows: 100, returnType: 'json', crtDt: ymd(from) });
     const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
     if (!res.ok) throw new Error(`재난문자 HTTP ${res.status}`);
     const data = await res.json();
