@@ -31,7 +31,7 @@ export function parse(xml) {
   const items = [];
   for (const m of xml.matchAll(/<NewsItem>([\s\S]*?)<\/NewsItem>/g)) {
     const x = m[1];
-    const title = tag(x, 'Title').replace(/<[^>]+>/g, '').trim();
+    const title = tag(x, 'Title').replace(/<[^>]+>/g, '').replace(/^\s*\[사실은 이렇습니다\]\s*/, '').trim();
     const kogl = tag(x, 'KoglType');
     if (!title || !isKogl1(kogl)) continue;
     const { sgg, sido } = findPlacesInText(title);
