@@ -8,7 +8,7 @@
 
 ## 1단계 — 저장소와 배포 (무료)
 
-- [x] ✋ **개인** GitHub 계정 준비 (회사 계정 X)
+- [x] ✋ 개인 GitHub 계정 + 조직 `nallae-app` (공개 주소에 개인 아이디가 드러나지 않게)
 - [ ] ✋ 새 저장소 만들기: 이름 `nallae`, **Public** (Private이면 10분 주기 Actions 무료 시간이 부족)
 - [ ] 🤖 로컬 git 초기화 + 개인 계정 이름/이메일로 커밋 + 푸시 (푸시 권한은 로그인 필요)
 - [ ] ✋ 저장소 Settings → Pages → Source: **GitHub Actions**

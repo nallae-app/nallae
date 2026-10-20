@@ -35,8 +35,8 @@
 
 ## 연락처
 - 이메일: rehyyn@gmail.com
-- 웹사이트: https://soulret10-ux.github.io/nallae/
-- 개인정보처리방침: https://soulret10-ux.github.io/nallae/privacy.html
+- 웹사이트: https://nallae-app.github.io/nallae/
+- 개인정보처리방침: https://nallae-app.github.io/nallae/privacy.html
 
 ## 그래픽 자료
 | 항목 | 규격 | 파일 |
