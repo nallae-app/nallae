@@ -1,0 +1,19 @@
+{
+  "name": "날래 — 나와 동네를 잇다",
+  "short_name": "날래",
+  "description": "지도 위에서 우리 동네 소식을 가장 빨리. 재난문자, 기상특보, 지역 뉴스가 들어오면 그 지역이 반짝여요.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "lang": "ko",
+  "categories": ["news", "navigation"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="지도 위에서 우리 동네 소식을 가장 빨리. 재난문자, 기상특보, 지역 뉴스가 들어오면 그 지역이 반짝여요.">
+  <title>날래 — 나와 동네를 잇다</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="vendor/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="map" aria-label="대한민국 지역 소식 지도"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><i></i></span>
+      <div>
+        <h1>날래</h1>
+        <p>나와 동네를 잇다</p>
+      </div>
+    </div>
+    <div class="top-right">
+      <span class="badge-sample" id="badge-demo" hidden>데모 데이터</span>
+      <a class="info" href="about.html" aria-label="앱 정보">i</a>
+    </div>
+  </header>
+
+  <div class="controls">
+    <button id="btn-locate" type="button" title="내 위치 근처 소식">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5" fill="none"/></svg>
+      <span>내 주변</span>
+    </button>
+    <button id="btn-all" type="button" title="전국 보기">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none"/></svg>
+      <span>전국</span>
+    </button>
+  </div>
+
+  <aside class="panel" id="panel">
+    <button class="panel-handle" id="panel-handle" type="button" aria-label="소식 목록 펼치기/접기"></button>
+    <div class="panel-head">
+      <div>
+        <h2 id="panel-title">전국 소식</h2>
+        <p id="panel-sub">소식을 불러오는 중…</p>
+      </div>
+      <span class="live"><i></i>LIVE</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <ul class="feed" id="feed"></ul>
+    <p class="privacy">위치는 기기 안에서만 쓰고 서버로 보내지 않아요. <a href="privacy.html">개인정보처리방침</a></p>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/leaflet.min.js"></script>
+  <script src="vendor/topojson-client.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

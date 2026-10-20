@@ -1,0 +1,15 @@
+{
+  "name": "nallae",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:regions": "node scripts/build-regions.mjs",
+    "collect": "node scripts/collect.mjs",
+    "icons": "node scripts/build-icons.mjs"
+  },
+  "devDependencies": {
+    "mapshaper": "^0.6.102",
+    "sharp": "^0.33.5",
+    "topojson-client": "^3.1.0"
+  }
+}
