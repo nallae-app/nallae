@@ -40,7 +40,7 @@
 
 ## 4단계 — Android 패키지 만들기 (TWA)
 
-- [ ] ✋ 패키지 이름 정하기 (한 번 정하면 못 바꿈). 예: `io.github.<사용자명>.nallae`
+- [x] 패키지 이름: **`com.rehyyn.nallae`** (출시 후 변경 불가)
 - [ ] ✋ [PWABuilder](https://www.pwabuilder.com) 에 배포 주소 입력 → Package for stores → **Android** → Google Play
   - Package ID: 위 패키지 이름 / App name: 날래 / Launcher name: 날래
   - Signing key: **New** (PWABuilder가 만들어 줌)
