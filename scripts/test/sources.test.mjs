@@ -22,6 +22,14 @@ test('문장 속 지명', () => {
   assert.deepEqual(findPlacesInText('중구 화재').sgg, []);             // 전국에 여럿
   assert.deepEqual(findPlacesInText('고성군 산불').sgg, []);           // 강원·경남
   assert.deepEqual(findPlacesInText('서울 마포구 모아타운').sgg, ['11440']);
+  // 접미사 없는 이름 (실제 정책브리핑 제목)
+  assert.equal(findPlacesInText('부천 화재 순직 소방위, 현충원 안장').sgg.length, 3); // 부천 3개 구
+  assert.equal(findPlacesInText('과천 경마장 이전 협의').sgg.length, 1);
+  assert.equal(findPlacesInText('강남 3구 집값 상승 둔화').sgg.length, 1);
+  // 일반 단어와 겹치는 지명은 잡지 않는다
+  assert.deepEqual(findPlacesInText('화성 탐사 예산 진도 점검').sgg, []);
+  assert.deepEqual(findPlacesInText('해외 한식당 1000곳 확대').sgg, []);
+  assert.deepEqual(findPlacesInText('반도체 장비 기업 한국 거점 확대').sgg, []);
 });
 
 test('긴급재난문자 파싱', () => {

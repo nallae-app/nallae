@@ -117,6 +117,29 @@ const UNIQUE_NAMES = (() => {
 })();
 const UNIQUE_KEYS = [...UNIQUE_NAMES.keys()].filter((k) => /[시군구]$/.test(k) && k.length >= 3).sort((a, b) => b.length - a.length);
 
+// '부천 화재', '과천 경마장'처럼 시·군·구 접미사 없이 쓴 이름. 일반 단어와 겹치는 지명은 뺀다.
+const STEM_STOP = new Set(`
+  광주 동해 남해 서해 진도 구리 사천 양산 화성 봉화 예산 부여 보은 영동 음성 인제 정선 장수 완주 강진 장흥 장성 영광
+  함양 거창 고령 상주 영양 경주 진주 기장 달성 강화 고양 공주 세종 수영 사상 유성 광산 연수 동작 강북 강서 중구 동구 서구
+  남구 북구 고성 광명 성주 대덕 남동 청양 하동 금산 영도 연제 중랑 금천 송파 미추홀 제물포 영종 검단 북항 통영 의성 청도
+`.trim().split(/\s+/));
+const SIDO_SHORTS = new Set(INDEX.sidos.map((s) => s.short));
+const STEMS = (() => {
+  const m = new Map();
+  for (const k of UNIQUE_KEYS) {
+    if (k.includes(' ')) continue;
+    const stem = k.replace(/[시군구]$/, '');
+    if (stem.length < 2 || STEM_STOP.has(stem) || SIDO_SHORTS.has(stem)) continue;
+    if (m.has(stem)) { m.set(stem, null); continue; } // 같은 줄기가 둘이면 버린다
+    m.set(stem, UNIQUE_NAMES.get(k));
+  }
+  for (const [s, v] of m) if (!v) m.delete(s);
+  return m;
+})();
+const STEM_KEYS = [...STEMS.keys()].sort((a, b) => b.length - a.length);
+// 지명 뒤에는 띄어쓰기·문장부호·조사만 허용 ('부천에서', '과천 경마장')
+const STEM_TAIL = '(?=$|[^가-힣]|(?:에서|에|의|도|은|는|이|가|을|를|와|과|시민|지역|일대)(?:$|[^가-힣]))';
+
 export function findPlacesInText(text) {
   const t = String(text || '');
   const sgg = new Set(), sido = new Set();
@@ -134,6 +157,14 @@ export function findPlacesInText(text) {
       if (re2.test(rest)) {
         UNIQUE_NAMES.get(k).forEach((c) => sgg.add(c));
         rest = rest.replace(re2, '$1 ');
+      }
+    }
+    // 3) 접미사 없는 이름
+    for (const s of STEM_KEYS) {
+      const re3 = new RegExp(`(^|[^가-힣])${escapeRe(s)}${STEM_TAIL}`);
+      if (re3.test(rest)) {
+        STEMS.get(s).forEach((c) => sgg.add(c));
+        rest = rest.replace(re3, '$1 ');
       }
     }
   }
