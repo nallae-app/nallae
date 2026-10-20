@@ -69,7 +69,7 @@ for (const s of SOURCES) {
   } catch (e) {
     // 한 출처가 실패해도 나머지와 이전 소식은 그대로 둔다
     status[s.name] = { ok: false, note: String(e.message || e).slice(0, 200), at: now.toISOString() };
-    console.log(`- ${s.label}: 실패 — ${e.message || e}`);
+    console.log(`- ${s.label}: 실패 — ${e.message || e}${e.cause ? ` (${e.cause.code || ""} ${e.cause.message || ""})` : ""}`);
   }
 }
 
