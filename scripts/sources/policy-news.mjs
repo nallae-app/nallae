@@ -70,5 +70,6 @@ export async function fetchItems({ key, since }) {
   const items = parse(xml);
   // 진단용: 받은 자료 수, 공공누리 유형 분포, 지명이 잡힌 수 (본문·키는 남기지 않는다)
   console.log(`  정책브리핑 응답 ${all.length}건, KoglType ${JSON.stringify(kogl)}, 지명 일치 ${items.length}건${all.length ? '' : ` / 응답 앞부분: ${xml.slice(0, 300).replace(/\s+/g, ' ')}`}`);
+  if (process.env.BRIEF_DEBUG) for (const x of all.slice(0, 45)) console.log(`    · ${tag(x, 'Title').replace(/<[^>]+>/g, '').slice(0, 70)}`);
   return { items };
 }
