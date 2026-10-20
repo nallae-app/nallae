@@ -64,5 +64,11 @@ export async function fetchItems({ key, since }) {
   const xml = await res.text();
   const code = xml.match(/<resultCode>(.*?)<\/resultCode>/)?.[1];
   if (code && !/^0+$/.test(code)) throw new Error(`정책브리핑 오류 ${code} ${xml.match(/<resultMsg>(.*?)<\/resultMsg>/)?.[1] || ''}`);
-  return { items: parse(xml) };
+  const all = [...xml.matchAll(/<NewsItem>([\s\S]*?)<\/NewsItem>/g)].map((m) => m[1]);
+  const kogl = {};
+  for (const x of all) { const k = tag(x, 'KoglType') || '(없음)'; kogl[k] = (kogl[k] || 0) + 1; }
+  const items = parse(xml);
+  // 진단용: 받은 자료 수, 공공누리 유형 분포, 지명이 잡힌 수 (본문·키는 남기지 않는다)
+  console.log(`  정책브리핑 응답 ${all.length}건, KoglType ${JSON.stringify(kogl)}, 지명 일치 ${items.length}건${all.length ? '' : ` / 응답 앞부분: ${xml.slice(0, 300).replace(/\s+/g, ' ')}`}`);
+  return { items };
 }

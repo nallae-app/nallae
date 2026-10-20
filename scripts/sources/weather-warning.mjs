@@ -70,7 +70,7 @@ export function toItems(rows) {
       id: `wrn-${g.kind}${g.level}-${g.tmFc}-${hash(zoneIds)}`,
       src: 'wrn',
       cat: '기상',
-      title: `${g.kind}${g.level} 발효 — ${where}`,
+      title: `${g.kind}${g.level} ${g.level === '예비특보' ? '발표' : '발효'} — ${where}`,
       body: `특보 구역: ${[...new Set(names)].join(', ')}`,
       time: tmToIso(g.tmFc) || new Date().toISOString(),
       sgg: [...sgg], sido: [...sido],
