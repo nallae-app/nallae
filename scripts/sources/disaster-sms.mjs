@@ -56,6 +56,7 @@ export async function fetchItems({ key, since }) {
   if (!key) return { skipped: 'SAFETYDATA_KEY 없음' };
   const ymd = (d) => new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, '');
   const rows = [];
+  let reported = null;
   // 하루 호출 한도(최대 1,000) 안에 들도록: 최근 하루 치만, 한 번에 최대 3페이지 (10분 x 144회 x 3 = 432)
   const from = new Date(Math.max(since.getTime(), Date.now() - 86400e3));
   for (let page = 1; page <= 3; page++) {
@@ -70,7 +71,11 @@ export async function fetchItems({ key, since }) {
     const list = Array.isArray(body) ? body : body.items || [];
     rows.push(...list);
     const total = Number(data?.totalCount ?? data?.body?.totalCount ?? 0);
+    reported = total;
     if (list.length < 100 || rows.length >= total) break;
   }
-  return { items: parse(rows) };
+  const items = parse(rows);
+  // 진단용: API가 알려준 전체 건수, 받은 행 수, 지역이 잡힌 소식 수
+  console.log(`  재난문자 전체 ${reported}건, 받은 행 ${rows.length}건, 지역 일치 ${items.length}건`);
+  return { items };
 }

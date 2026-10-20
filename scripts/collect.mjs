@@ -11,9 +11,25 @@ import * as sms from './sources/disaster-sms.mjs';
 import * as wrn from './sources/weather-warning.mjs';
 import * as brief from './sources/policy-news.mjs';
 
+// 일시적인 네트워크 오류('fetch failed')는 3초 뒤 한 번 더 시도한다
+const rawFetch = globalThis.fetch;
+globalThis.fetch = async (url, opts) => {
+  try {
+    return await rawFetch(url, opts);
+  } catch (e) {
+    if (e?.name === 'AbortError' || e?.name === 'TimeoutError') throw e;
+    await new Promise((r) => setTimeout(r, 3000));
+    const { signal, ...rest } = opts || {};
+    return rawFetch(url, { ...rest, signal: AbortSignal.timeout(20000) });
+  }
+};
+
 const OUT = 'web/data/news.json';
 const KEEP_HOURS = 72;
 const MAX_ITEMS = 600;
+// 실종자 문자는 이름·나이 등 개인정보가 있어 하루만 보여준다
+const MISSING_PERSON_HOURS = 24;
+const isMissingPerson = (it) => it.src === 'sms' && it.cat === '사건' && /실종|찾습니다|배회/.test(it.body || it.title);
 
 const SOURCES = [
   { name: 'sms', label: '긴급재난문자', mod: sms, key: process.env.SAFETYDATA_KEY },
@@ -59,6 +75,7 @@ for (const s of SOURCES) {
 
 const items = [...byId.values()]
   .filter((it) => new Date(it.time) >= since && new Date(it.time) <= new Date(now.getTime() + 3600e3))
+  .filter((it) => !isMissingPerson(it) || now - new Date(it.time) < MISSING_PERSON_HOURS * 3600e3)
   .sort((a, b) => new Date(b.time) - new Date(a.time))
   .slice(0, MAX_ITEMS);
 
