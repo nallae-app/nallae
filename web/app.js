@@ -120,7 +120,7 @@
   const moveToBounds = (bounds, options) => reducedMotion.matches ? map.fitBounds(bounds, { ...options, animate:false }) : map.flyToBounds(bounds, options);
   let munis = [], muniByCode = new Map(), sidos = new Map(), neighborIdx = [], homeBounds = null;
 
-  const leftPad = () => (window.innerWidth >= 760 ? [370, 70] : [10, 110]);
+  const leftPad = () => (window.innerWidth >= 760 ? [370, 70] : [10, Math.min(110, Math.max(0, panel.getBoundingClientRect().top - 30))]);
   const bottomPad = () => (window.innerWidth >= 760 ? [20, 20] : [10, panel.offsetHeight + 10]);
   const fitHome = () => map.fitBounds(homeBounds, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad() });
 
@@ -276,6 +276,7 @@
     replayEl.style.left = left + 'px';
     replayEl.style.top = top + 'px';
     replayEl.style.maxWidth = width + 'px';
+    replayEl.style.visibility = bottom - top >= replayEl.getBoundingClientRect().height ? 'visible' : 'hidden';
     const minY = top + (replayEl.hidden ? 0 : replayEl.getBoundingClientRect().height + 8);
     bubbleEl.style.maxWidth = Math.min(innerWidth * .72, width) + 'px';
     if (!bubbleAt || bubbleEl.hidden) return;
@@ -733,7 +734,99 @@
 
   document.getElementById('btn-all').addEventListener('click', () => { clearSelection(); atHome = true; fitHome(); });
 
-  document.getElementById('panel-handle').addEventListener('click', () => panel.classList.toggle('collapsed'));
+  // 실제 높이를 바꿔 지도 패딩과 오버레이 안전 영역도 함께 갱신해요.
+  const mobileSheet = matchMedia('(max-width:759px)');
+  const handle = document.getElementById('panel-handle');
+  const sheetHead = panel.querySelector('.panel-head');
+  const favoritesRow = document.getElementById('favorites');
+  const stages = ['collapsed', 'middle', 'full'], stageNames = ['접힘', '중간', '전체'];
+  let sheetStage = 1, sheetDrag = null, suppressSheetClick = false;
+  try {
+    const saved = stages.indexOf(localStorage.getItem('nallae-sheet-stage'));
+    if (saved >= 0) sheetStage = saved;
+  } catch (_) {}
+  function sheetHeights() {
+    const full = Math.max(0, innerHeight - document.querySelector('.topbar').getBoundingClientRect().bottom - 8);
+    const folded = handle.offsetHeight + sheetHead.offsetHeight + favoritesRow.offsetHeight + parseFloat(getComputedStyle(panel).paddingBottom);
+    const low = Math.min(folded, full);
+    return [low, Math.min(full, Math.max(low, innerHeight * .48)), full];
+  }
+  function feedTouchAction() {
+    feedEl.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && feedEl.scrollTop <= 0);
+  }
+  function setSheetStage(stage, remember = true) {
+    sheetStage = stage;
+    panel.classList.remove('sheet-dragging');
+    panel.dataset.sheetStage = stages[stage];
+    handle.setAttribute('aria-label', '소식 목록 높이: ' + stageNames[stage] + '. 누르면 다음 높이로 바뀌어요');
+    handle.setAttribute('aria-controls', 'feed');
+    [chipsEl, feedEl, document.getElementById('new-items')].forEach(el => { el.inert = mobileSheet.matches && stage === 0; });
+    if (mobileSheet.matches) panel.style.height = sheetHeights()[stage] + 'px';
+    else panel.style.removeProperty('height');
+    feedTouchAction();
+    if (remember) try { localStorage.setItem('nallae-sheet-stage', stages[stage]); } catch (_) {}
+  }
+  handle.addEventListener('click', e => {
+    if (!mobileSheet.matches) return;
+    if (suppressSheetClick && e.detail !== 0) { suppressSheetClick = false; return; }
+    setSheetStage((sheetStage + 1) % 3);
+  });
+  panel.addEventListener('pointerdown', e => {
+    if (!mobileSheet.matches || !e.isPrimary || e.button !== 0 || sheetDrag) return;
+    const fromFeed = feedEl.contains(e.target);
+    if (fromFeed ? sheetStage !== 2 || feedEl.scrollTop > 0 : !e.target.closest('.panel-handle, .panel-head')) return;
+    if (!fromFeed && e.target.closest('button, a, input') && e.target !== handle) return;
+    suppressSheetClick = false;
+    sheetDrag = { id:e.pointerId, x:e.clientX, y:e.clientY, lastY:e.clientY, time:e.timeStamp,
+      velocity:0, height:panel.getBoundingClientRect().height, fromFeed, active:false };
+  });
+  panel.addEventListener('pointermove', e => {
+    const d = sheetDrag;
+    if (!d || d.id !== e.pointerId) return;
+    const dy = e.clientY - d.y;
+    if (!d.active) {
+      if (Math.abs(dy) < 6) return;
+      if (Math.abs(e.clientX-d.x) > Math.abs(dy) || (d.fromFeed && dy <= 0)) { sheetDrag = null; return; }
+      d.active = true;
+      panel.setPointerCapture(e.pointerId);
+      panel.classList.add('sheet-dragging');
+    }
+    e.preventDefault();
+    const elapsed = e.timeStamp-d.time;
+    if (elapsed > 0) d.velocity = (e.clientY-d.lastY)/elapsed;
+    d.lastY = e.clientY; d.time = e.timeStamp;
+    const heights = sheetHeights();
+    panel.style.height = Math.max(heights[0], Math.min(heights[2], d.height-dy)) + 'px';
+  }, {passive:false});
+  function endSheetDrag(e) {
+    const d = sheetDrag;
+    if (!d || d.id !== e.pointerId) return;
+    sheetDrag = null;
+    if (panel.hasPointerCapture(e.pointerId)) panel.releasePointerCapture(e.pointerId);
+    if (!d.active) return;
+    suppressSheetClick = true;
+    let stage = sheetStage;
+    if (e.type === 'pointerup') {
+      const heights = sheetHeights(), height = panel.getBoundingClientRect().height;
+      stage = heights.reduce((best,h,i) => Math.abs(h-height) < Math.abs(heights[best]-height) ? i : best, 0);
+      if (e.timeStamp-d.time < 100 && Math.abs(d.velocity) > .5)
+        stage = Math.max(0, Math.min(2, sheetStage + (d.velocity < 0 ? 1 : -1)));
+    }
+    setSheetStage(stage);
+  }
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => panel.addEventListener(type, endSheetDrag));
+  feedEl.addEventListener('scroll', feedTouchAction, {passive:true});
+  function resizeSheet() {
+    const id = sheetDrag?.id;
+    sheetDrag = null;
+    if (id !== undefined && panel.hasPointerCapture(id)) panel.releasePointerCapture(id);
+    setSheetStage(sheetStage, false);
+  }
+  window.addEventListener('resize', resizeSheet);
+  mobileSheet.addEventListener('change', resizeSheet);
+  const sheetContentObserver = new ResizeObserver(() => { if (!sheetDrag) setSheetStage(sheetStage, false); });
+  [sheetHead, favoritesRow, document.querySelector('.topbar')].forEach(el => sheetContentObserver.observe(el));
+  setSheetStage(sheetStage, false);
 
   let toastTimer;
   function toast(msg) {
