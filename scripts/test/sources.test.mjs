@@ -48,6 +48,9 @@ test('긴급재난문자 파싱', () => {
   assert.equal(items[1].cat, '기상');
   assert.equal(items[1].sgg.length, 4); // 고양 3구 + 파주
   assert.deepEqual(items[2].sido, ['26']);
+  // 긴급도: 출처 구분 그대로 (위급재난→critical, 긴급재난→urgent, 안전안내→normal, 없음→unknown)
+  assert.equal(items[0].urgency, 'normal');
+  assert.equal(items[1].urgency, 'urgent');
 });
 
 test('기상특보 파싱·묶기', () => {
@@ -69,6 +72,8 @@ test('기상특보 파싱·묶기', () => {
   const adv = items.find((i) => i.title.startsWith('호우주의보'));
   assert.deepEqual(adv.sido, ['11']);
   assert.equal(warn.time, '2026-10-20T01:00:00.000Z');
+  assert.equal(warn.urgency, 'urgent');
+  assert.equal(adv.urgency, 'normal');
 });
 
 test('정책브리핑 파싱: 공공누리 1유형 + 지명 있는 것만', () => {

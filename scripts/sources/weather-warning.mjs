@@ -3,6 +3,7 @@
 // 필요: KMA_APIHUB_KEY (apihub.kma.go.kr 회원가입 + API 활용신청)
 // 현재 발효 중인 특보만 돌려준다. 해제된 특보는 다음 수집 때 목록에서 빠진다.
 import fs from 'node:fs';
+import { warningUrgency } from '../lib/urgency.mjs';
 
 const ENDPOINT = 'https://apihub.kma.go.kr/api/typ01/url/wrn_now_data.php';
 const ZONES = JSON.parse(fs.readFileSync(new URL('../data/kma-zones.json', import.meta.url), 'utf8'));
@@ -69,6 +70,8 @@ export function toItems(rows) {
     items.push({
       id: `wrn-${g.kind}${g.level}-${g.tmFc}-${hash(zoneIds)}`,
       src: 'wrn',
+      level: g.level || undefined,
+      ...warningUrgency(g.level),
       cat: '기상',
       title: `${g.kind}${g.level} ${g.level === '예비특보' ? '발표' : '발효'} — ${where}`,
       body: `특보 구역: ${[...new Set(names)].join(', ')}`,

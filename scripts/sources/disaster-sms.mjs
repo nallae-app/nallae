@@ -2,6 +2,7 @@
 // https://www.safetydata.go.kr/disaster-data/view?dataSn=228
 // 필요: SAFETYDATA_KEY (safetydata.go.kr 회원가입 + 활용신청)
 import { resolvePlaces } from '../lib/regions.mjs';
+import { smsUrgency } from '../lib/urgency.mjs';
 
 const ENDPOINT = 'https://www.safetydata.go.kr/V2/api/DSSP-IF-00247';
 
@@ -44,6 +45,7 @@ export function parse(rows) {
       title: titleOf(r.MSG_CN),
       body: String(r.MSG_CN || '').trim(),
       level: r.EMRG_STEP_NM || undefined,
+      ...smsUrgency(r.EMRG_STEP_NM),
       kind: kind || undefined,
       time: kstToIso(r.CRT_DT),
       sgg, sido,
