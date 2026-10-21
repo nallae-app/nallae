@@ -21,3 +21,8 @@ jobs:
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: node scripts/probe-datago.mjs
+      - name: life (opinet, foodsafety)
+        env:
+          OPINET_KEY: ${{ secrets.OPINET_KEY }}
+          FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
+        run: node scripts/probe-life.mjs
