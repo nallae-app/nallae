@@ -15,11 +15,12 @@ console.log(`source: ${src}`);
 
 const cmd = [
   `-i "${path.join(SRC_DIR, src)}" name=dong`,
+  // 작은 섬 정리: 조각으로 나눈 뒤 0.3km² 미만 섬은 뺀다(전국 지도에서 해안선이 노이즈처럼 보이므로). 독도(경도 131.8 이동)는 크기와 관계없이 남긴다.
+  '-explode target=dong',
+  '-filter "this.area >= 300000 || this.centroidX > 131.8" target=dong',
   '-dissolve2 sgg copy-fields=sido,sidonm,sggnm name=sgg + target=dong',
   '-dissolve2 sido copy-fields=sidonm name=sido target=dong',
   '-target sgg,sido',
-  // 작은 섬 정리. 독도(동도·서도 각 약 0.07km²)는 지워지지 않게 기준을 그보다 작게 둔다.
-  '-filter-islands min-area=0.03km2 remove-empty target=sgg,sido',
   // keep-shapes는 '피처' 단위로만 지켜준다. 섬(독도 등)이 사라지지 않게 조각으로 나눠 단순화한 뒤 다시 합친다.
   '-explode target=sgg,sido',
   '-simplify 12% keep-shapes target=sgg,sido',
