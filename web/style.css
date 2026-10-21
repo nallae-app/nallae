@@ -155,3 +155,30 @@ path.region.flash { transition:none; }
 .map-legend { position:relative; top:auto; right:auto; padding:0; background:none; box-shadow:none; pointer-events:auto; }
 .map-legend summary { padding:0 8px; border-radius:12px; background:var(--surface); }
 .legend-content { position:fixed; top:80px; right:16px; padding:12px; border-radius:12px; background:var(--surface); box-shadow:var(--shadow); max-width:calc(100vw - 32px); }
+
+/* 관심 지역과 출처 상세는 지도·목록의 선택과 독립적으로 열려요. */
+.panel-head { padding-right:16px; flex-shrink:0; }
+.collection-status { position:static; max-width:none; margin:0 16px; padding:4px 0; min-height:44px; text-align:left; border:0; background:none; flex-shrink:0; color:var(--text-muted); }
+.favorites { display:flex; flex-wrap:nowrap; gap:4px; overflow-x:auto; padding:0 16px 8px; flex-shrink:0; align-items:center; }
+.favorites button { flex:none; border:1px solid var(--border-sido); border-radius:12px; background:var(--surface); padding:6px 10px; font-size:13px; }
+.favorites button[aria-pressed="true"] { color:var(--brand); background:var(--selection-fill); border-color:var(--brand); font-weight:600; }
+.favorite-hint { flex:none; margin:0; font-size:12px; color:var(--text-muted); }
+dialog { width:min(520px,calc(100% - 24px)); max-height:85dvh; overflow:auto; padding:20px; border:1px solid var(--border-sido); border-radius:20px; color:var(--text); background:var(--surface); box-shadow:var(--shadow); }
+dialog::backdrop { background:#0008; }
+.dialog-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.dialog-head h2 { margin:0; font-size:20px; }
+dialog button { border:1px solid var(--border-sido); background:var(--surface-muted); padding:8px 12px; border-radius:10px; }
+dialog p { font-size:14px; line-height:22px; overflow-wrap:anywhere; }
+dialog label { display:block; margin-top:12px; font-size:14px; }
+dialog input { display:block; width:100%; min-height:44px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--text-muted); border-radius:8px; padding:8px; margin:4px 0 8px; }
+dialog button:disabled { color:var(--text-muted); cursor:default; }
+#region-results { max-height:200px; overflow:auto; margin:8px 0; }
+#region-results button { display:block; width:100%; text-align:left; margin:4px 0; }
+.saved-region { border-bottom:1px solid var(--border-sido); padding-bottom:16px; }
+.saved-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.source-status { border-bottom:1px solid var(--border-sido); padding-bottom:12px; }
+@media(max-width:759px) {
+  .panel-head { padding-bottom:0; }
+  .panel.collapsed { height:228px; }
+  .panel.collapsed .chips,.panel.collapsed .feed,.panel.collapsed #new-items { display:none; }
+}
