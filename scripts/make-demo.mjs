@@ -50,7 +50,8 @@ const briefTitles = [
 }));
 
 // 바다 지진: 시·군·구 없이 진앙 점만
-const eqkText = `  3 ${tmfc(4)} 1 ${tmfc(7)}00.000 2.6   35.5600  125.3400 전북 군산시 어청도 남서쪽 85km 해역,최대진도 Ⅰ,지진피해 없을 것으로 예상됨,,=`;
+const eqkText = `  3 ${tmfc(4)} 1 ${tmfc(7)}00.000 2.6   35.5600  125.3400 전북 군산시 어청도 남서쪽 85km 해역,최대진도 Ⅰ,지진피해 없을 것으로 예상됨,,=
+  11 ${tmfc(2)} 2 ${tmfc(3)}00.000 3.1 36.0800 129.3700 경북 포항시 북구,최대진도 Ⅲ,,,=`;
 
 const items = [...sms.parse(smsRows), ...wrn.toItems(wrn.parseText(wrnText)), ...eqk.toItems(eqk.parseQuakes(eqkText)), ...briefTitles]
   .filter((it) => it.sgg.length || it.sido.length || Number.isFinite(it.lat))
@@ -59,3 +60,10 @@ const items = [...sms.parse(smsRows), ...wrn.toItems(wrn.parseText(wrnText)), ..
 
 fs.writeFileSync('web/data/demo-news.json', JSON.stringify({ updated: new Date(now).toISOString(), demo: true, items }, null, 1));
 console.log(`demo items: ${items.length}`);
+
+// 예보 데모는 실제 자료와 분리한다.
+const forecastDay=d=>new Date(now+9*3600000+d*86400000).toISOString().slice(0,10);
+const weather=JSON.parse(fs.readFileSync('web/data/demo-weather.json','utf8'));
+const forecast={updated:new Date(now).toISOString(),base:forecastDay(0)+'T05:00:00+09:00',source:'기상청 단기예보 (데모)',sgg:{}};
+Object.keys(weather.sgg).forEach((code,i)=>{forecast.sgg[code]={[forecastDay(0)]:{tmx:16,pop:60,pty:1,sky:3},[forecastDay(1)]:{tmn:4,tmx:16,pop:i%3?0:70,pty:i%3?0:1,sky:1}};});
+fs.writeFileSync('web/data/demo-forecast.json',JSON.stringify(forecast,null,1));

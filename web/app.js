@@ -290,6 +290,7 @@ function showMapBubble(item, at) {
   bubbleAt = at;
   bubbleUntil = item.urgency === 'critical' ? Date.now() + 4000 : 0;
   bubbleEl.innerHTML = urgencyBadge(item) + '<span class="bubble-title">' + escapeHtml(placeLabel(item)) + ' · ' + escapeHtml(item.title) + '</span>';
+  if(item.src==='eqk') bubbleEl.innerHTML+='<span class="bubble-quake-detail">'+escapeHtml(item.body?.split(' · ')[0] || '진도 미제공')+' · '+escapeHtml(new Date(item.time).toLocaleString('ko-KR'))+'</span>';
   bubbleEl.hidden = false;
   placeMapOverlays();
   bubbleTimer = setTimeout(() => { bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; }, item.urgency === 'critical' ? 4000 : 2800);
@@ -326,15 +327,15 @@ function pulse(item, withBubble) {
 function itemMunis(item) {
   const out = new Set();
   (item.sgg || []).forEach((c) => muniByCode.has(c) && out.add(muniByCode.get(c)));
-  (item.sido || []).forEach((c) => sidos.get(c)?.munis.forEach((m) => out.add(m)));
+  if(item.src!=='eqk') (item.sido || []).forEach((c) => sidos.get(c)?.munis.forEach((m) => out.add(m)));
   return [...out];
 }
 
 function placeLabel(item) {
   const sgg = (item.sgg || []).map((c) => muniByCode.get(c)).filter(Boolean);
-  const sido = (item.sido || []).map((c) => sidos.get(c)).filter(Boolean);
+  const sido = (item.src==='eqk' ? [] : item.sido || []).map((c) => sidos.get(c)).filter(Boolean);
   const names = [...sido.map((s) => `${s.short} 전체`), ...sgg.map(label)];
-  if (!names.length) return hasPoint(item) ? '진앙 위치' : '전국'; // 바다 지진: 시·군·구 없이 점만
+  if (!names.length) return item.src==='eqk' ? (nearbySea(item)?'가까운 해역':'해역') : hasPoint(item)?'진앙 위치':'전국'; // 바다 지진: 시·군·구 없이 점만
   const text = names.length > 2 ? `${names[0]} 외 ${names.length - 1}곳` : names.join(', ');
   return onMap(item) ? text : `관련: ${text}`;
 }
@@ -401,7 +402,23 @@ async function load() {
 }
 let updatedAt = null;
 
+function nearbySea(it) {
+  if(!selection || it.src!=='eqk' || it.sgg?.length || !hasPoint(it)) return false;
+  return !!sidos.get(selection.center.sido)?.munis.some(m=>map.distance(m.center,[it.lat,it.lon])<=100000);
+}
+const earthquakeMarkers=L.layerGroup().addTo(map);
+function renderEarthquakes() {
+  earthquakeMarkers.clearLayers(); if(mode!=='news') return;
+  items.filter(it=>it.src==='eqk' && hasPoint(it) && visible(it)).forEach(it=>{
+    const size=14+Math.max(0,Math.min(6,(it.mag||0)-2));
+    const marker=L.marker([it.lat,it.lon],{pane:'pulses',title:it.title,icon:L.divIcon({className:'earthquake-marker',iconSize:[size,size],iconAnchor:[size/2,size/2],html:'<span class="earthquake-pin'+(Date.now()-new Date(it.time)>86400000?' faded':'')+'" style="--eq-size:'+size+'px"><i></i><b>M'+escapeHtml(Number(it.mag).toFixed(1))+'</b></span>'})}).addTo(earthquakeMarkers);
+    marker.on('click',()=>{pending.delete(it.id);openId=it.id;bubbleUntil=0;renderFeed(null,true);feedEl.querySelector('[data-id="'+it.id+'"]')?.scrollIntoView({block:'nearest'});showMapBubble(it,L.latLng(it.lat,it.lon));});
+  });
+}
+setInterval(()=>{if(mode==='news') renderFeed(null,true);},60000);
 function visible(item) {
+  if(item.src==='eqk' && (!validDate(new Date(item.time)) || Date.now()-new Date(item.time)>72*3600000)) return false;
+  if(selection && item.src==='eqk') return (!category || category===item.cat) && (item.sgg?.includes(selection.center.code) || nearbySea(item));
   if (category && item.cat !== category) return false;
   if (selection && !onMap(item)) return false;
   if (selection && !itemMunis(item).some((m) => selection.codes.has(m.code))) return false;
@@ -450,6 +467,7 @@ function card(it) {
 }
 function renderFeed(newIds, preserve = false) {
   if (mode === 'explore') { renderExplore(); return; }
+  renderEarthquakes();
   if (!preserve) pending.clear();
   titleEl.textContent = selection ? label(selection.center) + ' 주변' : '전국 소식';
   subEl.textContent = selection ? (selection.fromLocation ? '내 위치 기준 · ' : '') + selection.center.name + '와 맞닿은 ' + (selection.codes.size - 1) + '곳 포함' : '최근 72시간 · 새 소식은 지도에서 먼저 반짝여요';
@@ -472,7 +490,7 @@ function renderFeed(newIds, preserve = false) {
   for (const it of list) {
     let li = existing.get(it.id);
     if (!li) { li = document.createElement('li'); li.dataset.id = it.id; }
-    const signature = JSON.stringify(it) + (it.id === openId);
+    const signature = JSON.stringify(it) + (it.id === openId) + placeLabel(it);
     if (li._signature !== signature) { li.innerHTML = card(it); li._signature = signature; }
     li.classList.toggle('open',it.id === openId);
     li.classList.toggle('critical',it.urgency === 'critical');
@@ -508,7 +526,7 @@ function renderFeed(newIds, preserve = false) {
   updateTimes();
 }
 function detail(it) {
-  return '<div class="detail">' + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + '</span>' + (it.url ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener">원문 보기 ↗</a>' : '') + '</div></div>';
+  return '<div class="detail">' + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + (it.src==='eqk'?'</span><span>기상청 지진정보 · 진앙 위치는 발표 좌표':'') + '</span>' + (it.url ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener">원문 보기 ↗</a>' : '') + '</div></div>';
 }
 
 feedEl.addEventListener('click', (e) => {
@@ -851,7 +869,7 @@ new MutationObserver(() => {
   });
   scheduleLabels();
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
-﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, foodIndex=null, weatherData=null;
+﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, foodIndex=null, weatherData=null, forecastData=null;
 try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'festival'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
 const preferredExploreLayer=exploreLayer;
 const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
@@ -869,12 +887,13 @@ function fuelColor(code) {
   const d=price-avg; return fuelColors[d < -50?0:d < -10?1:d <= 10?2:d <= 50?3:4];
 }
 async function loadExploreData() {
-  await Promise.all(['fuel','food/index','weather'].map(async key=>{
+  await Promise.all(['fuel','food/index','weather','forecast'].map(async key=>{
     try {
       const r=await fetch('data/'+(DEMO?(key==='food/index'?'demo-food/index':'demo-'+key):key)+'.json',{cache:'no-store'});
       if (!r.ok) throw Error(); const data=await r.json();
       if(key==='fuel' && data.sgg && Array.isArray(data.stations) && data.national) fuelData=data;
       if(key==='weather' && data.sgg) weatherData=data;
+      if(key==='forecast' && data.sgg) forecastData=data;
       if(key==='food/index' && data.counts) foodIndex=data;
     } catch (_) {}
   }));
@@ -908,6 +927,7 @@ setInterval(async()=>{
     const r=await fetch('data/'+(DEMO?'demo-weather':'weather')+'.json',{cache:'no-store'});
     if(!r.ok) return;
     const data=await r.json(); if(!data.sgg) return; weatherData=data;
+    try { const forecast=await fetch('data/'+(DEMO?'demo-forecast':'forecast')+'.json',{cache:'no-store'}); if(forecast.ok) { const next=await forecast.json(); if(next.sgg) forecastData=next; } } catch (_) {}
     if(mode==='explore'&&exploreLayer==='weather') renderExplore();
   } catch (_) {}
 },3600000);
@@ -917,18 +937,40 @@ function weatherColor(code) {
   const stops=[[167,201,226],[216,226,222],[244,222,169],[239,185,142]], x=Math.max(0,Math.min(3,(t+10)/15)), i=Math.min(2,Math.floor(x)), f=x-i;
   return 'rgb('+stops[i].map((v,j)=>Math.round(v+(stops[i+1][j]-v)*f)).join(',')+')';
 }
+const koreaDate=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,10);
+function forecastHour() {
+ const date=new Date(forecastData?.base);
+ return validDate(date)?'단기예보 '+String((date.getUTCHours()+9)%24).padStart(2,'0')+'시 발표':'단기예보 발표 시각 미제공';
+}
+function forecastCards(code) {
+ if(!forecastData) return '';
+ return '<div class="forecast-days">'+[0,1].map(offset=>{
+  const d=forecastData.sgg?.[code]?.[koreaDate(new Date(Date.now()+offset*86400000))], name=offset?'내일':'오늘';
+  if(!d) return '<section><h4>'+name+'</h4><p>예보 미제공</p></section>';
+  const sky=d.pty>0?({1:'비',2:'비/눈',3:'눈',4:'소나기'}[d.pty]||'강수'):({1:'맑음',3:'구름많음',4:'흐림'}[d.sky]||'하늘 미제공');
+  const symbol=d.pty>0?precipSymbol(d.pty):({1:'☀',3:'☁',4:'☁'}[d.sky]||'');
+  const temps=[Number.isFinite(d.tmn)?d.tmn+'°':null,Number.isFinite(d.tmx)?d.tmx+'°':null].filter(v=>v!==null).join(' / ');
+  return '<section><h4>'+name+'</h4><p>'+symbol+' '+sky+'</p>'+(temps?'<strong>'+temps+'</strong>':'')+(Number.isFinite(d.pop)?'<p>강수확률 '+d.pop+'%</p>':'')+'</section>';
+ }).join('')+'</div><p class="forecast-source">'+forecastHour()+'</p>';
+}
+function forecastSummary() {
+ if(!forecastData) return '';
+ const day=koreaDate(new Date(Date.now()+86400000)),groups=new Map();let count=0;
+ Object.entries(forecastData.sgg).forEach(([code,days])=>{const d=days[day],m=muniByCode.get(code);if(!m||!d||!(d.pop>=60||d.pty>0))return;count++;const name=sidos.get(m.sido)?.short||m.sido;groups.set(name,(groups.get(name)||0)+1);});
+ return '<li class="festival-card"><h3>내일 비 소식 있는 곳</h3><p>'+count+'개 시·군·구'+(count?' · '+escapeHtml([...groups].map(([name,n])=>name+' '+n+'곳').join(', ')):'')+'</p><p>'+forecastHour()+'</p></li>';
+}
 function renderWeather() {
-  const code=selection?.center.code || startCode, region=muniByCode.get(code), w=weatherData.sgg[code];
+  const code=selection?.center.code, region=muniByCode.get(code), w=weatherData.sgg[code];
   const hour=validDate(new Date(weatherData.base))?new Date(weatherData.base).getHours()+'시 발표':'발표 시각 미제공';
-  exploreTools.innerHTML=sourceDisclosure('기상청 초단기실황 · '+hour+' · 시·군·구 대표 지점 격자(5km) 값이라 동네 안에서도 다를 수 있어요')+'<div class="weather-legend">차가움 <i></i> 따뜻함</div>';
+  exploreTools.innerHTML=sourceDisclosure('기상청 초단기실황 · '+hour+(forecastData?' · '+forecastHour():'')+' · 시·군·구 대표 지점 격자(5km) 값이라 동네 안에서도 다를 수 있어요')+'<div class="weather-legend">차가움 <i></i> 따뜻함</div>';
   const rows=Object.entries(weatherData.sgg).filter(([c,v])=>muniByCode.has(c)&&Number.isFinite(v.t)).sort((a,b)=>a[1].t-b[1].t);
   const line=([c,v])=>'<p>'+escapeHtml(label(muniByCode.get(c)))+' <strong>'+v.t+'°</strong>'+(v.pty>0?' '+precipSymbol(v.pty):'')+'</p>';
   if(code) {
     const warning=items.some(it=>it.src==='wrn'&&it.level!=='예비특보'&&it.onMap!==false&&(it.sgg?.includes(code)||it.sido?.includes(region?.sido)));
-    feedEl.innerHTML=(warning?'<li><button class="weather-warning" type="button" data-weather-news>기상특보 발효 중 — 소식 탭에서 보기</button></li>':'')+'<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+(w&&Number.isFinite(w.t)?'<strong class="temperature">'+w.t+'°</strong> '+(w.pty>0?precipSymbol(w.pty):'')+'<p>습도 '+(w.reh??'미제공')+(w.reh==null?'':'%')+' · 바람 '+(w.wsd??'미제공')+(w.wsd==null?'':'m/s')+' · 1시간 강수 '+(w.rn??'미제공')+(w.rn==null?'':'mm')+'</p>':'<p>이 지역의 현재 날씨 자료가 없어요.</p>')+'<p>'+hour+'</p></li>';
+    feedEl.innerHTML=(warning?'<li><button class="weather-warning" type="button" data-weather-news>기상특보 발효 중 — 소식 탭에서 보기</button></li>':'')+'<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+(w&&Number.isFinite(w.t)?'<strong class="temperature">'+w.t+'°</strong> '+(w.pty>0?precipSymbol(w.pty):'')+'<p>습도 '+(w.reh??'미제공')+(w.reh==null?'':'%')+' · 바람 '+(w.wsd??'미제공')+(w.wsd==null?'':'m/s')+' · 1시간 강수 '+(w.rn??'미제공')+(w.rn==null?'':'mm')+'</p>':'<p>이 지역의 현재 날씨 자료가 없어요.</p>')+'<p>'+hour+'</p>'+forecastCards(code)+'</li>';
   } else {
     const wet=rows.filter(([,v])=>v.pty>0);
-    feedEl.innerHTML='<li class="festival-card"><h3>가장 따뜻한 곳</h3>'+rows.slice(-3).reverse().map(line).join('')+'</li><li class="festival-card"><h3>가장 쌀쌀한 곳</h3>'+rows.slice(0,3).map(line).join('')+'</li>'+(wet.length?'<li class="festival-card"><h3>비·눈 오는 곳</h3>'+wet.map(line).join('')+'</li>':'');
+    feedEl.innerHTML=forecastSummary()+'<li class="festival-card"><h3>가장 따뜻한 곳</h3>'+rows.slice(-3).reverse().map(line).join('')+'</li><li class="festival-card"><h3>가장 쌀쌀한 곳</h3>'+rows.slice(0,3).map(line).join('')+'</li>'+(wet.length?'<li class="festival-card"><h3>비·눈 오는 곳</h3>'+wet.map(line).join('')+'</li>':'');
   }
 }
 feedEl.addEventListener('click',e=>{if(e.target.closest('[data-weather-news]')) document.querySelector('[data-mode-choice="news"]').click();});
@@ -1093,7 +1135,7 @@ function renderFestivalMarkers() {
 }
 function applyMode() {
   rootMode();
-  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers();
+  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); earthquakeMarkers.clearLayers();
   document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode)));
   map.closePopup(); bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; replayEl.hidden = true;
   map.getPane('pulses').style.display = mode === 'explore' ? 'none' : '';

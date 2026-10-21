@@ -329,3 +329,12 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .food-card .food-map { position:absolute; right:12px; bottom:0; font-size:11px; }
 #feed .food-card .source-disclosure summary { min-height:24px; }
 :root[data-mode="explore"] #feed .food-card { padding:3px 12px; }
+
+.earthquake-pin{display:block;position:relative;width:var(--eq-size);height:var(--eq-size);color:var(--signal-urgent,#bf6b35);border:1.5px solid currentColor;border-radius:50%;background:var(--surface,#fff)}
+.earthquake-pin i{position:absolute;inset:3px;border:1px solid currentColor;border-radius:50%}
+.earthquake-pin i::after{content:"";position:absolute;inset:3px;background:currentColor;border-radius:50%}
+.earthquake-pin b{position:absolute;left:calc(100% + 4px);top:-3px;font-size:11px;white-space:nowrap;padding:1px 3px;border-radius:3px;background:var(--surface,#fff)}
+.earthquake-pin.faded{opacity:.4}
+.bubble-quake-detail{display:block;margin-top:5px;font-size:11px}
+.forecast-days{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line,#ddd);margin-top:16px;padding-top:12px}
+.forecast-days h4{margin:0 0 8px;font-size:13px}.forecast-days p{margin:5px 0;font-size:13px}.forecast-source{font-size:11px;opacity:.7}

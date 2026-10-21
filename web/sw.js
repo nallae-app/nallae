@@ -1,5 +1,5 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-const VERSION = 'nallae-v16';
+const VERSION = 'nallae-v17';
 const SHELL = [
   './', 'index.html', 'style.css', 'fonts/pretendard/pretendard-subset.css', 'app.js', 'manifest.webmanifest',
   'vendor/leaflet.min.css', 'vendor/leaflet.min.js', 'vendor/topojson-client.min.js',
@@ -23,7 +23,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
 
-  if (/\/data\/(?:demo-)?food\//.test(url.pathname) || /\/(?:news|festivals|demo-festivals|fuel|demo-fuel|weather|demo-weather)\.json$/.test(url.pathname)) {
+  if (/\/data\/(?:demo-)?food\//.test(url.pathname) || /\/(?:news|festivals|demo-festivals|fuel|demo-fuel|weather|demo-weather|forecast|demo-forecast)\.json$/.test(url.pathname)) {
     // 네트워크 우선, 실패하면 마지막으로 받은 소식
     e.respondWith(
       fetch(e.request).then((res) => {
