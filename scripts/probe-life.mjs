@@ -4,6 +4,8 @@ const mask = (s) => [opinet, food].filter(Boolean).reduce((t, k) => t.replaceAll
 const urls = {};
 if (opinet) {
   urls['opinet 전국 평균'] = `https://www.opinet.co.kr/api/avgAllPrice.do?out=json&code=${opinet}`;
+  // 공식 문서의 인증 매개변수 이름은 certkey (2026-10-21 확인). 기존 code와 응답을 비교한다
+  urls['opinet 전국 평균(certkey)'] = `https://www.opinet.co.kr/api/avgAllPrice.do?out=json&certkey=${opinet}`;
   urls['opinet 서울 휘발유 최저가 10'] = `https://www.opinet.co.kr/api/lowTop10.do?out=json&code=${opinet}&prodcd=B027&area=01`;
   urls['opinet 시군구 평균(서울)'] = `https://www.opinet.co.kr/api/avgSigunPrice.do?out=json&code=${opinet}&sido=01&prodcd=B027`;
 }
