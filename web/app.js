@@ -1219,9 +1219,33 @@ function renderFuel() {
   feedEl.innerHTML='<li class="explore-source">시·도별 최저가 10곳만 보여줘요</li>'+stations.map(s=>'<li class="festival-card">'+stationText(s)+'</li>').join('')+(stations.length?'':'<li class="empty">이 지역의 해당 유종 최저가 목록이 없어요.</li>');
   for(const s of stations) {
     if(!Number.isFinite(s.lat)||!Number.isFinite(s.lon)||Math.abs(s.lat)>90||Math.abs(s.lon)>180) continue;
-    L.marker([s.lat,s.lon],{title:s.name,icon:L.divIcon({className:'fuel-marker',html:'<span class="fuel-hit"><i></i></span>',iconSize:[44,44],iconAnchor:[22,22]})}).bindPopup(stationText(s)).addTo(fuelMarkers);
+    L.marker([s.lat,s.lon],{title:s.name,icon:L.divIcon({className:'fuel-marker',html:'<span class="fuel-hit"><i></i></span>',iconSize:[44,44],iconAnchor:[22,22]})}).bindPopup(()=>nearbyStations(s,stations),{maxWidth:280}).addTo(fuelMarkers);
   }
 }
+// 44px 터치 상자가 겹치면 맨 위 점이 눌려 다른 주유소가 열린다(실측: 전국 화면 93% 오선택).
+// 누른 점의 상자와 겹치는 주유소가 여럿이면 그 목록을 보여 주고 고르게 한다. 좌표·자료는 그대로.
+function nearbyStations(s,stations){
+  const p=map.latLngToContainerPoint([s.lat,s.lon]);
+  const near=stations.filter(o=>Number.isFinite(o.lat)&&Number.isFinite(o.lon)).filter(o=>{const q=map.latLngToContainerPoint([o.lat,o.lon]);return Math.abs(q.x-p.x)<44&&Math.abs(q.y-p.y)<44;});
+  if(near.length<=1) return stationText(s);
+  near.sort((a,b)=>a.price[fuelProduct]-b.price[fuelProduct]);
+  nearbyZoom=near;
+  // 모두 담는다(목록 안에서 스크롤). 많으면 그곳으로 확대해 따로 고를 수 있게 한다.
+  return '<p class="nearby-head">이 근처 주유소 '+near.length+'곳 · '+productName()+' 싼 순</p>'+(near.length>5?'<button type="button" class="nearby-zoom" data-nearby-zoom>이곳 확대해서 고르기</button>':'')+'<ul class="nearby-list">'+near.map(o=>'<li>'+stationText(o)+'</li>').join('')+'</ul>';
+}
+let nearbyZoom=null;
+// 지도 팝업(주유소·주차·축제): 열릴 때 지도 조작부 아래·시트 위의 안전 영역으로 자동 이동하고, 그 높이를 넘으면 안에서 스크롤
+// (예전에는 큰 팝업 윗부분이 헤더·조작부에 가렸다). Leaflet 1.9.4 내장본의 onAdd 앞에서 옵션만 바꾼다.
+const popupOnAdd=L.Popup.prototype.onAdd;
+L.Popup.include({onAdd(m){
+  const top=document.querySelector('.controls').getBoundingClientRect().bottom+8;
+  const bottom=mobileSheet.matches?sheetTarget()+12:12;
+  this.options.autoPanPaddingTopLeft=L.point(12,top);
+  this.options.autoPanPaddingBottomRight=L.point(12,bottom);
+  this.options.maxHeight=Math.max(160,innerHeight-top-bottom-40);
+  return popupOnAdd.call(this,m);
+}});
+document.addEventListener('click',e=>{if(!e.target.closest('[data-nearby-zoom]')||!nearbyZoom)return;const bnds=L.latLngBounds(nearbyZoom.map(o=>[o.lat,o.lon]));map.closePopup();userMovedMap();map.fitBounds(bnds,{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:14,animate:!reducedMotion.matches});});
 async function loadFood(code) {
   foodPending.add(code); foodErrors.delete(code);
   try {
