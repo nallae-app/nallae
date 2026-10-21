@@ -11,8 +11,43 @@
   const MUNI_ZOOM = 8.5;              // 이 배율부터 시·군·구 단위로 본다
 
   const CATEGORIES = ['재난', '기상', '사건', '교통', '개발', '행정', '생활', '정책'];
-  const css = getComputedStyle(document.documentElement);
-  const colorOf = (cat) => css.getPropertyValue(`--c-${cat}`).trim() || '#9fb3d9';
+  const root = document.documentElement;
+  const token = (name) => getComputedStyle(root).getPropertyValue('--' + name).trim();
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const signalName = (it) => ({ critical:'signal-critical', urgent:'signal-urgent', normal:'brand' }[it.urgency] || 'signal-unknown');
+  const signalStyle = (it) => '--signal:var(--' + signalName(it) + ')';
+  const urgencyBadge = (it) => {
+    const u = ['critical','urgent','normal'].includes(it.urgency) ? it.urgency : 'unknown';
+    return u === 'normal' ? '' : '<span class="urgency ' + u + '">' + ({critical:'위급',urgent:'긴급',unknown:'구분 미제공'}[u]) + '</span>';
+  };
+  const iconPaths = {
+    '재난':'M12 3 2 21h20L12 3ZM12 9v5m0 3v1',
+    '기상':'M7 16a4 4 0 1 1 1-8 5 5 0 0 1 9 2 3 3 0 0 1 0 6H7ZM8 19l-1 2m6-2-1 2m6-2-1 2',
+    '사건':'M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3ZM12 8v5m0 3v1',
+    '교통':'M5 16h14l-1-9H6l-1 9ZM5 12h14M7 16v4m10-4v4M8 7V4h8v3',
+    '개발':'M4 21V9l8-6 8 6v12M2 21h20M9 21v-7h6v7',
+    '행정':'M3 9h18L12 3 3 9ZM5 10v8m7-8v8m7-8v8M3 21h18',
+    '생활':'M12 21S3 15 3 9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z',
+    '정책':'M6 3h9l4 4v14H6V3ZM14 3v5h5M9 12h7m-7 4h7'
+  };
+  const icon = (cat) => '<svg class="category-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (iconPaths[cat] || iconPaths['생활']) + '"/></svg>';
+  const themeButton = document.getElementById('btn-theme');
+  function applyTheme() {
+    const mode = root.dataset.themeMode;
+    root.dataset.theme = mode === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : mode;
+    const name = {light:'라이트',dark:'다크',system:'시스템'}[mode];
+    const shape = {light:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',dark:'<path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/>',system:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4M12 7v7m0-7a3.5 3.5 0 0 1 0 7"/>'}[mode];
+    themeButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + shape + '</svg>';
+    themeButton.setAttribute('aria-label', '화면 테마: ' + name + '. 누르면 다음 설정');
+  }
+  themeButton.addEventListener('click', () => {
+    const modes = ['system','light','dark'];
+    root.dataset.themeMode = modes[(modes.indexOf(root.dataset.themeMode) + 1) % 3];
+    try { localStorage.setItem('nallae-theme', root.dataset.themeMode); } catch (_) {}
+    applyTheme();
+  });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+  applyTheme();
 
   if (DEMO) document.getElementById('badge-demo').hidden = false;
 
@@ -32,9 +67,58 @@
   map.createPane('munis').style.zIndex = 400;
   map.createPane('provs').style.zIndex = 410;
   map.getPane('provs').style.pointerEvents = 'none';
+  map.createPane('labels').style.zIndex = 420;
+  map.getPane('labels').style.pointerEvents = 'none';
+  map.createPane('selection').style.zIndex = 430;
+  map.getPane('selection').style.pointerEvents = 'none';
   map.createPane('pulses').style.zIndex = 650;
 
-  const baseStyle = { color: '#22324f', weight: 0.6, fillColor: '#13203a', fillOpacity: 1 };
+  const baseStyle = { color: token('border-sgg'), weight: 0.6, fillColor: token('land'), fillOpacity: 1 };
+  let provinceLayer, selectionOutline;
+  const regionLabels = [];
+  let labelTimer, outlinedRegion;
+  function scheduleLabels() { clearTimeout(labelTimer); labelTimer = setTimeout(renderLabels, 90); }
+  function renderLabels() {
+    if (outlinedRegion !== selection?.center) {
+      if (selectionOutline) map.removeLayer(selectionOutline);
+      outlinedRegion = selection?.center;
+      selectionOutline = selection ? L.geoJSON(selection.center.feature, { pane:"selection", interactive:false, style:{color:token("brand"),weight:2,fill:false} }).addTo(map) : null;
+    }
+    selectionOutline?.setStyle({color:token("brand")});
+    const safe = mapSafeArea();
+    if (!replayEl.hidden) safe.top += replayEl.getBoundingClientRect().height + 8;
+    const occupied = [];
+    const zoomed = map.getZoom() >= MUNI_ZOOM;
+    const sorted = regionLabels.slice().sort((a,b) => {
+      const rank = r => selection?.center.code === r.code ? 0 : r.kind === "sido" ? 1 : 2;
+      return rank(a)-rank(b) || b.area-a.area || a.code.localeCompare(b.code);
+    });
+    for (const r of sorted) {
+      const selected = selection?.center.code === r.code;
+      r.el.hidden = true;
+      if (!zoomed && r.kind !== "sido" && !selected) continue;
+      const pt = map.latLngToContainerPoint(r.at);
+      r.el.classList.toggle("selected", !!selected);
+      r.el.hidden = false;
+      const w = r.el.offsetWidth, h = r.el.offsetHeight;
+      const box = {left:pt.x-w/2-4,right:pt.x+w/2+4,top:pt.y-h/2-3,bottom:pt.y+h/2+3};
+      if (box.left < safe.left || box.right > safe.right || box.top < safe.top || box.bottom > safe.bottom || occupied.some(b => box.left < b.right && box.right > b.left && box.top < b.bottom && box.bottom > b.top)) { r.el.hidden=true; continue; }
+      occupied.push(box);
+      L.DomUtil.setPosition(r.el, map.latLngToLayerPoint(r.at).subtract([w/2,h/2]));
+    }
+  }
+  function addRegionLabel(f, kind) {
+    const p=f.properties;
+    if (!Number.isFinite(p.lx) || !Number.isFinite(p.ly)) return;
+    const el=document.createElement("span");
+    el.className="region-label"; el.textContent=kind === "sido" ? p.short || p.name : p.name;
+    el.hidden=true; el.setAttribute("aria-hidden","true");
+    map.getPane("labels").append(el);
+    regionLabels.push({el,kind,code:p.code,area:p.la || 0,at:[p.ly,p.lx]});
+  }
+  map.on("moveend zoomend resize", scheduleLabels);
+  document.fonts?.ready.then(scheduleLabels);
+  const moveToBounds = (bounds, options) => reducedMotion.matches ? map.fitBounds(bounds, { ...options, animate:false }) : map.flyToBounds(bounds, options);
   let munis = [], muniByCode = new Map(), sidos = new Map(), neighborIdx = [], homeBounds = null;
 
   const leftPad = () => (window.innerWidth >= 760 ? [370, 70] : [10, 110]);
@@ -64,14 +148,16 @@
         const m = muniByCode.get(f.properties.code);
         m.layer = layer;
         layer.on('click', () => onRegionClick(m));
-        layer.on('mouseover', () => { if (!m.flashing && !isSelected(m)) layer.setStyle({ fillColor: '#1b2d4f' }); });
+        layer.on('mouseover', () => { if (!m.flashing && !isSelected(m)) layer.setStyle({ fillColor: token('surface-muted') }); });
         layer.on('mouseout', () => { if (!m.flashing) restyle(m); });
       },
     }).addTo(map);
     const sidoGeo = topojson.feature(topo, topo.objects.sido);
+    sggGeo.features.forEach(f => addRegionLabel(f, "sgg"));
+    sidoGeo.features.forEach(f => addRegionLabel(f, "sido"));
     sidoGeo.features.forEach((f) => { const s = sidos.get(f.properties.code); if (s) s.short = f.properties.short; });
-    L.geoJSON(sidoGeo, {
-      pane: 'provs', interactive: false, style: { color: '#4a6491', weight: 1.3, fill: false },
+    provinceLayer = L.geoJSON(sidoGeo, {
+      pane: 'provs', interactive: false, style: { color: token('border-sido'), weight: 1.3, fill: false },
     }).addTo(map);
 
     for (const s of sidos.values()) {
@@ -81,6 +167,7 @@
     }
     homeBounds = muniLayer.getBounds();
     fitHome();
+    scheduleLabels();
   }
 
   // 화면 크기가 바뀌면(앱이 백그라운드에서 열려 크기가 0이었던 경우 포함) 아직 손대지 않은 전국 화면을 다시 맞춘다
@@ -96,7 +183,7 @@
   map.on('zoomend', () => {
     const z = map.getZoom() >= MUNI_ZOOM;
     baseStyle.weight = z ? 1 : 0.6;
-    baseStyle.color = z ? '#2f4570' : '#22324f';
+    baseStyle.color = token('border-sgg');
     munis.forEach((m) => { if (!m.flashing) restyle(m); });
   });
 
@@ -108,15 +195,15 @@
   const isSelected = (m) => !!selection && selection.codes.has(m.code);
   function restyle(m) {
     if (!m.layer) return;
-    if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, fillColor: '#2a3b1f', color: '#ffcf3f', weight: 1.6 });
-    else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, fillColor: '#1f2a1e', color: '#8a7a3a', weight: 1 });
+    if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, fillColor: token('selection-fill'), color: token('brand'), weight: 2 });
+    else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, fillColor: token('selection-fill'), color: token('border-sido'), weight: 1 });
     else m.layer.setStyle(baseStyle);
   }
 
   function onRegionClick(m) {
     atHome = false;
     if (map.getZoom() < MUNI_ZOOM) {
-      map.flyToBounds(sidos.get(m.sido).bounds, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8 });
+      moveToBounds(sidos.get(m.sido).bounds, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8 });
       return;
     }
     select(m, false);
@@ -127,17 +214,19 @@
     const prev = selection;
     const codes = new Set([m.code, ...neighborIdx[m.i].map((j) => munis[j].code)]);
     selection = { center: m, codes, fromLocation };
+    scheduleLabels();
     if (prev) prev.codes.forEach((c) => restyle(muniByCode.get(c)));
     codes.forEach((c) => restyle(muniByCode.get(c)));
     const bounds = L.latLngBounds([]);
     codes.forEach((c) => bounds.extend(muniByCode.get(c).layer.getBounds()));
-    map.flyToBounds(bounds, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 11 });
+    moveToBounds(bounds, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 11 });
     renderFeed();
   }
 
   function clearSelection() {
     const prev = selection;
     selection = null;
+    scheduleLabels();
     if (prev) prev.codes.forEach((c) => restyle(muniByCode.get(c)));
     locateBtn.classList.remove('active');
     if (meMarker) { map.removeLayer(meMarker); meMarker = null; }
@@ -145,50 +234,96 @@
   }
 
   // ---------- 위잉 ----------
-  function flash(m, color) {
+  function flash(m, signal) {
     m.flashing = true;
+    m.signal = signal;
+    m.flashStarted = performance.now();
     const el = m.layer.getElement();
     el.classList.add('flash');
-    m.layer.setStyle({ fillColor: color, fillOpacity: 0.85 });
+    m.layer.setStyle({ fillColor: token(signal), fillOpacity: 0.85 });
     requestAnimationFrame(() => requestAnimationFrame(() => {
       el.classList.remove('flash');
-      m.layer.setStyle({ fillColor: isSelected(m) ? '#1f2a1e' : baseStyle.fillColor, fillOpacity: 1 });
+      m.layer.setStyle({ fillColor: isSelected(m) ? token('selection-fill') : baseStyle.fillColor, fillOpacity: 1 });
     }));
     clearTimeout(m.flashTimer);
-    m.flashTimer = setTimeout(() => { m.flashing = false; restyle(m); }, 1700);
+    m.flashTimer = setTimeout(() => { m.flashing = false; restyle(m); }, 2400);
   }
 
-  let bubbleMarker = null;
+  const bubbleEl = document.createElement('div');
+  bubbleEl.className = 'map-bubble';
+  bubbleEl.hidden = true;
+  document.body.append(bubbleEl);
+  let bubbleAt = null, bubbleUntil = 0, bubbleTimer;
+  const replayEl = document.getElementById('replay-status');
+  function mapSafeArea() {
+    const sheet = panel.getBoundingClientRect();
+    const controls = document.querySelector('.controls').getBoundingClientRect();
+    const header = document.querySelector('.topbar').getBoundingClientRect();
+    const desktop = matchMedia('(min-width:760px)').matches;
+    const left = desktop ? sheet.right + 16 : 12;
+    const right = desktop ? controls.left - 12 : innerWidth - 12;
+    const legendEl = document.getElementById('map-legend');
+    const legend = (legendEl.open ? legendEl.querySelector('.legend-content') : legendEl).getBoundingClientRect();
+    const top = Math.max(header.bottom, controls.bottom, legend.bottom) + 8;
+    const bottom = desktop ? innerHeight - 28 : sheet.top - 12;
+    return {left,right,top,bottom};
+  }
+  function placeMapOverlays() {
+    const {left,right,top,bottom} = mapSafeArea();
+    const width = Math.max(0, right - left);
+    replayEl.style.left = left + 'px';
+    replayEl.style.top = top + 'px';
+    replayEl.style.maxWidth = width + 'px';
+    const minY = top + (replayEl.hidden ? 0 : replayEl.getBoundingClientRect().height + 8);
+    bubbleEl.style.maxWidth = Math.min(innerWidth * .72, width) + 'px';
+    if (!bubbleAt || bubbleEl.hidden) return;
+    const box = bubbleEl.getBoundingClientRect();
+    const point = map.latLngToContainerPoint(bubbleAt);
+    const inView = point.x >= left && point.x <= right && point.y >= minY && point.y <= bottom;
+    bubbleEl.style.visibility = inView && width >= 80 && bottom - minY >= box.height ? 'visible' : 'hidden';
+    const x = point.x + box.width > right ? point.x - box.width : point.x;
+    const y = point.y - box.height - 14 < minY ? point.y + 14 : point.y - box.height - 14;
+    bubbleEl.style.left = Math.max(left, Math.min(x, right - box.width)) + 'px';
+    bubbleEl.style.top = Math.max(minY, Math.min(y, bottom - box.height)) + 'px';
+  }
+  function showMapBubble(item, at) {
+    if (Date.now() < bubbleUntil) return;
+    clearTimeout(bubbleTimer);
+    bubbleAt = at;
+    bubbleUntil = item.urgency === 'critical' ? Date.now() + 4000 : 0;
+    bubbleEl.innerHTML = urgencyBadge(item) + '<span class="bubble-title">' + escapeHtml(placeLabel(item)) + ' · ' + escapeHtml(item.title) + '</span>';
+    bubbleEl.hidden = false;
+    placeMapOverlays();
+    bubbleTimer = setTimeout(() => { bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; }, item.urgency === 'critical' ? 4000 : 2800);
+  }
+  const overlayObserver = new ResizeObserver(() => { placeMapOverlays(); scheduleLabels(); });
+  document.getElementById("map-legend").addEventListener("toggle", () => { placeMapOverlays(); scheduleLabels(); });
+  [panel, document.querySelector('.topbar'), document.querySelector('.controls')].forEach(el => overlayObserver.observe(el));
+  new MutationObserver(() => { placeMapOverlays(); scheduleLabels(); }).observe(replayEl, { attributes:true, attributeFilter:['hidden'] });
+  map.on('move zoom resize', placeMapOverlays);
+  window.addEventListener('resize', placeMapOverlays);
   // 정책브리핑처럼 지명이 '언급'만 된 자료는 목록에만 두고 지도에 찍지 않는다
   const onMap = (item) => item.onMap !== false && item.src !== 'brief';
 
   function pulse(item, withBubble) {
     if (!onMap(item)) return;
-    const color = colorOf(item.cat);
+    const signal = signalName(item);
     const targets = itemMunis(item);
     if (!targets.length) return;
-    targets.forEach((m) => flash(m, color));
+    targets.forEach((m) => flash(m, signal));
 
     // 펄스는 한 곳에: 시·군·구 하나면 그 중심, 여러 곳이면 첫 지역, 시·도 전체면 시·도 중심
     const at = item.sgg?.length ? muniByCode.get(item.sgg[0])?.center : sidos.get(item.sido?.[0])?.center;
     if (!at) return;
-    const where = placeLabel(item);
-    // 화면 가장자리 근처면 말풍선을 안쪽으로 붙인다
-    const x = map.latLngToContainerPoint(at).x, w = map.getSize().x;
-    const edge = x > w - 150 ? ' to-left' : x < 150 ? ' to-right' : '';
-    const html = `<div class="pulse" style="--c:${color}">
-      <span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="dot"></span>
-      ${withBubble ? `<div class="bubble${edge}"><b>${escapeHtml(where)}</b>${escapeHtml(item.title)}</div>` : ''}
+    const html = `<div class="pulse" style="${signalStyle(item)}">
+      ${reducedMotion.matches ? '' : '<span class="ring"></span>'}<span class="dot"></span>
     </div>`;
     const marker = L.marker(at, {
       pane: 'pulses', interactive: false, keyboard: false,
       icon: L.divIcon({ className: '', html, iconSize: [0, 0] }),
     }).addTo(map);
-    if (withBubble) {
-      if (bubbleMarker) map.removeLayer(bubbleMarker);
-      bubbleMarker = marker;
-    }
-    setTimeout(() => { map.removeLayer(marker); if (bubbleMarker === marker) bubbleMarker = null; }, 5600);
+    if (withBubble) showMapBubble(item, at);
+    setTimeout(() => map.removeLayer(marker), 5600);
   }
 
   function itemMunis(item) {
@@ -220,12 +355,16 @@
       if (!res.ok) throw new Error(res.status);
       data = await res.json();
     } catch (e) {
+      loadFailed = true;
+      renderFeed(null, true);
       if (firstLoad) {
         subEl.textContent = '소식을 불러오지 못했어요. 잠시 후 다시 시도할게요.';
         firstLoad = false;
       }
       return;
     }
+    loadFailed = false;
+    sources = data.sources || {};
     const incoming = (data.items || [])
       .filter((it) => it.id && it.title && it.time)
       .sort((a, b) => new Date(b.time) - new Date(a.time));
@@ -239,11 +378,22 @@
       renderFeed();
       // 첫 진입: 최근 1시간 소식을 오래된 것부터 빠르게 재생
       const cutoff = Date.now() - REPLAY_WINDOW_MIN * 60000;
-      const replay = incoming.filter((it) => new Date(it.time) >= cutoff).slice(0, 20).reverse();
-      replay.forEach((it, k) => setTimeout(() => pulse(it, k === replay.length - 1 || k % 3 === 0), 500 + k * REPLAY_STEP_MS));
+      const replay = incoming.filter((it) => onMap(it) && new Date(it.time) >= cutoff).slice(0, 20).reverse();
+      // Prioritize explicit urgency; preserve chronology within each group.
+      const priority = it => ({critical:0,urgent:1}[it.urgency] ?? 2);
+      replay.sort((a,b) => priority(a) - priority(b));
+      const replayStatus = document.getElementById('replay-status');
+      replayStatus.hidden = !replay.length;
+      setTimeout(() => { replayStatus.hidden = true; }, 500 + replay.length * REPLAY_STEP_MS + 5600);
+      replay.forEach((it, k) => setTimeout(() => pulse(it, ['critical','urgent'].includes(it.urgency) || k === replay.length - 1 || k % 3 === 0), 500 + k * REPLAY_STEP_MS));
       return;
     }
-    renderFeed(new Set(fresh.map((it) => it.id)));
+    const holding = feedEl.scrollTop > 8 || feedEl.contains(document.activeElement);
+    if (holding) {
+      const existing = new Set([...feedEl.querySelectorAll('[data-id]')].map(el => el.dataset.id));
+      fresh.filter(visible).forEach(it => { if (!existing.has(it.id)) pending.add(it.id); });
+    }
+    renderFeed(new Set(fresh.map((it) => it.id)), holding);
     fresh.slice().reverse().forEach((it, k) => setTimeout(() => pulse(it, true), k * 1200));
   }
   let updatedAt = null;
@@ -255,59 +405,115 @@
     return true;
   }
 
-  function renderFeed(newIds) {
-    if (selection) {
-      const n = selection.codes.size - 1;
-      titleEl.textContent = `${label(selection.center)} 주변`;
-      subEl.textContent = `${selection.fromLocation ? '내 위치 기준 · ' : ''}${selection.center.name}와 맞닿은 ${n}곳 포함`;
-    } else {
-      titleEl.textContent = '전국 소식';
-      subEl.textContent = updatedAt ? `${ago(updatedAt)} 업데이트 · 새 소식이 오면 지도가 반짝여요` : '새 소식이 들어오면 지도가 반짝여요';
-    }
-    const list = items.filter(visible).slice(0, 80);
-    feedEl.innerHTML = list.length
-      ? list.map((it) => `
-          <li data-id="${escapeHtml(it.id)}" class="${newIds?.has(it.id) ? 'new' : ''}${it.id === openId ? ' open' : ''}" style="--c:${colorOf(it.cat)}">
-            <span class="bar"></span>
-            <div>
-              <div class="meta"><b>${escapeHtml(it.cat)}</b><span>${escapeHtml(placeLabel(it))}</span><span>· ${ago(new Date(it.time))}</span></div>
-              <div class="title">${escapeHtml(it.title)}</div>
-              ${it.id === openId ? detail(it) : ''}
-            </div>
-          </li>`).join('')
-      : `<li class="empty">${selection ? '아직 이 주변엔 새 소식이 없어요' : '아직 들어온 소식이 없어요'}</li>`;
+  let sources = {}, loadFailed = false;
+  const pending = new Set();
+  const newButton = document.getElementById('new-items');
+  newButton.addEventListener('click', () => { pending.clear(); renderFeed(); feedEl.scrollTop = 0; });
+  function updateTimes() {
+    feedEl.querySelectorAll('time').forEach(el => { el.textContent = ago(new Date(el.dateTime)); });
+    const status = document.getElementById('collection-status');
+    const failed = Object.entries(sources).filter(([,v]) => v.ok === false);
+    const stale = updatedAt && Date.now() - updatedAt > 60 * 60 * 1000;
+    status.classList.toggle('failed', loadFailed || !!failed.length);
+    status.classList.toggle('stale', !!stale);
+    status.textContent = (loadFailed ? '소식을 새로 불러오지 못했어요 · ' : failed.length ? '일부 출처 수집 실패 · ' : stale ? '갱신이 지연되고 있어요 · ' : '') + (updatedAt ? ago(updatedAt) : '갱신 시각 미제공');
   }
-
+  function sourceStatus() {
+    const names = {sms:'긴급재난문자',wrn:'기상특보',brief:'정책브리핑'};
+    return ['sms','wrn','brief'].map(key => {
+      const v = sources[key];
+      return '<p class="source-status">' + names[key] + ': ' + (!v ? '확인 정보 없음' : (v.ok === false ? '수집 실패' : '확인') + ' · ' + (v.at ? escapeHtml(new Date(v.at).toLocaleString('ko-KR')) : '시각 미제공')) + '</p>';
+    }).join('');
+  }
+  function card(it) {
+    const open = it.id === openId;
+    return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span><span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '">' + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(it.title) + '</span></button>' + (open ? detail(it) : '');
+  }
+  function renderFeed(newIds, preserve = false) {
+    if (!preserve) pending.clear();
+    titleEl.textContent = selection ? label(selection.center) + ' 주변' : '전국 소식';
+    subEl.textContent = selection ? (selection.fromLocation ? '내 위치 기준 · ' : '') + selection.center.name + '와 맞닿은 ' + (selection.codes.size - 1) + '곳 포함' : '최근 72시간 · 새 소식은 지도에서 먼저 반짝여요';
+    const oldScroll = feedEl.scrollTop;
+    const focused = document.activeElement;
+    const focusId = focused?.closest('li[data-id]')?.dataset.id;
+    const focusLink = focused?.tagName === 'A';
+    const anchor = [...feedEl.children].find(el => el.offsetTop + el.offsetHeight > oldScroll);
+    const anchorId = anchor?.dataset.id;
+    const anchorOffset = anchor ? anchor.offsetTop - oldScroll : 0;
+    for (const id of pending) if (!items.some(it => it.id === id && visible(it))) pending.delete(id);
+    let list = items.filter(visible).filter(it => !pending.has(it.id));
+    const policy = !category ? list.filter(it => it.cat === '정책') : [];
+    if (!category) list = list.filter(it => it.cat !== '정책');
+    list = list.slice(0,80);
+    // Keep the expanded item available even when newer items push it below the display limit.
+    const opened = items.find(it => it.id === openId && visible(it) && !pending.has(it.id));
+    if (opened && (category || opened.cat !== '정책') && !list.includes(opened)) list.push(opened);
+    const existing = new Map([...feedEl.querySelectorAll('li[data-id]')].map(el => [el.dataset.id,el]));
+    const desired = [];
+    for (const it of list) {
+      let li = existing.get(it.id);
+      if (!li) { li = document.createElement('li'); li.dataset.id = it.id; }
+      const signature = JSON.stringify(it) + (it.id === openId);
+      if (li._signature !== signature) { li.innerHTML = card(it); li._signature = signature; }
+      li.classList.toggle('open',it.id === openId);
+      li.classList.toggle('critical',it.urgency === 'critical');
+      li.style.cssText = signalStyle(it);
+      desired.push(li);
+    }
+    if (policy.length) {
+      let li = feedEl.querySelector('[data-policy]') || document.createElement('li');
+      li.dataset.policy = 'true';
+      const policyText = '정책·관련 소식 ' + policy.length + '건 →';
+      if (!li.firstElementChild) li.innerHTML = '<button type="button" class="policy-group"></button>';
+      li.firstElementChild.textContent = policyText;
+      desired.push(li);
+    }
+    if (!desired.length) {
+      const li = document.createElement('li'); li.className = 'empty';
+      const failed = loadFailed || Object.values(sources).some(v => v.ok === false);
+      li.innerHTML = '<p>' + (failed ? '수집 상태를 확인해 주세요' : '선택한 지역에 수집된 소식이 없어요') + '</p><p>최근 72시간 · 포함 지역 ' + (selection ? selection.codes.size : munis.length) + '곳' + (category ? ' · ' + escapeHtml(category) : '') + '</p>' + sourceStatus();
+      desired.push(li);
+    }
+    [...feedEl.children].forEach(el => { if (!desired.includes(el)) el.remove(); });
+    desired.forEach((el,i) => { if (feedEl.children[i] !== el) feedEl.insertBefore(el,feedEl.children[i] || null); });
+    const newAnchor = [...feedEl.children].find(el => el.dataset.id === anchorId);
+    if (preserve) feedEl.scrollTop = newAnchor ? newAnchor.offsetTop - anchorOffset : oldScroll;
+    if (focusId) {
+      const li = [...feedEl.children].find(el => el.dataset.id === focusId);
+      const target = li?.querySelector(focusLink ? 'a' : '.card-toggle');
+      if (target && !target.contains(document.activeElement)) target.focus({preventScroll:true});
+      else if (!li) { feedEl.tabIndex = -1; feedEl.focus({preventScroll:true}); }
+    }
+    newButton.hidden = !pending.size;
+    newButton.textContent = '새 소식 ' + pending.size + '건';
+    updateTimes();
+  }
   function detail(it) {
-    return `<div class="detail">
-      ${it.body ? `<p>${escapeHtml(it.body)}</p>` : ''}
-      <div class="src">
-        <span>출처: ${escapeHtml(it.source || '')}${it.license ? ` · ${escapeHtml(it.license)}` : ''}</span>
-        ${it.url ? `<a href="${escapeAttr(it.url)}" target="_blank" rel="noopener">원문 보기 ↗</a>` : ''}
-      </div>
-    </div>`;
+    return '<div class="detail">' + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + '</span>' + (it.url ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener">원문 보기 ↗</a>' : '') + '</div></div>';
   }
 
   feedEl.addEventListener('click', (e) => {
     if (e.target.closest('a')) return;
+    if (e.target.closest('.policy-group')) { chipsEl.querySelector('[data-cat="정책"]').click(); return; }
+    if (!e.target.closest('.card-toggle')) return;
     const li = e.target.closest('li[data-id]');
     if (!li) return;
     const item = items.find((x) => x.id === li.dataset.id);
     if (!item) return;
     openId = openId === item.id ? null : item.id;
     atHome = false;
-    renderFeed();
+    renderFeed(null, true);
     const targets = onMap(item) ? itemMunis(item) : [];
     if (targets.length) {
       const b = L.latLngBounds([]);
       targets.forEach((m) => b.extend(m.layer.getBounds()));
-      map.flyToBounds(b, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 10.5 });
+      moveToBounds(b, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 10.5 });
       setTimeout(() => pulse(item, true), 700);
     }
   });
 
   chipsEl.innerHTML = [null, ...CATEGORIES].map((c) =>
-    `<button type="button" data-cat="${c || ''}" aria-pressed="${c === null}" style="${c ? `--chip:${colorOf(c)}` : ''}">${c || '전체'}</button>`
+    `<button type="button" data-cat="${c || ''}" aria-pressed="${c === null}" >${c ? icon(c) : ''}${c || '전체'}</button>`
   ).join('');
   chipsEl.addEventListener('click', (e) => {
     const b = e.target.closest('button');
@@ -353,6 +559,23 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2800);
   }
 
+  new MutationObserver(() => {
+    baseStyle.fillColor = token('land');
+    baseStyle.color = token('border-sgg');
+    provinceLayer?.setStyle({color:token('border-sido')});
+    munis.forEach(m => {
+      if (!m.flashing) { restyle(m); return; }
+      const el = m.layer.getElement();
+      el.classList.add('flash');
+      restyle(m);
+      m.layer.setStyle({fillColor:token(m.signal),fillOpacity:.85});
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.classList.remove('flash'); restyle(m);
+      }));
+    });
+    scheduleLabels();
+  }).observe(root, {attributes:true, attributeFilter:['data-theme']});
+
   // ---------- 시작 ----------
   fetch('data/regions.json')
     .then((r) => r.json())
@@ -376,7 +599,7 @@
         }
       });
       setInterval(load, POLL_MS);
-      setInterval(() => renderFeed(), 30000); // "n분 전" 갱신
+      setInterval(updateTimes, 30000); // "n분 전" 갱신
       document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
     })
     .catch(() => toast('지도를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'));
