@@ -3,7 +3,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { katecToWgs84 } from '../lib/katec.mjs';
 import { sigunToSgg, toStation } from '../sources/fuel.mjs';
-import { toFoodBySgg } from '../sources/food-safety.mjs';
+import { toFoodBySgg, parseCsv } from '../sources/food-safety.mjs';
+
+test('CSV 읽기', () => {
+  const rows = parseCsv('﻿BSSH_NM,ADDR,TELNO\r\n"가게, 본점","서울 ""중구""\n2층",\r\n나,다,02\r\n');
+  assert.deepEqual(rows, [{ BSSH_NM: '가게, 본점', ADDR: '서울 "중구"\n2층', TELNO: '' }, { BSSH_NM: '나', ADDR: '다', TELNO: '02' }]);
+});
 
 test('KATEC → 위경도', () => {
   const p = katecToWgs84(298014.58083, 547054.30697); // 서울 양천구 신월로 193

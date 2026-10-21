@@ -3,9 +3,8 @@
 // 맛 평가가 아니라 '위생등급 지정' 정보다. 앱에서도 맛집·추천이라고 부르지 않는다.
 // 좌표가 없어 지도에 찍지 않고, 시·군·구별 목록 파일(web/data/food/<코드>.json)로만 낸다.
 // 대표자명·사업자등록번호는 담지 않는다.
+import { gunzipSync } from 'node:zlib';
 import { resolvePlace } from '../lib/regions.mjs';
-
-const PAGE = 1000;
 
 const clean = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 const ymd = (s) => (/^\d{8}$/.test(String(s || '')) ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6)}` : null);
@@ -44,25 +43,38 @@ export function toFoodBySgg(rows, today) {
   return { by, dropped };
 }
 
-export async function fetchFood({ key, budgetMs = 4 * 60e3 }) {
-  if (!key) return { skipped: 'FOODSAFETY_KEY 없음' };
-  const rows = [];
-  let total = Infinity;
-  const deadline = Date.now() + budgetMs; // 배포 작업 10분 제한 안에서 끝내도록
-  for (let start = 1; start <= total && start < 200000; start += PAGE) {
-    if (Date.now() > deadline) throw new Error(`식품안심업소 시간 초과 ${rows.length}/${total}건에서 멈춤`);
-    const url = `http://openapi.foodsafetykorea.go.kr/api/${encodeURIComponent(key)}/C004/json/${start}/${start + PAGE - 1}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(Math.max(5000, Math.min(60000, deadline - Date.now()))) });
-    if (!res.ok) throw new Error(`식품안심업소 HTTP ${res.status}`);
-    const j = (await res.json()).C004 || {};
-    const code = j.RESULT?.CODE;
-    if (code && code !== 'INFO-000') throw new Error(`식품안심업소 오류 ${code} ${j.RESULT?.MSG || ''}`);
-    total = Number(j.total_count || 0);
-    const page = j.row || [];
-    rows.push(...page);
-    if (!page.length) break;
+/** CSV 글 → 행 객체들 (따옴표 안 쉼표·줄바꿈·"" 처리, 머리줄 BOM 제거) */
+export function parseCsv(text) {
+  const recs = [];
+  let rec = [], field = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+      else field += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { rec.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      rec.push(field); field = '';
+      if (rec.length > 1 || rec[0]) recs.push(rec);
+      rec = [];
+    } else field += c;
   }
-  if (rows.length < total * 0.95) throw new Error(`식품안심업소 일부만 받음 ${rows.length}/${total}`);
+  if (field || rec.length) { rec.push(field); recs.push(rec); }
+  const head = (recs.shift() || []).map((h) => h.replace(/^﻿/, '').trim());
+  return recs.map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])));
+}
+
+export async function fetchFood({ key }) {
+  if (!key) return { skipped: 'FOODSAFETY_KEY 없음' };
+  // 페이지로 받으면 한 번에 20~30초씩 걸려(4만여 건 → 20분 넘음) 전체 파일(gzip CSV, 약 3MB)을 받는다
+  const res = await fetch(`http://openapi.foodsafetykorea.go.kr/api/${encodeURIComponent(key)}/C004/file`, { signal: AbortSignal.timeout(120000) });
+  if (!res.ok) throw new Error(`식품안심업소 HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf[0] !== 0x1f || buf[1] !== 0x8b) throw new Error(`식품안심업소 파일 아님: ${buf.subarray(0, 120).toString('utf8').replace(/\s+/g, ' ').replace(key, '***')}`);
+  const rows = parseCsv(gunzipSync(buf).toString('utf8'));
+  if (rows.length < 10000 || !('BSSH_NM' in rows[0])) throw new Error(`식품안심업소 파일 형식 이상 (${rows.length}행)`);
   const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   const { by, dropped } = toFoodBySgg(rows, today);
   const count = Object.values(by).reduce((n, l) => n + l.length, 0);

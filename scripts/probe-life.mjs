@@ -12,17 +12,7 @@ if (food) {
   urls['식품안심업소 C004'] = `http://openapi.foodsafetykorea.go.kr/api/${food}/C004/json/1/3`;
 }
 if (food) {
-  // 페이지 크기별 응답 시간 재기 (수집기가 느린 원인 확인)
-  for (const [s, e] of [[1, 100], [1, 500], [1001, 2000], [40001, 41000]]) {
-    const t = Date.now();
-    try {
-      const res = await fetch(`http://openapi.foodsafetykorea.go.kr/api/${food}/C004/json/${s}/${e}`, { signal: AbortSignal.timeout(120000) });
-      const text = await res.text();
-      console.log(`== C004 ${s}-${e}: HTTP ${res.status}, ${text.length} bytes, ${Date.now() - t}ms`);
-    } catch (err) {
-      console.log(`== C004 ${s}-${e}: 실패 ${err.message} ${err.cause?.code || ''} ${Date.now() - t}ms`);
-    }
-  }
+  // 페이지 API는 1,000건에 20~30초(2026-10-21 측정) → 수집기는 전체 파일을 받는다
   const t = Date.now();
   try {
     const res = await fetch(`http://openapi.foodsafetykorea.go.kr/api/${food}/C004/file`, { signal: AbortSignal.timeout(120000) });
