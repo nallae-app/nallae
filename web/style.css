@@ -281,3 +281,51 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 
 :root[data-mode="explore"] .panel-head h2 { display:none; }
 :root[data-mode="explore"] .panel-head { padding-bottom:4px; }
+.explore-tools { flex:none; padding:0 16px 8px; }
+.explore-tools[hidden] { display:none; }
+.explore-tools p { margin:4px 0; font-size:12px; line-height:1.5; }
+.explore-source { font-size:11px!important; line-height:1.5; color:var(--text-muted); }
+.explore-toggle { display:flex; flex-wrap:wrap; gap:4px; }
+.explore-toggle button, [data-food-more], [data-food-retry], [data-food-region] { min-height:44px; border:0; border-radius:18px; background:var(--surface-muted); color:var(--text); padding:6px 12px; font:inherit; font-size:12px; cursor:pointer; }
+.explore-toggle button[aria-pressed="true"] { background:var(--brand); color:var(--surface); }
+.fuel-legend { display:flex; flex-wrap:wrap; gap:3px 10px; font-size:10px; margin-top:6px; }
+.fuel-legend span { display:flex; align-items:center; gap:4px; }
+.fuel-legend i { width:12px; height:12px; border-radius:2px; }
+.fuel-hit { width:44px; height:44px; display:grid; place-items:center; }
+.fuel-hit i { width:10px; height:10px; background:#375e78; border:2px solid white; box-shadow:0 0 0 1px #375e78; border-radius:2px; }
+.food-search { display:block; font-size:12px; margin:6px 0; }
+.food-search input { display:block; width:100%; min-height:44px; margin-top:3px; border:0; border-radius:12px; background:var(--surface-muted); color:var(--text); padding:8px 12px; font:inherit; }
+.food-map { display:inline-flex; align-items:center; min-height:44px; font-size:12px; }
+.source-disclosure { color:var(--text-muted); font-size:11px; margin:3px 0; }
+.source-disclosure summary { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; min-height:24px; line-height:24px; }
+.source-disclosure[open] summary { display:list-item; white-space:normal; }
+.source-disclosure[open]>p { display:none; }
+.source-disclosure[open] { cursor:pointer; }
+.fuel-summary { display:flex; align-items:center; justify-content:space-between; gap:5px; }
+.fuel-summary p { font-size:11px; }
+.fuel-summary .explore-toggle { flex-wrap:nowrap; }
+.fuel-summary button { padding:4px 8px; }
+.fuel-legend { flex-wrap:nowrap; align-items:center; gap:0; }
+.fuel-legend span { margin:0 6px; }
+.fuel-legend button { flex:1; height:18px; border:0; cursor:pointer; }
+.legend-detail:empty { display:none; }
+.food-controls { display:flex; align-items:center; gap:6px; overflow-x:auto; }
+.food-controls .explore-toggle { flex-wrap:nowrap; }
+.food-controls button { white-space:nowrap; }
+.food-search { flex:0 0 135px; margin:0; }
+.food-search input { margin:0; }
+:root[data-mode="explore"] #feed .festival-card { padding:8px 12px; }
+:root[data-mode="explore"] #feed .festival-card p { margin:3px 0; }
+.food-map { float:right; }
+.weather-legend { display:flex; align-items:center; gap:8px; font-size:10px; color:var(--text-muted); }
+.weather-legend i { width:110px; height:8px; border-radius:8px; background:linear-gradient(90deg,#a7c9e2,#d8e2de,#f4dea9,#efb98e); }
+.temperature { display:inline-block; font-size:48px; line-height:1.2; margin:8px 0; }
+.weather-warning { font:inherit; font-size:12px; color:var(--text); background:var(--surface-muted); border:1px solid var(--brand); border-radius:10px; min-height:44px; padding:6px 10px; }
+.fuel-legend button { min-height:12px; height:12px; padding:0; border-radius:0; }
+.food-card { position:relative; }
+#feed .food-card h3 { font-size:14px; line-height:1.35; margin:0; }
+#feed .food-card p { font-size:11px; }
+.food-card .source-disclosure { padding-right:82px; margin:0; }
+.food-card .food-map { position:absolute; right:12px; bottom:0; font-size:11px; }
+#feed .food-card .source-disclosure summary { min-height:24px; }
+:root[data-mode="explore"] #feed .food-card { padding:3px 12px; }

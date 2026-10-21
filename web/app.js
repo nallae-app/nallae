@@ -92,6 +92,8 @@ function renderLabels() {
   });
   for (const r of sorted) {
     const selected = selection?.center.code === r.code;
+    const wth=mode==='explore' && exploreLayer==='weather' && r.kind!=='sido' && map.getZoom()>=MUNI_ZOOM ? weatherData?.sgg?.[r.code] : null;
+    r.el.textContent=r.name+(Number.isFinite(wth?.t)?' '+Math.round(wth.t)+'°'+(wth.pty>0?' '+precipSymbol(wth.pty):''):'');
     r.el.hidden = true;
     if (!zoomed && r.kind !== "sido" && !selected) continue;
     const pt = map.latLngToContainerPoint(r.at);
@@ -111,7 +113,7 @@ function addRegionLabel(f, kind) {
   el.className="region-label"; el.textContent=kind === "sido" ? p.short || p.name : p.name;
   el.hidden=true; el.setAttribute("aria-hidden","true");
   map.getPane("labels").append(el);
-  regionLabels.push({el,kind,code:p.code,area:p.la || 0,at:[p.ly,p.lx]});
+  regionLabels.push({el,kind,name:el.textContent,code:p.code,area:p.la || 0,at:[p.ly,p.lx]});
 }
 map.on("moveend zoomend resize", scheduleLabels);
 document.fonts?.ready.then(scheduleLabels);
@@ -188,7 +190,8 @@ let meMarker = null;
 const isSelected = (m) => !!selection && selection.codes.has(m.code);
 function restyle(m) {
   if (!m.layer) return;
-  const fill = mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:isSelected(m) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
+  const fuelFill = mode === 'explore' && exploreLayer === 'fuel' ? fuelColor(m.code) : mode === 'explore' && exploreLayer === 'weather' ? weatherColor(m.code) : null;
+  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && exploreLayer === 'food' ? selection?.center === m : isSelected(m)) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
   if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 2.5 });
   else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 1.3 });
   else m.layer.setStyle({...baseStyle,...fill});
@@ -408,7 +411,7 @@ const pending = new Set();
 const newButton = document.getElementById('new-items');
 newButton.addEventListener('click', () => { pending.clear(); renderFeed(); feedEl.scrollTop = 0; });
 function updateTimes() {
-  if (mode === 'explore') { updateFestivalStatus(); return; }
+  if (mode === 'explore') { updateExploreStatus(); return; }
   feedEl.querySelectorAll('time').forEach(el => { el.textContent = ago(new Date(el.dateTime)); });
   const status = document.getElementById('collection-status');
   const states = ['sms','wrn','brief'].map(sourceState);
@@ -444,7 +447,7 @@ function card(it) {
   return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span><span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '">' + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(it.title) + '</span></button>' + (open ? detail(it) : '');
 }
 function renderFeed(newIds, preserve = false) {
-  if (mode === 'explore') { renderFestivals(); return; }
+  if (mode === 'explore') { renderExplore(); return; }
   if (!preserve) pending.clear();
   titleEl.textContent = selection ? label(selection.center) + ' 주변' : '전국 소식';
   subEl.textContent = selection ? (selection.fromLocation ? '내 위치 기준 · ' : '') + selection.center.name + '와 맞닿은 ' + (selection.codes.size - 1) + '곳 포함' : '최근 72시간 · 새 소식은 지도에서 먼저 반짝여요';
@@ -527,7 +530,7 @@ feedEl.addEventListener('click', (e) => {
 });
 
 function syncCategories() {
-  if (mode === 'explore') { chipsEl.dataset.cats = ''; chipsEl.innerHTML = festivals.length ? '<button type="button" aria-pressed="true">축제</button>' : ''; return; }
+  if (mode === 'explore') { chipsEl.dataset.cats = ''; chipsEl.innerHTML = availableLayers().map(([key,name]) => '<button type="button" data-layer="' + key + '" aria-pressed="' + (exploreLayer === key) + '">' + name + '</button>').join(''); return; }
   const available = CATEGORIES.filter(c => items.some(it => it.cat === c));
   if (category && !available.includes(category)) category = null;
   const cats = [null,...available];
@@ -537,7 +540,8 @@ function syncCategories() {
 }
 chipsEl.addEventListener('click', (e) => {
   const b = e.target.closest('button');
-  if (!b || mode === 'explore') return;
+  if (!b) return;
+  if (mode === 'explore') { if (b.dataset.layer) { exploreLayer=b.dataset.layer; try { localStorage.setItem('nallae-explore-layer',exploreLayer); } catch (_) {} map.closePopup(); feedEl.scrollTop=0; renderExplore(); } return; }
   category = b.dataset.cat || null;
   chipsEl.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   renderFeed();
@@ -841,6 +845,151 @@ new MutationObserver(() => {
   });
   scheduleLabels();
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
+﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, foodIndex=null, weatherData=null;
+try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'festival'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
+const preferredExploreLayer=exploreLayer;
+const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
+let foodQuery='', foodKind='', foodLimit=50, foodCode=null;
+const fuelMarkers=L.layerGroup().addTo(map);
+const exploreTools=document.createElement('div'); exploreTools.className='explore-tools';
+feedEl.before(exploreTools);
+const fuelColors=['#b5d9d1','#c7ded5','#e0e4da','#d7dce6','#d9cee5'];
+const productName=()=>fuelProduct==='B027'?'휘발유':'경유';
+const money=v=>Number.isFinite(v)?v.toLocaleString('ko-KR',{maximumFractionDigits:0})+'원':'미제공';
+const availableLayers=()=>[['festival','축제',festivals.length],['weather','날씨',weatherData],['fuel','주유소',fuelData],['food','식품안심업소',foodIndex]].filter(x=>x[2]);
+function fuelColor(code) {
+  const price=fuelData?.sgg?.[code]?.[fuelProduct], avg=fuelData?.national?.[fuelProduct]?.price;
+  if (!Number.isFinite(price) || !Number.isFinite(avg)) return null;
+  const d=price-avg; return fuelColors[d < -50?0:d < -10?1:d <= 10?2:d <= 50?3:4];
+}
+async function loadExploreData() {
+  await Promise.all(['fuel','food/index','weather'].map(async key=>{
+    try {
+      const r=await fetch('data/'+(DEMO?(key==='food/index'?'demo-food/index':'demo-'+key):key)+'.json',{cache:'no-store'});
+      if (!r.ok) throw Error(); const data=await r.json();
+      if(key==='fuel' && data.sgg && Array.isArray(data.stations) && data.national) fuelData=data;
+      if(key==='weather' && data.sgg) weatherData=data;
+      if(key==='food/index' && data.counts) foodIndex=data;
+    } catch (_) {}
+  }));
+  if(availableLayers().some(x=>x[0]===preferredExploreLayer)) exploreLayer=preferredExploreLayer;
+  if(mode==='explore') renderExplore();
+}
+function updateExploreStatus() {
+  if(exploreLayer==='festival') return updateFestivalStatus();
+  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:foodIndex, date=new Date(data?.updated);
+  const status=document.getElementById('collection-status'), stale=!validDate(date)||Date.now()-date>(exploreLayer==='weather'?2:exploreLayer==='fuel'?6:48)*3600000;
+  status.textContent=validDate(date)?ago(date):'확인 중'; status.classList.remove('failed'); status.classList.toggle('stale',stale);
+  status.setAttribute('aria-label','자료 확인 시각: '+status.textContent+'. 상세 보기');
+  const alert=document.getElementById('collection-alert'); alert.hidden=!stale; alert.classList.remove('failed'); alert.textContent='자료 갱신 시각을 확인해 주세요.';
+  document.getElementById('sources-detail').textContent=(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR'):'미제공');
+}
+function renderExplore() {
+  const available=availableLayers();
+  if(!available.some(x=>x[0]===exploreLayer)) exploreLayer=available[0]?.[0] || 'festival';
+  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers();
+  munis.forEach(restyle); scheduleLabels();
+  if(mode!=='explore') return;
+  if(exploreLayer==='festival') return renderFestivals();
+  syncCategories(); newButton.hidden=true; updateExploreStatus();
+  titleEl.textContent=selection?label(selection.center):'동네 탐험';
+  subEl.textContent=exploreLayer==='weather'?'현재 동네 날씨':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':'동네 식품안심업소';
+  if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else renderFood();
+}
+function sourceDisclosure(text) { return '<details class="source-disclosure"><summary>'+escapeHtml(text)+'</summary><p>'+escapeHtml(text)+'</p></details>'; }
+setInterval(async()=>{
+  try {
+    const r=await fetch('data/'+(DEMO?'demo-weather':'weather')+'.json',{cache:'no-store'});
+    if(!r.ok) return;
+    const data=await r.json(); if(!data.sgg) return; weatherData=data;
+    if(mode==='explore'&&exploreLayer==='weather') renderExplore();
+  } catch (_) {}
+},3600000);
+function precipSymbol(pty) { return [3,7].includes(pty)?'❄':[2,6].includes(pty)?'☂❄':'☂'; }
+function weatherColor(code) {
+  const t=weatherData?.sgg?.[code]?.t; if(!Number.isFinite(t)) return null;
+  const stops=[[167,201,226],[216,226,222],[244,222,169],[239,185,142]], x=Math.max(0,Math.min(3,(t+10)/15)), i=Math.min(2,Math.floor(x)), f=x-i;
+  return 'rgb('+stops[i].map((v,j)=>Math.round(v+(stops[i+1][j]-v)*f)).join(',')+')';
+}
+function renderWeather() {
+  const code=selection?.center.code || startCode, region=muniByCode.get(code), w=weatherData.sgg[code];
+  const hour=validDate(new Date(weatherData.base))?new Date(weatherData.base).getHours()+'시 발표':'발표 시각 미제공';
+  exploreTools.innerHTML=sourceDisclosure('기상청 초단기실황 · '+hour+' · 시·군·구 대표 지점 격자(5km) 값이라 동네 안에서도 다를 수 있어요')+'<div class="weather-legend">차가움 <i></i> 따뜻함</div>';
+  const rows=Object.entries(weatherData.sgg).filter(([c,v])=>muniByCode.has(c)&&Number.isFinite(v.t)).sort((a,b)=>a[1].t-b[1].t);
+  const line=([c,v])=>'<p>'+escapeHtml(label(muniByCode.get(c)))+' <strong>'+v.t+'°</strong>'+(v.pty>0?' '+precipSymbol(v.pty):'')+'</p>';
+  if(code) {
+    const warning=items.some(it=>it.src==='wrn'&&it.level!=='예비특보'&&it.onMap!==false&&(it.sgg?.includes(code)||it.sido?.includes(region?.sido)));
+    feedEl.innerHTML=(warning?'<li><button class="weather-warning" type="button" data-weather-news>기상특보 발효 중 — 소식 탭에서 보기</button></li>':'')+'<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+(w&&Number.isFinite(w.t)?'<strong class="temperature">'+w.t+'°</strong> '+(w.pty>0?precipSymbol(w.pty):'')+'<p>습도 '+(w.reh??'미제공')+(w.reh==null?'':'%')+' · 바람 '+(w.wsd??'미제공')+(w.wsd==null?'':'m/s')+' · 1시간 강수 '+(w.rn??'미제공')+(w.rn==null?'':'mm')+'</p>':'<p>이 지역의 현재 날씨 자료가 없어요.</p>')+'<p>'+hour+'</p></li>';
+  } else {
+    const wet=rows.filter(([,v])=>v.pty>0);
+    feedEl.innerHTML='<li class="festival-card"><h3>가장 따뜻한 곳</h3>'+rows.slice(-3).reverse().map(line).join('')+'</li><li class="festival-card"><h3>가장 쌀쌀한 곳</h3>'+rows.slice(0,3).map(line).join('')+'</li>'+(wet.length?'<li class="festival-card"><h3>비·눈 오는 곳</h3>'+wet.map(line).join('')+'</li>':'');
+  }
+}
+feedEl.addEventListener('click',e=>{if(e.target.closest('[data-weather-news]')) document.querySelector('[data-mode-choice="news"]').click();});
+exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-legend]');if(b) exploreTools.querySelector('.legend-detail').textContent=b.dataset.legend;});
+function stationText(s) { return '<h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+' · <strong>'+money(s.price[fuelProduct])+'</strong></p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'; }
+function renderFuel() {
+  const avg=fuelData.national[fuelProduct], local=selection && fuelData.sgg[selection.center.code]?.[fuelProduct];
+  const diff=Number.isFinite(local)&&Number.isFinite(avg?.price)?local-avg.price:null;
+  const regional=selection?'<p>'+escapeHtml(selection.center.name)+' 평균 <strong>'+money(local)+'</strong>'+(diff===null?'':Math.abs(diff)<=5?' · 전국과 비슷해요(±5원 안)':' · 전국보다 '+money(Math.abs(diff))+(diff>0?' 비싸요':' 싸요'))+'</p>':'';
+  const daily=!Number.isFinite(avg?.diff)?'전일 자료 미제공':Math.abs(avg.diff)<1?'어제와 비슷':'어제보다 '+money(Math.abs(avg.diff))+(avg.diff>0?' ↑':' ↓');
+  exploreTools.innerHTML='<div class="fuel-summary"><div><p>전국 평균 <strong>'+money(avg?.price)+'</strong> · '+daily+'</p>'+regional+'</div><div class="explore-toggle">'+['B027','D047'].map(p=>'<button type="button" data-product="'+p+'" aria-pressed="'+(fuelProduct===p)+'">'+(p==='B027'?'휘발유':'경유')+'</button>').join('')+'</div></div>'+sourceDisclosure('오피넷(한국석유공사) 기준 · '+(fuelData.date || '날짜 미제공')+' · 주유소가 알린 가격이라 실제와 다를 수 있어요')+'<div class="fuel-legend"><span>쌈</span>'+['50원 넘게 쌈','10~50원 쌈','비슷(±10원)','10~50원 비쌈','50원 넘게 비쌈'].map((v,i)=>'<button type="button" title="'+v+'" aria-label="전국 평균 대비 '+v+'" data-legend="'+v+'" style="background:'+fuelColors[i]+'"></button>').join('')+'<span>비쌈</span></div><small class="legend-detail" aria-live="polite"></small>';
+  const rank=s=>!selection?0:String(s.sgg)===selection.center.code?0:String(s.sgg).slice(0,2)===selection.center.sido?1:2;
+  const stations=fuelData.stations.filter(s=>Number.isFinite(s.price?.[fuelProduct]) && (!selection || rank(s)<2)).sort((a,b)=>rank(a)-rank(b)||a.price[fuelProduct]-b.price[fuelProduct]);
+  feedEl.innerHTML='<li class="explore-source">시·도별 최저가 10곳만 보여줘요</li>'+stations.map(s=>'<li class="festival-card">'+stationText(s)+'</li>').join('')+(stations.length?'':'<li class="empty">이 지역의 해당 유종 최저가 목록이 없어요.</li>');
+  for(const s of stations) {
+    if(!Number.isFinite(s.lat)||!Number.isFinite(s.lon)||Math.abs(s.lat)>90||Math.abs(s.lon)>180) continue;
+    L.marker([s.lat,s.lon],{title:s.name,icon:L.divIcon({className:'fuel-marker',html:'<span class="fuel-hit"><i></i></span>',iconSize:[44,44],iconAnchor:[22,22]})}).bindPopup(stationText(s)).addTo(fuelMarkers);
+  }
+}
+async function loadFood(code) {
+  foodPending.add(code); foodErrors.delete(code);
+  try {
+    const r=await fetch('data/'+(DEMO?'demo-food/':'food/')+encodeURIComponent(code)+'.json',{cache:'no-store'});
+    if(!r.ok) throw Error(); const data=await r.json(); if(!Array.isArray(data.items)) throw Error(); foodCache.set(code,data);
+  } catch (_) { foodErrors.add(code); }
+  foodPending.delete(code);
+  if(mode==='explore'&&exploreLayer==='food'&&selection?.center.code===code) renderExplore();
+}
+function renderFood() {
+  const code=selection?.center.code;
+  if(foodCode!==code) { foodCode=code; foodQuery=''; foodKind=''; foodLimit=50; }
+  const data=foodCache.get(code);
+  exploreTools.innerHTML=sourceDisclosure('위생 상태를 확인해 지정한 음식점이에요. 맛이나 서비스 평가는 아니에요 · 식품안전나라 '+(data?.updated || foodIndex.updated || '').slice(5,10).replace('-', '.')+' 기준');
+  if(!code) { feedEl.innerHTML='<li class="empty">지도에서 시·군·구를 고르면 그 동네 식품안심업소를 보여드려요<div class="explore-toggle">'+favorites.map(r=>'<button type="button" data-food-region="'+escapeHtml(r.code)+'" aria-pressed="false">'+escapeHtml(r.name)+'</button>').join('')+'</div></li>'; return; }
+  if(!data) {
+    if(foodIndex.counts[code]===0 || !(code in foodIndex.counts)) { feedEl.innerHTML='<li class="empty">이 지역에 제공된 식품안심업소 자료가 없어요.</li>'; return; }
+    feedEl.innerHTML='<li class="empty">'+(foodErrors.has(code)?'지역 자료를 받지 못했어요. <button type="button" data-food-retry>다시 받기</button>':'지역 자료를 불러오는 중이에요.')+'</li>';
+    if(!foodPending.has(code)&&!foodErrors.has(code)) loadFood(code); return;
+  }
+  const kinds=[...new Set(data.items.map(x=>x.kind).filter(Boolean))];
+  exploreTools.innerHTML+='<div class="food-controls"><label class="food-search"><input aria-label="업소 이름 검색" type="search" placeholder="업소 이름 검색" value="'+escapeHtml(foodQuery)+'"></label><div class="explore-toggle">'+['',...kinds].map(k=>'<button type="button" data-kind="'+escapeHtml(k)+'" aria-pressed="'+(foodKind===k)+'">'+escapeHtml(k || '전체')+'</button>').join('')+'</div></div>';
+  renderFoodCards();
+}
+function renderFoodCards() {
+  const data=foodCache.get(foodCode); if(!data) return;
+  const list=data.items.filter(x=>(!foodKind||x.kind===foodKind)&&String(x.name).toLocaleLowerCase().includes(foodQuery.toLocaleLowerCase()));
+  feedEl.innerHTML=list.slice(0,foodLimit).map(x=>{
+    const name=String(x.name).replace(/^(?:(?:\((?:주|유)\)|㈜|㈲|주식회사|유한회사)\s*)+/,'');
+    const url=/Android/i.test(navigator.userAgent)?'geo:0,0?q='+encodeURIComponent(x.address):'https://map.naver.com/p/search/'+encodeURIComponent(name+' '+x.address);
+    return '<li class="festival-card food-card"><h3>'+escapeHtml(name)+'</h3><p>'+escapeHtml(x.kind || '업종 미제공')+(x.level&&x.level!=='적합'?' <span class="festival-day">'+escapeHtml(x.level)+'</span>':'')+' · 지정 ~'+escapeHtml(x.to?x.to.replaceAll('-','.'):'기간 미제공')+'</p>'+sourceDisclosure(x.address || '주소 미제공')+'<a class="food-map" href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">지도에서 보기 ↗</a></li>';
+  }).join('') || '<li class="empty">조건에 맞는 업소가 없어요.</li>';
+  if(list.length>foodLimit) feedEl.insertAdjacentHTML('beforeend','<li><button type="button" data-food-more>더 보기 ('+Math.min(foodLimit,list.length)+' / '+list.length+')</button></li>');
+}
+exploreTools.addEventListener('input',e=>{ if(e.target.matches('input')) { foodQuery=e.target.value; foodLimit=50; renderFoodCards(); } });
+exploreTools.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.product) { fuelProduct=b.dataset.product; try { localStorage.setItem('nallae-fuel-product',fuelProduct); } catch (_) {} renderExplore(); }
+  if(b.hasAttribute('data-kind')) { foodKind=b.dataset.kind; foodLimit=50; renderExplore(); }
+});
+feedEl.addEventListener('click',e=>{
+  if(mode!=='explore'||exploreLayer!=='food') return;
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.foodRegion) { const m=muniByCode.get(b.dataset.foodRegion); if(m) select(m,false); }
+  if(b.hasAttribute('data-food-more')) { foodLimit+=50; renderFoodCards(); }
+  if(b.hasAttribute('data-food-retry')) { loadFood(foodCode); renderExplore(); }
+});
+
 let festivals = [], festivalUpdated = null, festivalFailed = false, festivalLoaded = false;
 let festivalMarkers = L.layerGroup(), celebrated = false, newsScroll = 0, festivalScroll = 0;
 try { celebrated = sessionStorage.getItem('nallae-celebrated') === '1'; } catch (_) {}
@@ -865,7 +1014,7 @@ async function loadFestivals() {
     festivals = data.items.filter(f => f && typeof f.name === 'string' && Number.isFinite(dayNumber(f.start)) && dayNumber(f.end) >= dayNumber(f.start));
     festivalUpdated = new Date(data.updated); festivalFailed = false; festivalLoaded = true;
   } catch (_) { festivalFailed = true; }
-  if (mode === 'explore') renderFestivals();
+  if (mode === 'explore' && exploreLayer === 'festival') renderExplore();
 }
 function updateFestivalStatus() {
   const stale = !validDate(festivalUpdated) || Date.now()-festivalUpdated >= 86400000;
@@ -911,7 +1060,7 @@ function renderFestivals() {
 }
 function renderFestivalMarkers() {
   festivalMarkers.clearLayers();
-  if (mode !== 'explore') return;
+  if (mode !== 'explore' || exploreLayer !== 'festival') return;
   const codes = emergencyCodes(), groups = [], zoomed = map.getZoom() >= MUNI_ZOOM;
   for (const f of festivalList()) {
     if (typeof f.lat !== 'number' || typeof f.lon !== 'number' || !Number.isFinite(f.lat) || !Number.isFinite(f.lon) || Math.abs(f.lat)>90 || Math.abs(f.lon)>180) continue;
@@ -938,6 +1087,7 @@ function renderFestivalMarkers() {
 }
 function applyMode() {
   rootMode();
+  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers();
   document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode)));
   map.closePopup(); bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; replayEl.hidden = true;
   map.getPane('pulses').style.display = mode === 'explore' ? 'none' : '';
@@ -971,6 +1121,7 @@ fetch('data/regions.json')
     }
     applyMode();
     loadFestivals();
+    loadExploreData();
     setInterval(loadFestivals, POLL_MS);
     load().then(() => {
       if (DEMO && params.has('open')) {
