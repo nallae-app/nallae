@@ -447,3 +447,5 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 @media(max-width:759px) {
   .panel.needs-expand .panel-handle::before { content:'전체 목록 보기 ↑'; position:absolute; right:16px; top:4px; font-size:13px; line-height:19px; font-weight:600; color:var(--brand); }
 }
+.detail-time { color:var(--text-muted); font-size:14px!important; line-height:21px!important; }
+.fuel-asof { color:var(--signal-urgent); font-size:13px!important; }

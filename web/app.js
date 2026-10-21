@@ -440,7 +440,7 @@ function renderEarthquakes() {
   items.filter(it=>it.src==='eqk' && hasPoint(it) && visible(it)).forEach(it=>{
     const size=14+Math.max(0,Math.min(6,(it.mag||0)-2));
     const marker=L.marker([it.lat,it.lon],{pane:'pulses',title:it.title,icon:L.divIcon({className:'earthquake-marker',iconSize:[size,size],iconAnchor:[size/2,size/2],html:'<span class="earthquake-pin'+(Date.now()-new Date(it.time)>86400000?' faded':'')+'" style="--eq-size:'+size+'px"><i></i>'+(it.mag!=null&&it.mag!==''&&Number.isFinite(Number(it.mag))?'<b>M'+escapeHtml(Number(it.mag).toFixed(1))+'</b>':'')+'</span>'})}).addTo(earthquakeMarkers);
-    marker.on('click',()=>{pending.delete(it.id);openId=it.id;bubbleUntil=0;renderFeed(null,true);feedEl.querySelector('[data-id="'+it.id+'"]')?.scrollIntoView({block:'nearest'});showMapBubble(it,L.latLng(it.lat,it.lon));});
+    marker.on('click',()=>{pending.delete(it.id);openId=it.id;atHome=false;selectionAutoFit=false;bubbleUntil=0;renderFeed(null,true);feedEl.querySelector('[data-id="'+it.id+'"]')?.scrollIntoView({block:'nearest'});showMapBubble(it,L.latLng(it.lat,it.lon));});
   });
 }
 setInterval(()=>{if(mode==='news') renderFeed(null,true);},60000);
@@ -583,8 +583,14 @@ function renderFeed(newIds, preserve = false) {
   updateTimes();
   fitSheet();
 }
+// 출처별 item.time의 뜻(수집기 기준): 재난문자 생성·발송, 특보 발표, 지진 발생, 정책 승인·게시. 수집 시각은 여기 붙이지 않는다.
+const TIME_KIND = { sms: '발송', wrn: '발표', eqk: '발생', brief: '게시' };
+// 링크 이름 = 실제 목적지. 특보·지진 링크는 개별 원문이 아니라 기상청 현황·목록 페이지다.
+const LINK_NAME = { wrn: '기상청 특보 현황 ↗', eqk: '기상청 지진 목록 ↗' };
+const kstFull = (d) => d.toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Seoul' });
 function detail(it) {
-  return '<div class="detail">' + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + (it.src==='eqk'?'</span><span>기상청 지진정보 · 진앙 위치는 발표 좌표':'') + '</span>' + (it.url ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener">원문 보기 ↗</a>' : '') + '</div></div>';
+  const when = new Date(it.time);
+  return '<div class="detail">' + (TIME_KIND[it.src] && validDate(when) ? '<p class="detail-time">' + TIME_KIND[it.src] + ' ' + escapeHtml(kstFull(when)) + ' (한국 시간)</p>' : '') + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + (it.src==='eqk'?'</span><span>기상청 지진정보 · 진앙 위치는 발표 좌표':'') + '</span>' + (it.url && /^https?:\/\//i.test(it.url) ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener noreferrer">' + (LINK_NAME[it.src] || '원문 보기 ↗') + '</a>' : '') + '</div></div>';
 }
 
 feedEl.addEventListener('click', (e) => {
@@ -598,9 +604,12 @@ feedEl.addEventListener('click', (e) => {
   if (!li) return;
   const item = items.find((x) => x.id === li.dataset.id);
   if (!item) return;
-  openId = openId === item.id ? null : item.id;
-  atHome = false;
+  const opening = openId !== item.id;
+  openId = opening ? item.id : null;
   renderFeed(null, true);
+  if (!opening) return; // 닫을 때는 지도를 그대로 둔다
+  // 연 소식으로 지도를 옮겼으니, 이후 목록 갱신·시트 높이 변화로 선택 지역/전국에 다시 맞추지 않는다(지도와 열린 카드가 어긋나지 않게)
+  atHome = false; selectionAutoFit = false;
   const targets = onMap(item) ? itemMunis(item) : [];
   if (targets.length) {
     const b = L.latLngBounds([]);
@@ -1176,7 +1185,7 @@ function renderWeather() {
 }
 feedEl.addEventListener('click',e=>{if(e.target.closest('[data-weather-news]')) document.querySelector('[data-mode-choice="news"]').click();});
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-legend]');if(b) exploreTools.querySelector('.legend-detail').textContent=b.dataset.legend;});
-function stationText(s) { return '<p class="price-line"><strong class="price">'+money(s.price[fuelProduct])+(Number.isFinite(s.price[fuelProduct])?'<small>/L</small>':'')+'</strong> '+productName()+'</p><h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+'</p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'+routeLink(s); }
+function stationText(s) { return '<p class="price-line"><strong class="price">'+money(s.price[fuelProduct])+(Number.isFinite(s.price[fuelProduct])?'<small>/L</small>':'')+'</strong> '+productName()+'</p><h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+'</p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'+(s.asOf&&validDate(new Date(s.asOf))?'<p class="fuel-asof">'+escapeHtml(new Date(s.asOf).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'}))+' 수집 값</p>':'')+routeLink(s); }
 // 카카오맵 연결 (키·요금 없는 공개 링크). 앱이 있으면 앱, 없으면 웹. 누를 때만 외부로 나간다.
 // 좌표가 있으면 그 지점을 도착지로 길찾기, 주소만 있으면 주소 검색.
 function routeLink(s) {
