@@ -780,7 +780,8 @@
     sheetDrag = { id:e.pointerId, x:e.clientX, y:e.clientY, lastY:e.clientY, time:e.timeStamp,
       velocity:0, height:panel.getBoundingClientRect().height, fromFeed, active:false };
   });
-  panel.addEventListener('pointermove', e => {
+  // 손가락이 시트 밖(지도 위)으로 나가도 끌기를 이어가도록 화면 전체에서 듣는다
+  window.addEventListener('pointermove', e => {
     const d = sheetDrag;
     if (!d || d.id !== e.pointerId) return;
     const dy = e.clientY - d.y;
@@ -805,16 +806,16 @@
     if (panel.hasPointerCapture(e.pointerId)) panel.releasePointerCapture(e.pointerId);
     if (!d.active) return;
     suppressSheetClick = true;
-    let stage = sheetStage;
-    if (e.type === 'pointerup') {
-      const heights = sheetHeights(), height = panel.getBoundingClientRect().height;
-      stage = heights.reduce((best,h,i) => Math.abs(h-height) < Math.abs(heights[best]-height) ? i : best, 0);
-      if (e.timeStamp-d.time < 100 && Math.abs(d.velocity) > .5)
-        stage = Math.max(0, Math.min(2, sheetStage + (d.velocity < 0 ? 1 : -1)));
-    }
+    // 터치에서는 pointerup보다 lostpointercapture가 먼저 올 수 있다. 어떤 신호로 끝나든 가장 가까운 높이에 붙인다.
+    const heights = sheetHeights(), height = panel.getBoundingClientRect().height;
+    let stage = heights.reduce((best,h,i) => Math.abs(h-height) < Math.abs(heights[best]-height) ? i : best, 0);
+    if (e.type !== 'pointercancel' && e.timeStamp-d.time < 100 && Math.abs(d.velocity) > .5)
+      stage = Math.max(0, Math.min(2, sheetStage + (d.velocity < 0 ? 1 : -1)));
     setSheetStage(stage);
   }
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => panel.addEventListener(type, endSheetDrag));
+  ['pointerup', 'pointercancel'].forEach(type => window.addEventListener(type, endSheetDrag));
+  // 손잡이의 암묵적 터치 캡처가 시트로 넘어올 때 손잡이에서 올라오는 lostpointercapture는 무시한다
+  panel.addEventListener('lostpointercapture', e => { if (e.target === panel) endSheetDrag(e); });
   feedEl.addEventListener('scroll', feedTouchAction, {passive:true});
   function resizeSheet() {
     const id = sheetDrag?.id;
