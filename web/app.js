@@ -191,7 +191,7 @@ const isSelected = (m) => !!selection && selection.codes.has(m.code);
 function restyle(m) {
   if (!m.layer) return;
   const fuelFill = mode === 'explore' && exploreLayer === 'fuel' ? fuelColor(m.code) : mode === 'explore' && exploreLayer === 'weather' ? weatherColor(m.code) : null;
-  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && exploreLayer === 'food' ? selection?.center === m : isSelected(m)) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
+  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && ['food','parking'].includes(exploreLayer) ? selection?.center === m : isSelected(m)) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
   if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 2.5 });
   else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 1.3 });
   else m.layer.setStyle({...baseStyle,...fill});
@@ -869,7 +869,7 @@ new MutationObserver(() => {
   });
   scheduleLabels();
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
-﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, foodIndex=null, weatherData=null, forecastData=null;
+﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null;
 try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'festival'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
 const preferredExploreLayer=exploreLayer;
 const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
@@ -880,14 +880,60 @@ feedEl.before(exploreTools);
 const fuelColors=['#b5d9d1','#c7ded5','#e0e4da','#d7dce6','#d9cee5'];
 const productName=()=>fuelProduct==='B027'?'휘발유':'경유';
 const money=v=>Number.isFinite(v)?v.toLocaleString('ko-KR',{maximumFractionDigits:0})+'원':'미제공';
-const availableLayers=()=>[['festival','축제',festivals.length],['weather','날씨',weatherData],['fuel','주유소',fuelData],['food','식품안심업소',foodIndex]].filter(x=>x[2]);
+const availableLayers=()=>[['festival','축제',festivals.length],['weather','날씨',weatherData],['fuel','주유소',fuelData],['parking','주차장',parkingIndex],['food','식품안심업소',foodIndex]].filter(x=>x[2]);
+
+const parkingCache=new Map(), parkingPending=new Set(), parkingErrors=new Set();
+const parkingMarkers=L.layerGroup().addTo(map);
+let parkingFilter='', parkingCode=null, parkingShown=[];
+const liveFor=x=>parkingLive?.items.find(l=>l.matchId===x.id&&Number.isFinite(l.now)&&Number.isFinite(l.total));
+function parkingSpace(l) { const free=Math.max(0,l.total-l.now), r=l.total>0?free/l.total:0;return {free,state:r>=.3?'여유':r<.1?'혼잡':'보통',tone:r>=.3?'easy':r<.1?'busy':'normal'}; }
+function parkingText(x,only=false) {
+ const l=only?(Number.isFinite(x.now)&&Number.isFinite(x.total)?x:null):liveFor(x), a=l&&parkingSpace(l);
+ const fee=x.fee==='무료'?'무료':[x.fee,x.basic&&Number.isFinite(x.basic.won)&&Number.isFinite(x.basic.min)?'기본 '+x.basic.min+'분 '+money(x.basic.won):'',x.add&&Number.isFinite(x.add.won)&&Number.isFinite(x.add.min)?'추가 '+x.add.min+'분 '+money(x.add.won):'',Number.isFinite(x.dayMax)?'하루 최대 '+money(x.dayMax):''].filter(Boolean).join(' · ');
+ const hours=[['평일',x.weekday],['토',x.sat],['공휴일',x.holiday]].filter(v=>v[1]).map(v=>v.join(' ')).join(' · ');
+ return '<h3>'+escapeHtml(x.name)+'</h3><p>'+escapeHtml([x.kind,x.type,Number.isFinite(x.spaces)?x.spaces+'면':only?x.total+'면':''].filter(Boolean).join(' · '))+'</p><p>'+escapeHtml(fee||'요금 미제공')+'</p>'+(hours?'<p>'+escapeHtml(hours)+'</p>':'')+'<p>'+escapeHtml(x.address||'주소 미제공')+'</p>'+(a?'<p class="parking-live '+a.tone+'">지금 빈자리 '+a.free+'면 · '+a.state+' · '+escapeHtml(l.at?l.at.slice(11,16)+' 기준':'시각 미제공')+'</p>':'')+(x.ref?'<p class="src">자료 기준일 '+escapeHtml(x.ref)+'</p>':'')+(only?addressLink(x.address):routeLink(x));
+}
+async function loadParking(code) {
+ parkingPending.add(code);parkingErrors.delete(code);
+ try { const r=await fetch('data/'+(DEMO?'demo-parking/':'parking/')+encodeURIComponent(code)+'.json',{cache:'no-store'});if(!r.ok) throw Error();const d=await r.json();if(!Array.isArray(d.items)) throw Error();parkingCache.set(code,d); }catch(_){parkingErrors.add(code);}
+ parkingPending.delete(code);if(mode==='explore'&&exploreLayer==='parking'&&selection?.center.code===code) renderExplore();
+}
+function renderParking() {
+ const code=muniByCode.has(selection?.center.code)?selection.center.code:null;
+ if(parkingCode!==code){parkingCode=code;parkingFilter='';}parkingShown=[];
+ exploreTools.innerHTML=sourceDisclosure('전국주차장정보표준데이터 · 기준일은 지자체마다 달라요 · 서울은 서울시 공영주차장 안내로 보충(위치 없는 곳은 목록만) · 시영주차장 실시간은 서울열린데이터광장, 현장과 다를 수 있어요');
+ if(!code){feedEl.innerHTML='<li class="empty">지도에서 시·군·구를 고르면 그 동네 주차장을 보여드려요<div class="explore-toggle">'+favorites.map(r=>'<button type="button" data-parking-region="'+escapeHtml(r.code)+'">'+escapeHtml(r.name)+'</button>').join('')+'</div></li>';return;}
+ const data=parkingCache.get(code), extra=(parkingLive?.items||[]).filter(x=>x.sgg===code&&!x.matchId);
+ if(!data&&parkingIndex.counts[code]>0){feedEl.innerHTML='<li class="empty">'+(parkingErrors.has(code)?'지역 자료를 받지 못했어요. <button type="button" data-parking-retry>다시 받기</button>':'지역 자료를 불러오는 중이에요.')+'</li>';if(!parkingPending.has(code)&&!parkingErrors.has(code)) loadParking(code);return;}
+ const items=data?.items||[], hasFree=x=>{const l=liveFor(x);return l&&parkingSpace(l).free>0;};
+ const filters=[['','전체'],...(items.concat(extra).some(x=>x.fee==='무료')?[['free','무료']]:[]),...(items.some(x=>x.kind==='공영')||extra.length?[['public','공영']]:[]),...(items.some(hasFree)||extra.some(x=>Number.isFinite(x.now)&&x.total>x.now)?[['live','지금 빈자리(서울)']]:[])];
+ if(!filters.some(x=>x[0]===parkingFilter)) parkingFilter='';
+ exploreTools.innerHTML+='<div class="explore-toggle">'+filters.map(([k,n])=>'<button type="button" data-parking-filter="'+k+'" aria-pressed="'+(k===parkingFilter)+'">'+n+'</button>').join('')+'</div>';
+ const accept=(x,only=false)=>!parkingFilter||parkingFilter==='free'&&x.fee==='무료'||parkingFilter==='public'&&(x.kind==='공영'||only)||parkingFilter==='live'&&(only?Number.isFinite(x.now)&&x.total>x.now:hasFree(x));
+ parkingShown=items.filter(x=>accept(x)).sort((a,b)=>Number(!!liveFor(b))-Number(!!liveFor(a))||Number(b.fee==='무료')-Number(a.fee==='무료')||a.name.localeCompare(b.name,'ko'));
+ const rest=extra.filter(x=>accept(x,true));
+ feedEl.innerHTML=parkingShown.map(x=>'<li class="festival-card">'+parkingText(x)+'</li>').join('')+(rest.length?'<li class="explore-source">위치 정보 없이 실시간만 있는 곳</li>'+rest.map(x=>'<li class="festival-card">'+parkingText(x,true)+'</li>').join(''):'')+(!parkingShown.length&&!rest.length?'<li class="empty">이 지역에 해당하는 주차장 자료가 없어요.</li>':'');renderParkingMarkers();
+}
+function renderParkingMarkers(){
+ parkingMarkers.clearLayers();if(mode!=='explore'||exploreLayer!=='parking')return;
+ const groups=[];for(const x of parkingShown){if(!Number.isFinite(x.lat)||!Number.isFinite(x.lon)||Math.abs(x.lat)>90||Math.abs(x.lon)>180)continue;const pt=map.latLngToContainerPoint([x.lat,x.lon]);let g=groups.find(g=>g.pt.distanceTo(pt)<(map.getZoom()<MUNI_ZOOM?44:26));if(!g){g={pt,items:[]};groups.push(g);}g.items.push(x);}
+ for(const g of groups){const bounds=L.latLngBounds(g.items.map(x=>[x.lat,x.lon])), x=g.items[0],l=g.items.length===1&&liveFor(x),a=l&&parkingSpace(l);
+ const marker=L.marker(bounds.getCenter(),{title:g.items.map(x=>x.name).join(' · '),icon:L.divIcon({className:'parking-marker',html:'<span class="parking-pin '+(x.fee==='무료'?'free':'')+'">P'+(g.items.length>1?'<small>'+g.items.length+'</small>':'')+'</span>'+(a?'<span class="parking-tag '+a.tone+'">빈 '+a.free+' · '+a.state+'</span>':''),iconSize:[44,44],iconAnchor:[22,22]})}).addTo(parkingMarkers);
+ if(g.items.length>1)marker.on('click',()=>moveToBounds(bounds,{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:Math.min(13,map.getZoom()+2),duration:.6}));if(g.items.length===1||map.getZoom()>=13)marker.bindPopup(g.items.map(x=>parkingText(x)).join('<hr>'));
+ }
+}
+map.on('moveend zoomend',renderParkingMarkers);
+exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-parking-filter]');if(b){parkingFilter=b.dataset.parkingFilter;renderExplore();}});
+feedEl.addEventListener('click',e=>{if(mode!=='explore'||exploreLayer!=='parking')return;const b=e.target.closest('button');if(!b)return;if(b.dataset.parkingRegion){const m=muniByCode.get(b.dataset.parkingRegion);if(m)select(m,false);}if(b.hasAttribute('data-parking-retry')){loadParking(parkingCode);renderExplore();}});
+setInterval(async()=>{try{const r=await fetch('data/'+(DEMO?'demo-parking-live':'parking-live')+'.json',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(Array.isArray(d.items))parkingLive=d;if(mode==='explore'&&exploreLayer==='parking')renderExplore();}catch(_){}},10*60*1000);
+
 function fuelColor(code) {
   const price=fuelData?.sgg?.[code]?.[fuelProduct], avg=fuelData?.national?.[fuelProduct]?.price;
   if (!Number.isFinite(price) || !Number.isFinite(avg)) return null;
   const d=price-avg; return fuelColors[d < -50?0:d < -10?1:d <= 10?2:d <= 50?3:4];
 }
 async function loadExploreData() {
-  await Promise.all(['fuel','food/index','weather','forecast'].map(async key=>{
+  await Promise.all(['fuel','food/index','weather','forecast','parking/index','parking-live'].map(async key=>{
     try {
       const r=await fetch('data/'+(DEMO?(key==='food/index'?'demo-food/index':'demo-'+key):key)+'.json',{cache:'no-store'});
       if (!r.ok) throw Error(); const data=await r.json();
@@ -895,6 +941,8 @@ async function loadExploreData() {
       if(key==='weather' && data.sgg) weatherData=data;
       if(key==='forecast' && data.sgg) forecastData=data;
       if(key==='food/index' && data.counts) foodIndex=data;
+if(key==='parking/index'&&data.counts) parkingIndex=data;
+if(key==='parking-live'&&Array.isArray(data.items)) parkingLive=data;
     } catch (_) {}
   }));
   if(availableLayers().some(x=>x[0]===preferredExploreLayer)) exploreLayer=preferredExploreLayer;
@@ -902,24 +950,24 @@ async function loadExploreData() {
 }
 function updateExploreStatus() {
   if(exploreLayer==='festival') return updateFestivalStatus();
-  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:foodIndex, date=new Date(data?.updated);
+  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:foodIndex, date=new Date(data?.updated);
   const status=document.getElementById('collection-status'), stale=!validDate(date)||Date.now()-date>(exploreLayer==='weather'?2:exploreLayer==='fuel'?6:48)*3600000;
   status.textContent=validDate(date)?ago(date):'확인 중'; status.classList.remove('failed'); status.classList.toggle('stale',stale);
   status.setAttribute('aria-label','자료 확인 시각: '+status.textContent+'. 상세 보기');
   const alert=document.getElementById('collection-alert'); alert.hidden=!stale; alert.classList.remove('failed'); alert.textContent='자료 갱신 시각을 확인해 주세요.';
-  document.getElementById('sources-detail').textContent=(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR'):'미제공');
+  document.getElementById('sources-detail').textContent=(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR'):'미제공');
 }
 function renderExplore() {
   const available=availableLayers();
   if(!available.some(x=>x[0]===exploreLayer)) exploreLayer=available[0]?.[0] || 'festival';
-  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers();
+  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers();
   munis.forEach(restyle); scheduleLabels();
   if(mode!=='explore') return;
   if(exploreLayer==='festival') return renderFestivals();
   syncCategories(); newButton.hidden=true; updateExploreStatus();
   titleEl.textContent=selection?label(selection.center):'동네 탐험';
-  subEl.textContent=exploreLayer==='weather'?'현재 동네 날씨':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':'동네 식품안심업소';
-  if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else renderFood();
+  subEl.textContent=exploreLayer==='weather'?'현재 동네 날씨':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':exploreLayer==='parking'?'동네 주차장':'동네 식품안심업소';
+  if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else renderFood();
 }
 function sourceDisclosure(text) { return '<details class="source-disclosure"><summary>'+escapeHtml(text)+'</summary><p>'+escapeHtml(text)+'</p></details>'; }
 setInterval(async()=>{
@@ -1148,7 +1196,7 @@ function renderFestivalMarkers() {
 }
 function applyMode() {
   rootMode();
-  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); earthquakeMarkers.clearLayers();
+  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); parkingMarkers.clearLayers(); earthquakeMarkers.clearLayers();
   document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode)));
   map.closePopup(); bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; replayEl.hidden = true;
   map.getPane('pulses').style.display = mode === 'explore' ? 'none' : '';

@@ -342,3 +342,5 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 /* PC 마우스로 가로 칩 줄 끌기 (app.js H_SCROLL) */
 @media (hover:hover) and (pointer:fine) { .chips, .favorites, .filter-row, .food-controls { cursor:grab; } }
 .dragging, .dragging * { cursor:grabbing !important; user-select:none; }
+
+.parking-marker{background:none;border:0}.parking-pin{position:absolute;left:12px;top:12px;display:grid;place-items:center;width:22px;height:22px;border:2px solid #536c99;border-radius:5px;background:var(--land);color:var(--text);font-size:13px;font-weight:800;box-shadow:0 1px 4px #0003}.parking-pin.free{border-color:#288575}.parking-pin small{position:absolute;left:17px;top:-9px;background:var(--land);border:1px solid #536c99;border-radius:12px;padding:1px 4px;font-size:11px}.parking-tag{position:absolute;left:36px;top:12px;white-space:nowrap;background:var(--land);border:1px solid currentColor;border-radius:4px;padding:2px 4px;font-size:11px}.parking-live.easy,.parking-tag.easy{color:#237c69}.parking-live.normal,.parking-tag.normal{color:#896515}.parking-live.busy,.parking-tag.busy{color:#b14845}
