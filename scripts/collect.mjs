@@ -7,7 +7,9 @@
 //   DATA_GO_KR_KEY   정책브리핑·전국문화축제·초단기실황 기온 (data.go.kr) → 기온은 web/data/weather.json, 매시
 //   OPINET_KEY       주유소 기름값 (opinet.co.kr) → web/data/fuel.json, 3시간마다
 //   FOODSAFETY_KEY   식품안심업소 (foodsafetykorea.go.kr) → web/data/food/, 하루 한 번
-//   FORCE_REFRESH    1이면 간격과 상관없이 기름값·식품안심업소를 새로 받는다
+//   SEOUL_KEY        서울 시영주차장 실시간 (data.seoul.go.kr) → web/data/parking-live.json, 매번
+//                    (주차장 표준데이터는 DATA_GO_KR_KEY → web/data/parking/, 하루 한 번)
+//   FORCE_REFRESH   1이면 간격과 상관없이 기름값·식품안심업소를 새로 받는다
 //   PREV_URL         직전에 배포된 news.json 주소 (없으면 로컬 파일을 이어 쓴다)
 import fs from 'node:fs';
 import * as sms from './sources/disaster-sms.mjs';
@@ -19,6 +21,7 @@ import { fetchFuel, PRODUCTS } from './sources/fuel.mjs';
 import { fetchFood } from './sources/food-safety.mjs';
 import { fetchTemperature, latestBase } from './sources/temperature.mjs';
 import { fetchForecast, forecastBase } from './sources/forecast.mjs';
+import { fetchParking, fetchSeoulLive } from './sources/parking.mjs';
 
 // 일시적인 네트워크 오류('fetch failed')는 3초 뒤 한 번 더 시도한다
 const rawFetch = globalThis.fetch;
@@ -195,45 +198,71 @@ const FORECAST_OUT = 'web/data/forecast.json';
   }
 }
 
-// 식품안심업소(위생등급) — 하루 한 번. 시·군·구별 파일 + 목차(index.json)
-const FOOD_DIR = 'web/data/food';
-{
-  const prevIdx = await prevJson('food/index.json');
+/**
+ * 시·군·구별 파일(web/data/<dir>/<코드>.json) + 목차(index.json)를 하루 한 번 새로 받는다.
+ * 간격 안이거나 실패하면 직전 배포 파일들을 다시 내려받아 그대로 쓴다. 쓴 { by }를 돌려준다(없으면 null).
+ */
+async function perSggDaily({ dir, label, source, fetcher }) {
+  const out = `web/data/${dir}`;
+  const prevIdx = await prevJson(`${dir}/index.json`);
   const writeAll = (idx, by) => {
-    fs.mkdirSync(FOOD_DIR, { recursive: true });
-    for (const [code, items] of Object.entries(by)) fs.writeFileSync(`${FOOD_DIR}/${code}.json`, JSON.stringify({ updated: idx.updated, items }));
-    fs.writeFileSync(`${FOOD_DIR}/index.json`, JSON.stringify(idx));
+    fs.mkdirSync(out, { recursive: true });
+    for (const [code, items] of Object.entries(by)) fs.writeFileSync(`${out}/${code}.json`, JSON.stringify({ updated: idx.updated, items }));
+    fs.writeFileSync(`${out}/index.json`, JSON.stringify(idx));
   };
-  // 직전 배포 파일들을 다시 내려받아 그대로 쓴다
   const reuse = async () => {
     const by = {};
     const codes = Object.keys(prevIdx.counts || {});
     for (let i = 0; i < codes.length; i += 16) {
       await Promise.all(codes.slice(i, i + 16).map(async (c) => {
-        const f = await prevJson(`food/${c}.json`);
+        const f = await prevJson(`${dir}/${c}.json`);
         if (f?.items) by[c] = f.items;
       }));
     }
     if (Object.keys(by).length < codes.length * 0.95) throw new Error(`직전 파일 ${Object.keys(by).length}/${codes.length}개만 받음`);
     writeAll(prevIdx, by);
+    return by;
   };
   try {
     if (fresh(prevIdx, 24)) {
-      await reuse();
-      console.log(`- 식품안심업소: 직전 파일 유지 (${prevIdx.updated})`);
-    } else {
-      const r = await fetchFood({ key: process.env.FOODSAFETY_KEY });
-      if (r.skipped) console.log(`- 식품안심업소: 건너뜀 (${r.skipped})`);
-      else {
-        const counts = Object.fromEntries(Object.entries(r.by).map(([c, l]) => [c, l.length]));
-        writeAll({ updated: now.toISOString(), source: '식품안전나라 식품접객업소 식품안심업소(위생등급) 지정 현황 (식품의약품안전처)', total: r.count, counts }, r.by);
-        console.log(`- 식품안심업소: ${r.count}건 → ${FOOD_DIR}/`);
-      }
+      const by = await reuse();
+      console.log(`- ${label}: 직전 파일 유지 (${prevIdx.updated})`);
+      return by;
     }
+    const r = await fetcher();
+    if (r.skipped) { console.log(`- ${label}: 건너뜀 (${r.skipped})`); return null; }
+    const counts = Object.fromEntries(Object.entries(r.by).map(([c, l]) => [c, l.length]));
+    writeAll({ updated: now.toISOString(), source, total: r.count, counts }, r.by);
+    console.log(`- ${label}: ${r.count}건 → ${out}/`);
+    return r.by;
   } catch (e) {
-    console.log(`- 식품안심업소: 실패 — ${e.message || e}${e.cause ? ` (${e.cause.code || ''})` : ''}`);
-    if (prevIdx) {
-      try { await reuse(); console.log('  직전 food/ 유지'); } catch (e2) { console.log(`  직전 food/ 유지 실패 — ${e2.message}`); }
-    }
+    console.log(`- ${label}: 실패 — ${e.message || e}${e.cause ? ` (${e.cause.code || ''})` : ''}`);
+    if (!prevIdx) return null;
+    try { const by = await reuse(); console.log(`  직전 ${dir}/ 유지`); return by; } catch (e2) { console.log(`  직전 ${dir}/ 유지 실패 — ${e2.message}`); return null; }
   }
+}
+
+// 식품안심업소(위생등급)
+await perSggDaily({
+  dir: 'food', label: '식품안심업소',
+  source: '식품안전나라 식품접객업소 식품안심업소(위생등급) 지정 현황 (식품의약품안전처)',
+  fetcher: () => fetchFood({ key: process.env.FOODSAFETY_KEY }),
+});
+
+// 주차장 (전국 표준데이터, 하루 한 번) + 서울 시영주차장 실시간 (매번)
+const parkingBy = await perSggDaily({
+  dir: 'parking', label: '주차장',
+  source: '전국주차장정보표준데이터 (공공데이터포털)',
+  fetcher: () => fetchParking({ key: process.env.DATA_GO_KR_KEY }),
+});
+try {
+  const r = await fetchSeoulLive({ key: process.env.SEOUL_KEY, by: parkingBy });
+  if (r.skipped) console.log(`- 서울 주차 실시간: 건너뜀 (${r.skipped})`);
+  else {
+    fs.writeFileSync('web/data/parking-live.json', JSON.stringify({ updated: now.toISOString(), source: '서울시 시영주차장 실시간 주차대수 정보 (서울열린데이터광장)', items: r.items }));
+    console.log(`- 서울 주차 실시간: ${r.items.length}곳 → web/data/parking-live.json`);
+  }
+} catch (e) {
+  // 실시간은 오래된 값을 이어 쓰지 않는다(틀린 빈자리 안내보다 없는 게 낫다)
+  console.log(`- 서울 주차 실시간: 실패 — ${e.message || e}`);
 }

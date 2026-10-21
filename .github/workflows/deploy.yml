@@ -56,6 +56,7 @@ jobs:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
+          SEOUL_KEY: ${{ secrets.SEOUL_KEY }}
           BRIEF_DEBUG: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
           PREV_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data/news.json
         run: node scripts/collect.mjs
