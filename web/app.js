@@ -259,7 +259,11 @@ function flash(m, signal) {
   m.flashTimer = setTimeout(() => { m.flashing = false; restyle(m); }, 2400);
 }
 
-const bubbleEl = document.createElement('div');
+// 말풍선은 누를 수 있는 버튼: 누르면 그 소식 카드를 연다(지도는 이미 그 소식을 보여 주므로 움직이지 않는다).
+// 지금 목록 범위에 있는 소식일 때만 누를 수 있고, 끌다가 놓은 것은 누름으로 보지 않는다.
+const bubbleEl = document.createElement('button');
+bubbleEl.type = 'button';
+let bubbleItem = null, bubbleDown = null;
 bubbleEl.className = 'map-bubble';
 bubbleEl.hidden = true;
 document.body.append(bubbleEl);
@@ -304,10 +308,34 @@ function showMapBubble(item, at) {
   bubbleUntil = item.urgency === 'critical' ? Date.now() + 4000 : 0;
   bubbleEl.innerHTML = urgencyBadge(item) + '<span class="bubble-title">' + escapeHtml(placeLabel(item)) + ' · ' + escapeHtml(item.title) + '</span>';
   if(item.src==='eqk') bubbleEl.innerHTML+='<span class="bubble-quake-detail">'+escapeHtml(item.body?.split(' · ')[0] || '진도 미제공')+' · '+escapeHtml(new Date(item.time).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}))+'</span>';
+  bubbleItem = item;
+  const openable = mode === 'news' && visible(item);
+  bubbleEl.classList.toggle('openable', openable);
+  bubbleEl.disabled = !openable; // 목록 범위 밖 소식은 누를 수 없다(사건 하나를 임의로 고르지 않게)
+  bubbleEl.setAttribute('aria-label', (openable ? '이 소식 카드 열기: ' : '') + placeLabel(item) + ' · ' + item.title);
   bubbleEl.hidden = false;
   placeMapOverlays();
-  bubbleTimer = setTimeout(() => { bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; }, item.urgency === 'critical' ? 4000 : 2800);
+  bubbleHideLater(item.urgency === 'critical' ? 4000 : 2800);
 }
+const bubbleHideLater = (ms) => { clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; bubbleItem = null; }, ms); };
+// 누르거나 포커스하는 동안에는 사라지지 않게
+['pointerenter', 'focus'].forEach((t) => bubbleEl.addEventListener(t, () => clearTimeout(bubbleTimer)));
+['pointerleave', 'blur'].forEach((t) => bubbleEl.addEventListener(t, () => { if (!bubbleEl.hidden) bubbleHideLater(2000); }));
+bubbleEl.addEventListener('pointerdown', (e) => { bubbleDown = { x: e.clientX, y: e.clientY }; });
+bubbleEl.addEventListener('click', (e) => {
+  const moved = bubbleDown && e.detail !== 0 && Math.hypot(e.clientX - bubbleDown.x, e.clientY - bubbleDown.y) > 10;
+  bubbleDown = null;
+  const item = bubbleItem;
+  if (moved || !item || mode !== 'news' || !visible(item)) return;
+  pending.delete(item.id);
+  openId = item.id; atHome = false; selectionAutoFit = false; // 지도와 열린 카드가 같은 소식을 가리키게
+  bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; bubbleItem = null;
+  if (mobileSheet.matches && sheetStage === 0) setSheetStage(1);
+  renderFeed(null, true);
+  const li = feedEl.querySelector('[data-id="' + CSS.escape(item.id) + '"]');
+  li?.scrollIntoView({ block: 'nearest', behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+  li?.querySelector('.card-toggle')?.focus({ preventScroll: true });
+});
 const overlayObserver = new ResizeObserver(() => { placeMapOverlays(); scheduleLabels(); });
 document.getElementById("map-legend").addEventListener("toggle", () => { placeMapOverlays(); scheduleLabels(); });
 [panel, document.querySelector('.topbar'), document.querySelector('.controls')].forEach(el => overlayObserver.observe(el));

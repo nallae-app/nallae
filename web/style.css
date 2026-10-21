@@ -463,3 +463,8 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .nearby-list { max-height:none; overflow:visible; }
 /* 길찾기·지도 링크가 다음 카드로 넘어가 보이지 않게 자기 카드 끝 줄에 둔다 */
 .food-map { float:none; }
+/* 말풍선: 목록에 있는 소식이면 눌러서 그 카드를 연다 (44px) */
+.map-bubble { font:inherit; font-size:13px; line-height:20px; border:0; text-align:left; min-height:44px; }
+.map-bubble.openable { pointer-events:auto; cursor:pointer; }
+.map-bubble.openable::after { content:'›'; flex:none; font-size:18px; color:var(--brand); }
+.map-bubble:disabled { color:var(--text); opacity:1; }
