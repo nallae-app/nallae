@@ -977,7 +977,13 @@ function renderWeather() {
 }
 feedEl.addEventListener('click',e=>{if(e.target.closest('[data-weather-news]')) document.querySelector('[data-mode-choice="news"]').click();});
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-legend]');if(b) exploreTools.querySelector('.legend-detail').textContent=b.dataset.legend;});
-function stationText(s) { return '<h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+' · <strong>'+money(s.price[fuelProduct])+'</strong></p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'; }
+function stationText(s) { return '<h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+' · <strong>'+money(s.price[fuelProduct])+'</strong></p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'+routeLink(s); }
+// 카카오맵 길찾기(도착지 = 주유소 좌표). 앱이 있으면 앱, 없으면 웹. 누를 때만 외부로 나간다.
+function routeLink(s) {
+  if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return '';
+  const url = 'https://map.kakao.com/link/to/' + encodeURIComponent(String(s.name).replace(/,/g, ' ')) + ',' + s.lat + ',' + s.lon;
+  return '<a class="food-map" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">길찾기 ↗</a>';
+}
 function renderFuel() {
   const avg=fuelData.national[fuelProduct], local=selection && fuelData.sgg[selection.center.code]?.[fuelProduct];
   const diff=Number.isFinite(local)&&Number.isFinite(avg?.price)?local-avg.price:null;
