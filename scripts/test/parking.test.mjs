@@ -1,7 +1,7 @@
 // 주차장 파서 시험. 필드는 실제 응답(2026-10-21 probe)과 같은 이름.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toParkingBySgg, toSeoulLive, normName } from '../sources/parking.mjs';
+import { toParkingBySgg, toSeoulLive, normName, normLot } from '../sources/parking.mjs';
 
 const std = (o) => ({ prkplceNo: '1', prkplceNm: '세종로 공영주차장', prkplceSe: '공영', prkplceType: '노외', rdnmadr: '', lnmadr: '서울특별시 종로구 세종로 80-1', prkcmprt: '1260', operDay: '평일+토요일+공휴일', weekdayOperOpenHhmm: '00:00', weekdayOperColseHhmm: '23:59', satOperOperOpenHhmm: '00:00', satOperCloseHhmm: '23:59', holidayOperOpenHhmm: '', holidayCloseOpenHhmm: '', parkingchrgeInfo: '유료', basicTime: '5', basicCharge: '430', addUnitTime: '5', addUnitCharge: '430', dayCmmtkt: '', latitude: '37.5735', longitude: '126.9769', referenceDate: '2026-04-20', ...o });
 
@@ -27,4 +27,14 @@ test('서울 실시간 → 같은 구·같은 이름 하나일 때만 지도 점
   assert.equal(live[0].now, 761);
   assert.equal(live[1].matchId, undefined);
   assert.equal(live[1].now, undefined); // 20분 넘은 자료는 '현재'로 쓰지 않는다
+});
+
+test('이름 표기가 달라도 이름·지번으로 연결', () => {
+  assert.equal(normName('종묘주차장 공영주차장(시)'), normName('종묘'));
+  assert.equal(normLot('종로구 훈정동 2-0'), '훈정동2');
+  assert.equal(normLot('서울특별시 종로구 훈정동 2'), '훈정동2');
+  assert.equal(normLot('송파구 장지동 600-2'), '장지동600-2');
+  const { by } = toParkingBySgg([std({ prkplceNo: '7', prkplceNm: '용산 주차 빌딩', lnmadr: '서울특별시 용산구 한강로2가 12-9', latitude: '37.529', longitude: '126.968' })]);
+  const [live] = toSeoulLive([{ PKLT_CD: '1', PKLT_NM: '용산주차빌딩 공영주차장(시)', ADDR: '용산구 한강로2가 12-9', PRK_STTS_YN: '1', TPKCT: 100, NOW_PRK_VHCL_CNT: 50 }], by);
+  assert.equal(live.matchId, '7');
 });

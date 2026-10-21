@@ -11,7 +11,12 @@ const hhmm = (s) => (/^\d{2}:?\d{2}$/.test(clean(s)) ? clean(s).replace(/^(\d{2}
 const n = (v) => (clean(v) !== '' && Number.isFinite(Number(v)) ? Number(v) : undefined);
 
 /** 이름 비교용: 공백·괄호 꼬리·'공영주차장' 등을 뗀다 */
-export const normName = (s) => clean(s).replace(/\((?:시|구|공영|민영)\)/g, '').replace(/\s+/g, '').replace(/(?:공영|민영)?주차장$/, '').replace(/공영$/, '');
+export const normName = (s) => clean(s).replace(/\((?:시|구|공영|민영)\)/g, '').replace(/공영|민영|주차장|\s+/g, '');
+/** 지번 비교용: '…종로구 훈정동 2-0' → '훈정동2' (동·리 + 번지, '-0' 꼬리 제거) */
+export const normLot = (s) => {
+  const m = clean(s).match(/([가-힣0-9]+(?:동|리|가))\s*(?:산\s*)?(\d+)(?:-(\d+))?/);
+  return m ? `${m[1]}${m[2]}${m[3] && m[3] !== '0' ? '-' + m[3] : ''}` : '';
+};
 
 /** 표준데이터 행 → 시·군·구별 주차장. 좌표가 국내 육지 시·군·구 안에 있는 것만 */
 export function toParkingBySgg(rows) {
@@ -32,6 +37,7 @@ export function toParkingBySgg(rows) {
       kind: clean(r.prkplceSe) || undefined,          // 공영 / 민영
       type: clean(r.prkplceType) || undefined,        // 노외 / 노상 / 부설
       address: clean(r.rdnmadr || r.lnmadr) || undefined,
+      lot: normLot(r.lnmadr) || undefined, // 서울 실시간과 맞추는 용도
       lat: +lat.toFixed(6), lon: +lon.toFixed(6),
       spaces: n(r.prkcmprt) || undefined,
       fee: clean(r.parkingchrgeInfo) || undefined,    // 무료 / 유료 / 혼합
@@ -57,8 +63,11 @@ export function toSeoulLive(rows, by) {
     const gu = clean(r.ADDR).split(' ')[0];
     const { sgg } = resolvePlace(`서울 ${gu}`, { strict: true });
     if (sgg.length !== 1) continue;
-    const key = normName(r.PKLT_NM);
-    const cands = (by?.[sgg[0]] || []).filter((p) => normName(p.name) === key);
+    // 이름이 하나로 맞으면 그것, 아니면 지번 주소가 하나로 맞는 것
+    const list = by?.[sgg[0]] || [];
+    const key = normName(r.PKLT_NM), lot = normLot(r.ADDR);
+    let cands = list.filter((p) => normName(p.name) === key);
+    if (cands.length !== 1 && lot) cands = list.filter((p) => p.lot === lot);
     const live = String(r.PRK_STTS_YN) === '1'; // 20분 안 연계자료가 있을 때만 '현재 대수'로 쓴다
     out.push({
       code: clean(r.PKLT_CD),

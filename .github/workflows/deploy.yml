@@ -15,6 +15,11 @@ on:
   repository_dispatch:
     types: [news-updated]
   workflow_dispatch:
+    inputs:
+      force:
+        description: '기름값·예보·식품안심업소·주차장 등 간격 두는 자료도 지금 새로 받기'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -57,6 +62,7 @@ jobs:
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
           SEOUL_KEY: ${{ secrets.SEOUL_KEY }}
+          FORCE_REFRESH: ${{ inputs.force && '1' || '' }}
           BRIEF_DEBUG: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
           PREV_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data/news.json
         run: node scripts/collect.mjs
