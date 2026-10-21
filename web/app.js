@@ -197,7 +197,51 @@
     m.flashTimer = setTimeout(() => { m.flashing = false; restyle(m); }, 2400);
   }
 
-  let bubbleMarker = null;
+  const bubbleEl = document.createElement('div');
+  bubbleEl.className = 'map-bubble';
+  bubbleEl.hidden = true;
+  document.body.append(bubbleEl);
+  let bubbleAt = null, bubbleUntil = 0, bubbleTimer;
+  const replayEl = document.getElementById('replay-status');
+  function placeMapOverlays() {
+    const sheet = panel.getBoundingClientRect();
+    const controls = document.querySelector('.controls').getBoundingClientRect();
+    const header = document.querySelector('.topbar').getBoundingClientRect();
+    const desktop = matchMedia('(min-width:760px)').matches;
+    const left = desktop ? sheet.right + 16 : 12;
+    const right = desktop ? controls.left - 12 : innerWidth - 12;
+    const top = Math.max(header.bottom, controls.bottom) + 8;
+    const bottom = desktop ? innerHeight - 28 : sheet.top - 12;
+    const width = Math.max(0, right - left);
+    replayEl.style.left = left + 'px';
+    replayEl.style.top = top + 'px';
+    replayEl.style.maxWidth = width + 'px';
+    const minY = top + (replayEl.hidden ? 0 : replayEl.getBoundingClientRect().height + 8);
+    bubbleEl.style.maxWidth = Math.min(innerWidth * .72, width) + 'px';
+    if (!bubbleAt || bubbleEl.hidden) return;
+    const box = bubbleEl.getBoundingClientRect();
+    bubbleEl.style.visibility = width >= 80 && bottom - minY >= box.height ? 'visible' : 'hidden';
+    const point = map.latLngToContainerPoint(bubbleAt);
+    const x = point.x + box.width > right ? point.x - box.width : point.x;
+    const y = point.y - box.height - 14 < minY ? point.y + 14 : point.y - box.height - 14;
+    bubbleEl.style.left = Math.max(left, Math.min(x, right - box.width)) + 'px';
+    bubbleEl.style.top = Math.max(minY, Math.min(y, bottom - box.height)) + 'px';
+  }
+  function showMapBubble(item, at) {
+    if (Date.now() < bubbleUntil) return;
+    clearTimeout(bubbleTimer);
+    bubbleAt = at;
+    bubbleUntil = item.urgency === 'critical' ? Date.now() + 4000 : 0;
+    bubbleEl.innerHTML = urgencyBadge(item) + '<span class="bubble-title">' + escapeHtml(placeLabel(item)) + ' · ' + escapeHtml(item.title) + '</span>';
+    bubbleEl.hidden = false;
+    placeMapOverlays();
+    bubbleTimer = setTimeout(() => { bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; }, item.urgency === 'critical' ? 4000 : 2800);
+  }
+  const overlayObserver = new ResizeObserver(placeMapOverlays);
+  [panel, document.querySelector('.topbar'), document.querySelector('.controls')].forEach(el => overlayObserver.observe(el));
+  new MutationObserver(placeMapOverlays).observe(replayEl, { attributes:true, attributeFilter:['hidden'] });
+  map.on('move zoom resize', placeMapOverlays);
+  window.addEventListener('resize', placeMapOverlays);
   // 정책브리핑처럼 지명이 '언급'만 된 자료는 목록에만 두고 지도에 찍지 않는다
   const onMap = (item) => item.onMap !== false && item.src !== 'brief';
 
@@ -211,24 +255,15 @@
     // 펄스는 한 곳에: 시·군·구 하나면 그 중심, 여러 곳이면 첫 지역, 시·도 전체면 시·도 중심
     const at = item.sgg?.length ? muniByCode.get(item.sgg[0])?.center : sidos.get(item.sido?.[0])?.center;
     if (!at) return;
-    const where = placeLabel(item);
-    // 화면 가장자리 근처면 말풍선을 안쪽으로 붙인다
-    const x = map.latLngToContainerPoint(at).x, w = map.getSize().x;
-    const edge = x > w - 150 ? ' to-left' : x < 150 ? ' to-right' : '';
     const html = `<div class="pulse" style="${signalStyle(item)}">
       ${reducedMotion.matches ? '' : '<span class="ring"></span>'}<span class="dot"></span>
-      ${withBubble ? `<div class="bubble${edge}${['critical','urgent'].includes(item.urgency) ? ' priority' : ''}"><b>${escapeHtml(where)}</b>${urgencyBadge(item)}<span class="bubble-title">${escapeHtml(item.title)}</span></div>` : ''}
     </div>`;
     const marker = L.marker(at, {
       pane: 'pulses', interactive: false, keyboard: false,
       icon: L.divIcon({ className: '', html, iconSize: [0, 0] }),
     }).addTo(map);
-    if (withBubble) {
-      if (bubbleMarker && !bubbleMarker.priority) map.removeLayer(bubbleMarker);
-      marker.priority = ['critical','urgent'].includes(item.urgency);
-      bubbleMarker = marker;
-    }
-    setTimeout(() => { map.removeLayer(marker); if (bubbleMarker === marker) bubbleMarker = null; }, 5600);
+    if (withBubble) showMapBubble(item, at);
+    setTimeout(() => map.removeLayer(marker), 5600);
   }
 
   function itemMunis(item) {
@@ -320,6 +355,7 @@
     const failed = Object.entries(sources).filter(([,v]) => v.ok === false);
     const stale = updatedAt && Date.now() - updatedAt > 60 * 60 * 1000;
     status.classList.toggle('failed', loadFailed || !!failed.length);
+    status.classList.toggle('stale', !!stale);
     status.textContent = (loadFailed ? '소식을 새로 불러오지 못했어요 · ' : failed.length ? '일부 출처 수집 실패 · ' : stale ? '갱신이 지연되고 있어요 · ' : '') + (updatedAt ? ago(updatedAt) : '갱신 시각 미제공');
   }
   function sourceStatus() {
@@ -336,7 +372,7 @@
   function renderFeed(newIds, preserve = false) {
     if (!preserve) pending.clear();
     titleEl.textContent = selection ? label(selection.center) + ' 주변' : '전국 소식';
-    subEl.textContent = selection ? (selection.fromLocation ? '내 위치 기준 · ' : '') + selection.center.name + '와 맞닿은 ' + (selection.codes.size - 1) + '곳 포함' : '새 소식이 오면 지도에 도착해요';
+    subEl.textContent = selection ? (selection.fromLocation ? '내 위치 기준 · ' : '') + selection.center.name + '와 맞닿은 ' + (selection.codes.size - 1) + '곳 포함' : '최근 72시간 · 새 소식은 지도에서 먼저 반짝여요';
     const oldScroll = feedEl.scrollTop;
     const focused = document.activeElement;
     const focusId = focused?.closest('li[data-id]')?.dataset.id;
