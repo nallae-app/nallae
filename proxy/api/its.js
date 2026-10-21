@@ -16,6 +16,17 @@ const ENDPOINTS = {
 export default async function handler(req, res) {
   const token = process.env.PROXY_TOKEN;
   if (!token || req.headers['x-nallae-token'] !== token) return res.status(401).json({ error: 'unauthorized' });
+  // 연결 진단: 키 없이 각 호스트에 접속만 해 본다
+  if (req.query.service === 'diag') {
+    const targets = ['https://openapi.its.go.kr:9443/', 'https://www.its.go.kr/', 'https://apis.data.go.kr/', 'https://www.safetydata.go.kr/'];
+    const out = {};
+    for (const u of targets) {
+      const t0 = Date.now();
+      try { const r = await fetch(u, { signal: AbortSignal.timeout(8000) }); out[u] = `HTTP ${r.status} ${Date.now() - t0}ms`; }
+      catch (e) { out[u] = `FAIL ${e.cause?.code || e.name} ${Date.now() - t0}ms`; }
+    }
+    return res.status(200).json({ region: process.env.VERCEL_REGION || 'unknown', out });
+  }
   const make = ENDPOINTS[req.query.service];
   if (!make) return res.status(400).json({ error: 'service must be event or disaster' });
   if (!process.env.ITS_KEY) return res.status(500).json({ error: 'ITS_KEY not set' });
