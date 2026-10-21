@@ -92,7 +92,8 @@ tools/serve.ps1          로컬 정적 서버 (http://localhost:5173/?demo)
 
 - GitHub Secrets: `SAFETYDATA_KEY`, `KMA_APIHUB_KEY`, `DATA_GO_KR_KEY`, `ITS_KEY`, `OPINET_KEY`, `FOODSAFETY_KEY`, `SEOUL_KEY`.
 - 간격 두는 자료(기름값·예보·식품·주차장)는 직전 배포 파일을 재사용한다. 지금 새로 받으려면 Actions → collect-and-deploy → Run workflow에서 force 체크.
-- 주소·좌표가 있는 곳은 카카오맵 공개 링크로 연결(routeLink/addressLink, 키·요금 없음). 공공데이터포털은 계정당 키 1개라 새 데이터도 `DATA_GO_KR_KEY` 하나로 쓴다.
+- 주소·좌표가 있는 곳은 카카오맵 공개 링크로 연결(routeLink/addressLink, 키·요금 없음).
+- **진행 중(2026-10-21 저녁): 새 로고 A안** — '나' 해 + 도로 'ㄹ' + T자 교차로 'ㅐ' = 날래. 벡터는 `scripts/logo-mark.mjs`(markSvg, iconSvg, ON_DARK), 아직 어디에도 적용 안 함. 사용자는 아직 원본과 완전히 같다고 보지 않음 → 사용자가 원본 시안 이미지를 다시 주면 나란히 비교하며 맞춘 뒤, 앱 아이콘(web/icons/icon.svg·icon-maskable.svg → build-icons.mjs), 앱 상단 로고(index.html .logo), 스토어 아이콘·대표 이미지에 적용. Play 업로드 전이라 지금 바꾸면 패키지 재생성 한 번으로 끝난다. 공공데이터포털은 계정당 키 1개라 새 데이터도 `DATA_GO_KR_KEY` 하나로 쓴다.
 - GitHub Actions에서 가끔 모든 출처가 `fetch failed`로 실패한다(해외 IP 문제로 추정). 수집기에 1회 재시도와 원인 코드 기록이 있다. 국내 서버로 옮기면 해결될 것으로 본다.
 
 ## 6. 진행 중: 국내 수집 서버 (Oracle Cloud 무료, 서울 리전)
