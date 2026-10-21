@@ -949,7 +949,9 @@ function forecastCards(code) {
   if(!d) return '<section><h4>'+name+'</h4><p>예보 미제공</p></section>';
   const sky=d.pty>0?({1:'비',2:'비/눈',3:'눈',4:'소나기'}[d.pty]||'강수'):({1:'맑음',3:'구름많음',4:'흐림'}[d.sky]||'하늘 미제공');
   const symbol=d.pty>0?precipSymbol(d.pty):({1:'☀',3:'☁',4:'☁'}[d.sky]||'');
-  const temps=[Number.isFinite(d.tmn)?d.tmn+'°':null,Number.isFinite(d.tmx)?d.tmx+'°':null].filter(v=>v!==null).join(' / ');
+  // 최저·최고 중 하나만 있으면(17시 발표의 오늘 등) 어느 쪽인지 밝힌다
+  const lo=Number.isFinite(d.tmn), hi=Number.isFinite(d.tmx);
+  const temps=lo&&hi ? d.tmn+'° / '+d.tmx+'°' : lo ? '최저 '+d.tmn+'°' : hi ? '최고 '+d.tmx+'°' : '';
   return '<section><h4>'+name+'</h4><p>'+symbol+' '+sky+'</p>'+(temps?'<strong>'+temps+'</strong>':'')+(Number.isFinite(d.pop)?'<p>강수확률 '+d.pop+'%</p>':'')+'</section>';
  }).join('')+'</div><p class="forecast-source">'+forecastHour()+'</p>';
 }
