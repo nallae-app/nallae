@@ -1,5 +1,5 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-const VERSION = 'nallae-v39';
+const VERSION = 'nallae-v40';
 const SHELL = [
   './', 'index.html', 'style.css', 'fonts/pretendard/pretendard-subset.css', 'app.js', 'manifest.webmanifest',
   'vendor/leaflet.min.css', 'vendor/leaflet.min.js', 'vendor/topojson-client.min.js',
@@ -8,7 +8,8 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // GitHub Pages는 max-age=600을 보낸다. 기본 요청이면 새 버전 캐시에 10분 묵은 이전 파일이 담길 수 있어 HTTP 캐시를 건너뛴다.
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -39,7 +40,8 @@ self.addEventListener('fetch', (e) => {
   // 껍데기: 캐시 우선 + 뒤에서 갱신
   e.respondWith(
     caches.match(e.request).then((hit) => {
-      const net = fetch(e.request).then((res) => {
+      // 뒤에서 갱신할 때도 HTTP 캐시 대신 서버에 확인(ETag 조건부 요청이라 바뀌지 않았으면 가볍다)
+      const net = fetch(e.request, { cache: 'no-cache' }).then((res) => {
         if (res.ok) {
           const copy = res.clone();
           caches.open(VERSION).then((c) => c.put(e.request, copy));
