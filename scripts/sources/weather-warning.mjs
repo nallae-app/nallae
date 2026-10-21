@@ -32,16 +32,23 @@ export function parseText(text) {
   return rows;
 }
 
-const tmToIso = (tm) => {
+// 발표 시각 YYYYMMDDHHMM(한국 시간) → ISO. 형식이 다르거나 불가능한 날짜(13월·32일·25시 등)면 null.
+// (예전에는 불가능한 날짜에서 toISOString()이 RangeError를 던져 수집 전체가 멈출 수 있었다)
+export const tmToIso = (tm) => {
   const m = String(tm || '').match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
-  return m ? new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00+09:00`).toISOString() : null;
+  if (!m) return null;
+  const [y, mo, d, h, mi] = m.slice(1).map(Number);
+  const t = Date.UTC(y, mo - 1, d, h - 9, mi);
+  const k = new Date(t + 9 * 3600000); // 한국 시간으로 되돌려 원값과 비교
+  if (!Number.isFinite(t) || k.getUTCFullYear() !== y || k.getUTCMonth() !== mo - 1 || k.getUTCDate() !== d || k.getUTCHours() !== h || k.getUTCMinutes() !== mi) return null;
+  return new Date(t).toISOString();
 };
 
 const sggName = new Map(INDEX.sgg.map((r) => [r.code, `${r.short} ${r.name}`]));
 const sidoName = new Map(INDEX.sidos.map((s) => [s.code, s.short]));
 
 /** 같은 특보(종류·수준·발표시각)끼리 구역을 묶어 소식 하나로 만든다 */
-export function toItems(rows) {
+export function toItems(rows, collectedAt = new Date()) {
   const groups = new Map();
   for (const r of rows) {
     if (!r.REG_ID?.startsWith('L')) continue; // 육상 특보만 (해상 구역은 지도에 없음)
@@ -75,7 +82,9 @@ export function toItems(rows) {
       cat: '기상',
       title: `${g.kind}${g.level} ${g.level === '예비특보' ? '발표' : '발효'} — ${where}`,
       body: `특보 구역: ${[...new Set(names)].join(', ')}`,
-      time: tmToIso(g.tmFc) || new Date().toISOString(),
+      // time은 정렬·보관 기준이라 비우지 않는다. 발표 시각이 없으면 수집 확인 시각을 쓰되 timeBasis로 구분한다(화면에서 '발표'라 부르지 않게)
+      time: tmToIso(g.tmFc) || collectedAt.toISOString(),
+      timeBasis: tmToIso(g.tmFc) ? 'issued' : 'collected',
       sgg: [...sgg], sido: [...sido],
       source: '기상청 기상특보',
       license: '공공누리 1유형',

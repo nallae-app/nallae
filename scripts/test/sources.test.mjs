@@ -89,3 +89,17 @@ test('정책브리핑 파싱: 공공누리 1유형 + 지명 있는 것만', () =
   assert.deepEqual(items[0].sgg, ['41117']);
   assert.ok(items[0].url.startsWith('https://'));
 });
+
+test('기상특보 발표 시각: 정상·누락·불가능한 날짜 (누락·불가능이면 수집 확인 시각 + timeBasis=collected, 멈추지 않음)', () => {
+  assert.equal(wrn.tmToIso('202610201000'), '2026-10-20T01:00:00.000Z');
+  assert.equal(wrn.tmToIso('202610210030'), '2026-10-20T15:30:00.000Z'); // 한국 자정 넘김
+  for (const bad of ['202613201000', '202610321000', '202610202500', '202610201060', '', null, 'abc']) assert.equal(wrn.tmToIso(bad), null, String(bad));
+  const at = new Date('2026-10-21T12:00:00Z');
+  const row = (tm) => ({ REG_UP: 'L1100000', REG_UP_KO: '서울', REG_ID: 'L1100400', REG_KO: '서울서북권', TM_FC: tm, TM_EF: '202610201100', WRN: 'R', LVL: '2', CMD: '1' });
+  const [ok] = wrn.toItems([row('202610201000')], at);
+  assert.deepEqual([ok.time, ok.timeBasis], ['2026-10-20T01:00:00.000Z', 'issued']);
+  for (const tm of ['', '202613201000']) {
+    const [it] = wrn.toItems([row(tm)], at);
+    assert.deepEqual([it.time, it.timeBasis], [at.toISOString(), 'collected'], tm);
+  }
+});

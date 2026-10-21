@@ -459,7 +459,7 @@ const newButton = document.getElementById('new-items');
 newButton.addEventListener('click', () => { pending.clear(); renderFeed(); feedEl.scrollTop = 0; });
 function updateTimes() {
   if (mode === 'explore') { updateExploreStatus(); return; }
-  feedEl.querySelectorAll('time').forEach(el => { el.textContent = ago(new Date(el.dateTime)); });
+  feedEl.querySelectorAll('time').forEach(el => { el.textContent = (el.dataset.prefix || '') + ago(new Date(el.dateTime)); });
   const status = document.getElementById('collection-status');
   const keys = newsSourceKeys(), states = keys.map(sourceState);
   const failedNames = keys.filter((k,i) => states[i].rank === 2).map(k => SOURCE_NAMES[k]);
@@ -513,7 +513,7 @@ function sourceStatus() {
 }
 function card(it) {
   const open = it.id === openId;
-  return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span>' + relationHtml(it) + '<span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '">' + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(it.title) + '</span></button>' + (open ? detail(it) : '');
+  return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span>' + relationHtml(it) + '<span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '"' + (it.timeBasis === 'collected' ? ' data-prefix="확인 "' : '') + '>' + (it.timeBasis === 'collected' ? '확인 ' : '') + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(it.title) + '</span></button>' + (open ? detail(it) : '');
 }
 function renderFeed(newIds, preserve = false) {
   if (mode === 'explore') { renderExplore(); return; }
@@ -588,9 +588,16 @@ const TIME_KIND = { sms: '발송', wrn: '발표', eqk: '발생', brief: '게시'
 // 링크 이름 = 실제 목적지. 특보·지진 링크는 개별 원문이 아니라 기상청 현황·목록 페이지다.
 const LINK_NAME = { wrn: '기상청 특보 현황 ↗', eqk: '기상청 지진 목록 ↗' };
 const kstFull = (d) => d.toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Seoul' });
+// 특보: 발표 시각이 확인된 것만 '발표'. 없으면 수집 확인 시각임을 밝히고, timeBasis가 없는 예전 자료는 '자료 시각'으로만 부른다
+function timeLine(it, when) {
+  const at = escapeHtml(kstFull(when)) + ' (한국 시간)';
+  if (it.src === 'wrn' && it.timeBasis === 'collected') return '발표 시각 미제공 · 수집 확인 ' + at;
+  if (it.src === 'wrn' && it.timeBasis !== 'issued') return '자료 시각 ' + at;
+  return TIME_KIND[it.src] + ' ' + at;
+}
 function detail(it) {
   const when = new Date(it.time);
-  return '<div class="detail">' + (TIME_KIND[it.src] && validDate(when) ? '<p class="detail-time">' + TIME_KIND[it.src] + ' ' + escapeHtml(kstFull(when)) + ' (한국 시간)</p>' : '') + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + (it.src==='eqk'?'</span><span>기상청 지진정보 · 진앙 위치는 발표 좌표':'') + '</span>' + (it.url && /^https?:\/\//i.test(it.url) ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener noreferrer">' + (LINK_NAME[it.src] || '원문 보기 ↗') + '</a>' : '') + '</div></div>';
+  return '<div class="detail">' + (TIME_KIND[it.src] && validDate(when) ? '<p class="detail-time">' + timeLine(it, when) + '</p>' : '') + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + (it.src==='eqk'?'</span><span>기상청 지진정보 · 진앙 위치는 발표 좌표':'') + '</span>' + (it.url && /^https?:\/\//i.test(it.url) ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener noreferrer">' + (LINK_NAME[it.src] || '원문 보기 ↗') + '</a>' : '') + '</div></div>';
 }
 
 feedEl.addEventListener('click', (e) => {
