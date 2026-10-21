@@ -128,7 +128,8 @@ path.region.flash { transition:none; }
   .panel-handle { cursor:ns-resize; }
   .panel.sheet-dragging { transition:none; user-select:none; }
   .feed { touch-action:pan-y; overscroll-behavior-y:contain; }
-  .feed.sheet-pull { touch-action:pan-up; }
+  /* 전체 단계 맨 위: 손가락을 위로 밀면 목록 스크롤, 아래로 당기면 시트 끌기(app.js). pan-up은 둘 다 막았다(실측). */
+  .feed.sheet-pull, .panel.sheet-scroll.sheet-pull { touch-action:pan-down; }
   .panel[data-sheet-stage="collapsed"] > :is(.collection-alert,.chips,#new-items,.feed) { display:none; }
 }
 @media(prefers-reduced-motion:reduce) {
@@ -378,3 +379,63 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 /* 아주 좁은 화면(320px 등)에서는 슬로건을 숨겨 헤더 버튼이 넘치지 않게 */
 .brand { min-width:0; }
 @media(max-width:349px) { .brand p { display:none; } }
+
+/* UX P1-A (2026-10-21): 확대·낮은 화면 읽기 */
+/* 전체 단계인데 목록 자리가 좁으면 시트 전체를 스크롤 (app.js applySheetHeight) */
+@media(max-width:759px) {
+  .panel.sheet-scroll { overflow-y:auto; overscroll-behavior-y:contain; }
+  .panel.sheet-scroll > * { flex-shrink:0; }
+  .panel.sheet-scroll .feed { flex:none; overflow:visible; min-height:auto; }
+}
+/* 아주 좁은 폭(200% 확대 등): 상단은 로고+아이콘만, 지도 버튼은 아이콘만. 이름은 보조기기에 그대로 읽힌다. */
+.visually-hidden { position:absolute!important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+@media(max-width:300px) {
+  .topbar { padding-left:8px; padding-right:8px; }
+  .brand h1 { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .logo { width:40px; height:37px; }
+  .top-right { gap:0; }
+  .badge-sample { display:none; }
+  .controls { right:8px; }
+  .controls button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .controls button { padding:8px 10px; }
+  .panel-head { grid-template-columns:minmax(0,1fr); }
+  .panel-head .collection-status { grid-column:1; justify-self:start; max-width:none; }
+}
+
+/* UX P1-B (2026-10-21): 탐험 카드 위계·글자·터치·대비 */
+.source-disclosure { font-size:13px; line-height:19px; margin:0; }
+.source-disclosure summary { display:flex; align-items:center; gap:6px; min-height:44px; line-height:19px; white-space:nowrap; }
+.source-disclosure summary::before { content:'ⓘ'; flex:none; }
+.source-disclosure summary::-webkit-details-marker { display:none; }
+.source-disclosure[open] summary { display:flex; white-space:normal; }
+.source-disclosure[open]>p { display:block; margin:0 0 8px; font-size:13px; line-height:20px; overflow-wrap:anywhere; }
+.explore-tools p, .fuel-summary p { font-size:13px; line-height:20px; }
+.explore-source { font-size:13px!important; }
+.explore-toggle button { font-size:14px; }
+.explore-toggle button[aria-pressed="true"] { color:var(--on-brand); }
+.fuel-legend { display:flex; align-items:center; gap:4px; font-size:12px; color:var(--text-muted); margin-top:6px; }
+.fuel-legend span { margin:0; }
+.fuel-legend i { flex:1; height:10px; border-radius:2px; }
+.weather-legend { font-size:12px; }
+#feed .festival-card h3, .festival-card h3 { font-size:16px; line-height:24px; display:block; -webkit-line-clamp:unset; overflow:visible; overflow-wrap:anywhere; }
+.festival-card:not(.food-card) details:not([open]) h3 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.festival-card p, #feed .food-card p, :root[data-mode="explore"] #feed .festival-card p { font-size:14px; line-height:21px; }
+.festival-content { -webkit-line-clamp:3; }
+#feed .food-card h3 { font-size:16px; line-height:24px; }
+:root[data-mode="explore"] #feed .food-card { padding:10px 12px; }
+.food-card .food-map { position:static; float:none; font-size:14px; }
+.card-address { color:var(--text-muted); overflow-wrap:anywhere; }
+.price-line { margin:0!important; }
+.price { font-size:22px; line-height:28px; font-weight:700; color:var(--text); }
+.price small { font-size:14px; font-weight:600; }
+.weather-kind { margin:8px 0 0!important; font-size:13px!important; color:var(--text-muted); font-weight:600; }
+.forecast-days h4 { font-size:14px; } .forecast-days p { font-size:14px; } .forecast-source { font-size:13px; opacity:1; color:var(--text-muted); }
+.source-disclosure summary .disclosure-text { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.source-disclosure[open] summary .disclosure-text { white-space:normal; }
+.source-disclosure summary .fuel-legend, .source-disclosure summary .weather-legend { flex:0 0 auto; margin:0; }
+.source-disclosure summary .fuel-legend { width:132px; }
+.source-disclosure summary .weather-legend i { width:56px; }
+/* 다크: 주차 빈자리 상태색을 카드(--surface)·지도 태그(--land) 위에서 4.5:1 이상으로 */
+:root[data-theme="dark"] :is(.parking-live,.parking-tag).easy { color:#7FD3B8; }
+:root[data-theme="dark"] :is(.parking-live,.parking-tag).normal { color:#E8C46A; }
+:root[data-theme="dark"] :is(.parking-live,.parking-tag).busy { color:#FF9B9E; }

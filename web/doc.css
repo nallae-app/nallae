@@ -1,16 +1,29 @@
-:root { --bg: #0b1220; --text: #e8eefc; --muted: #8a9bbd; --line: #2a3d60; --accent: #ffcf3f; }
+/* 앱 정보·개인정보처리방침: 앱과 같은 A안 색(라이트·다크). 앱에서 고른 테마(nallae-theme)를 따른다. */
+:root { --bg:#F7F7F2; --surface:#FFFFFF; --text:#182C30; --muted:#53666B; --line:#CED7D1; --brand:#176B60; --signature:#B87418; color-scheme:light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#111B20; --surface:#1D2A2F; --text:#F0F4EF; --muted:#AFBFBE; --line:#405456; --brand:#83D5BF; --signature:#E8A33D; color-scheme:dark; } }
+:root[data-theme="dark"] { --bg:#111B20; --surface:#1D2A2F; --text:#F0F4EF; --muted:#AFBFBE; --line:#405456; --brand:#83D5BF; --signature:#E8A33D; color-scheme:dark; }
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--text); line-height: 1.7;
-  font-family: system-ui, -apple-system, 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  font-family: Pretendard, system-ui, -apple-system, 'Malgun Gothic', sans-serif; font-size: 16px;
 }
 main { max-width: 720px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 16px 48px; }
-a { color: var(--accent); }
-.back { display: inline-block; margin-bottom: 16px; text-decoration: none; font-size: 14px; }
-h1 { font-size: 26px; margin: 0 0 4px; }
-h2 { font-size: 17px; margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
-p, li { font-size: 15px; }
-.muted { color: var(--muted); font-size: 13px; }
+a { color: var(--brand); }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+.back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 8px; text-decoration: none; font-size: 15px; font-weight: 600; }
+.brand-head { display: flex; align-items: center; gap: 10px; }
+.brand-head img { width: 52px; height: auto; }
+h1 { font-size: 26px; line-height: 34px; margin: 0; }
+.slogan { margin: 4px 0 0; color: var(--muted); }
+.slogan b { color: var(--signature); }
+h2 { font-size: 18px; margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+p, li { font-size: 16px; overflow-wrap: anywhere; }
+.muted { color: var(--muted); font-size: 14px; }
+.table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { color: var(--muted); font-weight: 500; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+th { color: var(--muted); font-weight: 600; }
+.logo-dark { display:none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-light { display:none; } :root:not([data-theme="light"]) .logo-dark { display:block; } }
+:root[data-theme="dark"] .logo-light { display:none; }
+:root[data-theme="dark"] .logo-dark { display:block; }

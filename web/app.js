@@ -120,8 +120,14 @@ document.fonts?.ready.then(scheduleLabels);
 const moveToBounds = (bounds, options) => reducedMotion.matches ? map.fitBounds(bounds, { ...options, animate:false }) : map.flyToBounds(bounds, options);
 let munis = [], muniByCode = new Map(), sidos = new Map(), neighborIdx = [], homeBounds = null;
 
-const leftPad = () => (window.innerWidth >= 760 ? [370, 70] : [10, Math.min(110, Math.max(0, panel.getBoundingClientRect().top - 30))]);
-const bottomPad = () => (window.innerWidth >= 760 ? [20, 20] : [10, panel.offsetHeight + 10]);
+const sheetTarget = () => parseFloat(panel.style.height) || panel.offsetHeight;
+const leftPad = () => (window.innerWidth >= 760 ? [370, 70] : [10, Math.max(0, Math.min(document.querySelector('.controls').getBoundingClientRect().bottom + 8, innerHeight - sheetTarget() - 120))]);
+const bottomPad = () => (window.innerWidth >= 760 ? [20, 20] : [10, sheetTarget() + (parseFloat(getComputedStyle(root).getPropertyValue('--kb')) || 0) + 10]);
+function fitSelection() {
+  const bounds = L.latLngBounds([]);
+  selection.codes.forEach(code => bounds.extend(muniByCode.get(code).layer.getBounds()));
+  map.fitBounds(bounds, { paddingTopLeft:leftPad(), paddingBottomRight:bottomPad(), maxZoom:11, animate:!reducedMotion.matches });
+}
 const fitHome = () => map.fitBounds(homeBounds, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad() });
 
 function setupRegions(topo) {
@@ -168,8 +174,13 @@ function setupRegions(topo) {
   fitHome();
   scheduleLabels();
 }
-let atHome = true;
-map.on('dragstart', () => { atHome = false; });
+let atHome = true, selectionAutoFit = false;
+// 사용자가 지도를 직접 끌거나 확대·축소하면 시트 높이 변화로 다시 맞추지 않는다
+const userMovedMap = () => { atHome = false; selectionAutoFit = false; };
+map.on('dragstart', userMovedMap);
+map.getContainer().addEventListener('wheel', userMovedMap, {passive:true});
+map.getContainer().addEventListener('dblclick', userMovedMap);
+map.getContainer().addEventListener('touchstart', e => { if (e.touches.length > 1) userMovedMap(); }, {passive:true});
 new ResizeObserver(() => {
   map.invalidateSize();
   if (atHome && homeBounds) fitHome();
@@ -209,7 +220,7 @@ function onRegionClick(m) {
 }
 
 function select(m, fromLocation) {
-  atHome = false;
+  atHome = false; selectionAutoFit = true;
   const prev = selection;
   const codes = new Set([m.code, ...neighborIdx[m.i].map((j) => munis[j].code)]);
   selection = { center: m, codes, fromLocation };
@@ -292,7 +303,7 @@ function showMapBubble(item, at) {
   bubbleAt = at;
   bubbleUntil = item.urgency === 'critical' ? Date.now() + 4000 : 0;
   bubbleEl.innerHTML = urgencyBadge(item) + '<span class="bubble-title">' + escapeHtml(placeLabel(item)) + ' · ' + escapeHtml(item.title) + '</span>';
-  if(item.src==='eqk') bubbleEl.innerHTML+='<span class="bubble-quake-detail">'+escapeHtml(item.body?.split(' · ')[0] || '진도 미제공')+' · '+escapeHtml(new Date(item.time).toLocaleString('ko-KR'))+'</span>';
+  if(item.src==='eqk') bubbleEl.innerHTML+='<span class="bubble-quake-detail">'+escapeHtml(item.body?.split(' · ')[0] || '진도 미제공')+' · '+escapeHtml(new Date(item.time).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}))+'</span>';
   bubbleEl.hidden = false;
   placeMapOverlays();
   bubbleTimer = setTimeout(() => { bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; }, item.urgency === 'critical' ? 4000 : 2800);
@@ -441,12 +452,12 @@ function updateTimes() {
   const stale = states.some(s => s.rank === 1) || !validDate(updatedAt) || Date.now()-updatedAt >= 1800000;
   status.classList.toggle('failed', failed);
   status.classList.toggle('stale', !failed && stale);
-  const statusText = loadFailed ? (lastChecked ? '앱이 마지막으로 받은 시각 ' + lastChecked.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}) + ' · ' : '') + '새로 고치지 못했어요' : (failed ? '출처 오류' : stale ? '갱신 지연' : '정상') + ' · ' + (validDate(updatedAt) ? ago(updatedAt) : '시각 미제공');
+  const statusText = loadFailed ? (lastChecked ? '앱이 마지막으로 받은 시각 ' + lastChecked.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'}) + ' · ' : '') + '새로 고치지 못했어요' : (failed ? '출처 오류' : stale ? '갱신 지연' : '정상') + ' · ' + (validDate(updatedAt) ? ago(updatedAt) : '시각 미제공');
   status.textContent = validDate(updatedAt) ? ago(updatedAt) : '시각 미제공';
   status.setAttribute('aria-label', statusText + '. 출처별 수집 상태 보기');
   const alert = document.getElementById('collection-alert');
   alert.hidden = !failed && !stale;
-  const hhmm = d => d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false});
+  const hhmm = d => d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'});
   setAlert(failed ? 'failed' : 'stale',
     // 보여 주는 자료의 시각은 수집 파일 생성 시각(updatedAt). 앱이 마지막으로 받은 시각(lastChecked)은 상세에만.
     loadFailed ? (navigator.onLine === false ? '인터넷에 연결되지 않았어요' : '소식을 새로 고치지 못했어요') + (items.length && validDate(updatedAt) ? ' · ' + hhmm(updatedAt) + ' 수집 자료를 보여 줘요' : '')
@@ -789,7 +800,15 @@ try {
 } catch (_) {}
 const TWO_CARDS = 172, MAP_MIN = 140; // 두 줄 제목 소식 2건, 중간 시트에서 남길 지도 최소 높이
 // 화면 키보드처럼 visualViewport만 줄어드는 경우(Android Chrome 기본·iOS) 가려지는 높이
-function keyboardInset() { const vv = window.visualViewport; return vv ? Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)) : 0; }
+// 핀치 확대 중에는 visualViewport.height가 1/scale로 줄어들므로 scale을 곱해 화면 높이로 되돌려 비교한다.
+// 확대 중의 offsetTop은 확대 영역의 위치라 키보드와 무관하므로 빼지 않는다.
+function keyboardInset() {
+  const vv = window.visualViewport;
+  if (!vv) return 0;
+  const scale = vv.scale > 0 ? vv.scale : 1;
+  const kb = innerHeight - vv.height * scale - (scale > 1.01 ? 0 : vv.offsetTop);
+  return kb > 40 ? Math.round(kb) : 0; // 주소창 출렁임 등 작은 차이는 무시
+}
 function sheetHeights() {
   const H = innerHeight - keyboardInset();
   const full = Math.max(0, H - document.querySelector('.topbar').getBoundingClientRect().bottom - 8);
@@ -807,13 +826,38 @@ function sheetHeights() {
   const extra = outer(document.getElementById('collection-alert')) + outer(document.querySelector('.category-row')) + outer(document.querySelector('.explore-tools'));
   const want = folded + extra + TWO_CARDS;
   const mapRoom = H - document.querySelector('.controls').getBoundingClientRect().bottom - MAP_MIN;
-  const middle = Math.max(H * .48, Math.min(want, mapRoom));
-  return [low, Math.min(full, Math.max(low, middle)), full];
+  let middle = Math.min(full, Math.max(low, H * .48, Math.min(want, mapRoom)));
+  const fixed = folded + extra;
+  if (middle - fixed < MIN_FEED) middle = full; // 확대·낮은 화면: 중간에서 소식을 읽을 수 없으면 전체로 펼친다
+  const heights = [low, middle, full];
+  heights.fixed = fixed;
+  return heights;
+}
+const MIN_FEED = 100, SCROLL_FEED = 240;
+// 전체 단계의 목록 자리가 좁으면 상단 고정 영역까지 함께 스크롤해 마지막 소식·상세·버튼에 닿게 한다
+function applySheetHeight(heights) {
+  const before = parseFloat(panel.style.height) || 0, h = heights[sheetStage];
+  panel.style.height = h + 'px';
+  const scroll = sheetStage === 2 && h - heights.fixed < SCROLL_FEED;
+  if (panel.classList.contains('sheet-scroll') !== scroll) { panel.classList.toggle('sheet-scroll', scroll); if (!scroll) panel.scrollTop = 0; }
+  if (Math.abs(before - h) > 4) refitAfterSheet();
+}
+// 시트 높이가 바뀐 뒤(전환 끝) 지도 안전 영역에 다시 맞춘다. 사용자가 직접 움직인 지도는 건드리지 않는다.
+let refitTimer;
+function refitAfterSheet() {
+  clearTimeout(refitTimer);
+  refitTimer = setTimeout(() => {
+    if (sheetDrag || !homeBounds) return;
+    if (!selection && atHome) fitHome();
+    else if (selection && selectionAutoFit) fitSelection();
+  }, reducedMotion.matches ? 0 : 320);
 }
 // 모드·탐험 레이어를 바꾼 직후 현재 단계 높이를 다시 맞춘다 (ResizeObserver와 같은 계산)
-function fitSheet() { if (!sheetDrag && mobileSheet.matches) panel.style.height = sheetHeights()[sheetStage] + 'px'; }
+function fitSheet() { if (!sheetDrag && mobileSheet.matches) applySheetHeight(sheetHeights()); }
 function feedTouchAction() {
-  feedEl.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && feedEl.scrollTop <= 0);
+  const top = panel.classList.contains('sheet-scroll') ? panel.scrollTop : feedEl.scrollTop;
+  feedEl.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && top <= 0);
+  panel.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && top <= 0 && panel.classList.contains('sheet-scroll'));
 }
 function setSheetStage(stage, remember = true) {
   clearTimeout(sheetFitTimer);
@@ -823,8 +867,8 @@ function setSheetStage(stage, remember = true) {
   handle.setAttribute('aria-label', '소식 목록 높이: ' + stageNames[stage] + '. 누르면 다음 높이로 바뀌어요');
   handle.setAttribute('aria-controls', 'feed');
   [chipsEl, feedEl, document.getElementById('new-items')].forEach(el => { el.inert = mobileSheet.matches && stage === 0; });
-  if (mobileSheet.matches) panel.style.height = sheetHeights()[stage] + 'px';
-  else panel.style.removeProperty('height');
+  if (mobileSheet.matches) applySheetHeight(sheetHeights());
+  else { panel.style.removeProperty('height'); panel.classList.remove('sheet-scroll'); }
   if (mobileSheet.matches && stage === 0) {
     sheetFitTimer = setTimeout(() => {
       if (!mobileSheet.matches || sheetStage !== 0 || sheetDrag) return;
@@ -846,11 +890,13 @@ handle.addEventListener('click', e => {
 panel.addEventListener('pointerdown', e => {
   if (!mobileSheet.matches || !e.isPrimary || e.button !== 0 || sheetDrag) return;
   const fromFeed = feedEl.contains(e.target);
-  if (fromFeed ? sheetStage !== 2 || feedEl.scrollTop > 0 : !e.target.closest('.panel-handle, .panel-head')) return;
-  if (!fromFeed && e.target.closest('button, a, input') && e.target !== handle) return;
+  const scrolled = panel.classList.contains('sheet-scroll') ? panel.scrollTop > 0 : feedEl.scrollTop > 0;
+  const sheetBody = panel.classList.contains('sheet-scroll') && !e.target.closest('.panel-handle, .panel-head');
+  if (fromFeed || sheetBody ? sheetStage !== 2 || scrolled : !e.target.closest('.panel-handle, .panel-head')) return;
+  if (!fromFeed && !sheetBody && e.target.closest('button, a, input') && e.target !== handle) return;
   suppressSheetClick = false;
   sheetDrag = { id:e.pointerId, x:e.clientX, y:e.clientY, lastY:e.clientY, time:e.timeStamp,
-    velocity:0, height:panel.getBoundingClientRect().height, fromFeed, active:false };
+    velocity:0, height:panel.getBoundingClientRect().height, fromFeed: fromFeed || sheetBody, active:false };
 });
 window.addEventListener('pointermove', e => {
   const d = sheetDrag;
@@ -868,6 +914,7 @@ window.addEventListener('pointermove', e => {
   if (elapsed > 0) d.velocity = (e.clientY-d.lastY)/elapsed;
   d.lastY = e.clientY; d.time = e.timeStamp;
   const heights = sheetHeights();
+  panel.classList.remove('sheet-scroll');
   panel.style.height = Math.max(heights[0], Math.min(heights[2], d.height-dy)) + 'px';
 }, {passive:false});
 function endSheetDrag(e) {
@@ -886,6 +933,7 @@ function endSheetDrag(e) {
 ['pointerup', 'pointercancel'].forEach(type => window.addEventListener(type, endSheetDrag));
 panel.addEventListener('lostpointercapture', e => { if (e.target === panel) endSheetDrag(e); });
 feedEl.addEventListener('scroll', feedTouchAction, {passive:true});
+panel.addEventListener('scroll', feedTouchAction, {passive:true});
 function resizeSheet() {
   const id = sheetDrag?.id;
   sheetDrag = null;
@@ -958,7 +1006,7 @@ async function loadParking(code) {
 function renderParking() {
  const code=muniByCode.has(selection?.center.code)?selection.center.code:null;
  if(parkingCode!==code){parkingCode=code;parkingFilter='';}parkingShown=[];
- exploreTools.innerHTML=sourceDisclosure('전국주차장정보표준데이터 · 기준일은 지자체마다 달라요 · 서울은 서울시 공영주차장 안내로 보충(위치 없는 곳은 목록만) · 시영주차장 실시간은 서울열린데이터광장, 현장과 다를 수 있어요');
+ exploreTools.innerHTML=sourceDisclosure('전국주차장정보표준데이터 · 기준일은 지자체마다 달라요','전국주차장정보표준데이터 · 기준일은 지자체마다 달라요 · 서울은 서울시 공영주차장 안내로 보충(위치 없는 곳은 목록만) · 시영주차장 실시간은 서울열린데이터광장, 현장과 다를 수 있어요');
  if(!code){feedEl.innerHTML='<li class="empty">지도에서 시·군·구를 고르면 그 동네 주차장을 보여드려요<div class="explore-toggle">'+favorites.map(r=>'<button type="button" data-parking-region="'+escapeHtml(r.code)+'">'+escapeHtml(r.name)+'</button>').join('')+'</div></li>';return;}
  const data=parkingCache.get(code), extra=(parkingLive?.items||[]).filter(x=>x.sgg===code&&!x.matchId);
  if(!data&&parkingIndex.counts[code]>0){feedEl.innerHTML='<li class="empty">'+(parkingErrors.has(code)?'지역 자료를 받지 못했어요. <button type="button" data-parking-retry>다시 받기</button>':'지역 자료를 불러오는 중이에요.')+'</li>';if(!parkingPending.has(code)&&!parkingErrors.has(code)) loadParking(code);return;}
@@ -1024,7 +1072,7 @@ function updateExploreStatus() {
   const alert=document.getElementById('collection-alert'); alert.hidden=!stale;
   if(stale) setAlert('stale',validDate(date)?(availableLayers().find(x=>x[0]===exploreLayer)?.[1]||'자료')+' 자료가 '+ago(date)+' 기준이에요':'자료 확인 시각이 없어요','자세히');
   const missing=noteExploreMissing();
-  document.getElementById('sources-detail').textContent=(missing.length?'불러오지 못한 자료: '+missing.join('·')+' · ':'')+(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR'):'미제공');
+  document.getElementById('sources-detail').textContent=(missing.length?'불러오지 못한 자료: '+missing.join('·')+' · ':'')+(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미제공');
 }
 function renderExplore() {
   const available=availableLayers();
@@ -1035,10 +1083,13 @@ function renderExplore() {
   if(exploreLayer==='festival') return renderFestivals();
   syncCategories(); newButton.hidden=true; updateExploreStatus();
   titleEl.textContent=selection?regionTitle(selection.center):'동네 탐험';
-  subEl.textContent=exploreLayer==='weather'?'현재 동네 날씨':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':exploreLayer==='parking'?'동네 주차장':'동네 식품안심업소';
+  subEl.textContent=exploreLayer==='weather'?'동네 날씨 실황(최근 관측)':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':exploreLayer==='parking'?'동네 주차장':'동네 식품안심업소';
   if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else renderFood();
 }
-function sourceDisclosure(text) { return '<details class="source-disclosure"><summary>'+escapeHtml(text)+'</summary><p>'+escapeHtml(text)+'</p></details>'; }
+// extra: 요약 줄 오른쪽에 붙는 보기 전용 범례(색 띠) — 따로 한 줄을 쓰지 않아 지도 자리를 아낀다
+function sourceDisclosure(summary, detail = summary, extra = '') { return '<details class="source-disclosure"><summary><span class="disclosure-text">'+escapeHtml(summary)+'</span>'+extra+'</summary><p>'+escapeHtml(detail)+'</p></details>'; }
+// 한국 자료의 시각은 기기 시간대와 관계없이 한국 시간(UTC+9)으로 표기한다
+const kstHour = d => String((d.getUTCHours()+9)%24).padStart(2,'0')+'시';
 setInterval(async()=>{
   try {
     const r=await fetch('data/'+(DEMO?'demo-weather':'weather')+'.json',{cache:'no-store'});
@@ -1057,11 +1108,11 @@ function weatherColor(code) {
 const koreaDate=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,10);
 function forecastHour() {
  const date=new Date(forecastData?.base);
- return validDate(date)?'단기예보 '+String((date.getUTCHours()+9)%24).padStart(2,'0')+'시 발표':'단기예보 발표 시각 미제공';
+ return validDate(date)?'단기예보 '+kstHour(date)+' 발표':'단기예보 발표 시각 미제공';
 }
 function forecastCards(code) {
  if(!forecastData) return '';
- return '<div class="forecast-days">'+[0,1].map(offset=>{
+ return '<h4 class="weather-kind">예보</h4><div class="forecast-days">'+[0,1].map(offset=>{
   const d=forecastData.sgg?.[code]?.[koreaDate(new Date(Date.now()+offset*86400000))], name=offset?'내일':'오늘';
   if(!d) return '<section><h4>'+name+'</h4><p>예보 미제공</p></section>';
   const sky=d.pty>0?({1:'비',2:'비/눈',3:'눈',4:'소나기'}[d.pty]||'강수'):({1:'맑음',3:'구름많음',4:'흐림'}[d.sky]||'하늘 미제공');
@@ -1080,13 +1131,13 @@ function forecastSummary() {
 }
 function renderWeather() {
   const code=selection?.center.code, region=muniByCode.get(code), w=weatherData.sgg[code];
-  const hour=validDate(new Date(weatherData.base))?new Date(weatherData.base).getHours()+'시 발표':'발표 시각 미제공';
-  exploreTools.innerHTML=sourceDisclosure('기상청 초단기실황 · '+hour+(forecastData?' · '+forecastHour():'')+' · 시·군·구 대표 지점 격자(5km) 값이라 동네 안에서도 다를 수 있어요')+'<div class="weather-legend">차가움 <i></i> 따뜻함</div>';
+  const hour=validDate(new Date(weatherData.base))?kstHour(new Date(weatherData.base))+' 발표':'발표 시각 미제공';
+  exploreTools.innerHTML=sourceDisclosure('실황 '+hour+(forecastData?' · '+forecastHour():'')+' · 기상청','기상청 초단기실황 · '+hour+(forecastData?' · '+forecastHour():'')+' · 시·군·구 대표 지점 격자(5km) 값이라 동네 안에서도 다를 수 있어요 · 시각은 한국 시간이에요','<span class="weather-legend" role="img" aria-label="지도 색: 기온이 낮을수록 파랑, 높을수록 주황">차가움 <i></i> 따뜻함</span>');
   const rows=Object.entries(weatherData.sgg).filter(([c,v])=>muniByCode.has(c)&&Number.isFinite(v.t)).sort((a,b)=>a[1].t-b[1].t);
   const line=([c,v])=>'<p>'+escapeHtml(label(muniByCode.get(c)))+' <strong>'+v.t+'°</strong>'+(v.pty>0?' '+precipSymbol(v.pty):'')+'</p>';
   if(code) {
     const warning=items.some(it=>it.src==='wrn'&&it.level!=='예비특보'&&it.onMap!==false&&(it.sgg?.includes(code)||it.sido?.includes(region?.sido)));
-    feedEl.innerHTML=(warning?'<li><button class="weather-warning" type="button" data-weather-news>기상특보 발효 중 — 소식 탭에서 보기</button></li>':'')+'<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+(w&&Number.isFinite(w.t)?'<strong class="temperature">'+w.t+'°</strong> '+(w.pty>0?precipSymbol(w.pty):'')+'<p>습도 '+(w.reh??'미제공')+(w.reh==null?'':'%')+' · 바람 '+(w.wsd??'미제공')+(w.wsd==null?'':'m/s')+' · 1시간 강수 '+(w.rn??'미제공')+(w.rn==null?'':'mm')+'</p>':'<p>이 지역의 현재 날씨 자료가 없어요.</p>')+'<p>'+hour+'</p>'+forecastCards(code)+'</li>';
+    feedEl.innerHTML=(warning?'<li><button class="weather-warning" type="button" data-weather-news>기상특보 발효 중 — 소식 탭에서 보기</button></li>':'')+'<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+(w&&Number.isFinite(w.t)?'<p class="weather-kind">최근 관측 · 실황 '+escapeHtml(hour)+'</p><strong class="temperature">'+w.t+'°</strong> '+(w.pty>0?precipSymbol(w.pty):'')+'<p>습도 '+(w.reh??'미제공')+(w.reh==null?'':'%')+' · 바람 '+(w.wsd??'미제공')+(w.wsd==null?'':'m/s')+' · 1시간 강수 '+(w.rn??'미제공')+(w.rn==null?'':'mm')+'</p>':'<p>이 지역의 현재 날씨 자료가 없어요.</p>')+'<p>'+hour+'</p>'+forecastCards(code)+'</li>';
   } else {
     const wet=rows.filter(([,v])=>v.pty>0);
     feedEl.innerHTML=forecastSummary()+'<li class="festival-card"><h3>가장 따뜻한 곳</h3>'+rows.slice(-3).reverse().map(line).join('')+'</li><li class="festival-card"><h3>가장 쌀쌀한 곳</h3>'+rows.slice(0,3).map(line).join('')+'</li>'+(wet.length?'<li class="festival-card"><h3>비·눈 오는 곳</h3>'+wet.map(line).join('')+'</li>':'');
@@ -1094,7 +1145,7 @@ function renderWeather() {
 }
 feedEl.addEventListener('click',e=>{if(e.target.closest('[data-weather-news]')) document.querySelector('[data-mode-choice="news"]').click();});
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-legend]');if(b) exploreTools.querySelector('.legend-detail').textContent=b.dataset.legend;});
-function stationText(s) { return '<h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+' · <strong>'+money(s.price[fuelProduct])+'</strong></p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'+routeLink(s); }
+function stationText(s) { return '<p class="price-line"><strong class="price">'+money(s.price[fuelProduct])+(Number.isFinite(s.price[fuelProduct])?'<small>/L</small>':'')+'</strong> '+productName()+'</p><h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+'</p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'+routeLink(s); }
 // 카카오맵 연결 (키·요금 없는 공개 링크). 앱이 있으면 앱, 없으면 웹. 누를 때만 외부로 나간다.
 // 좌표가 있으면 그 지점을 도착지로 길찾기, 주소만 있으면 주소 검색.
 function routeLink(s) {
@@ -1112,7 +1163,7 @@ function renderFuel() {
   const diff=Number.isFinite(local)&&Number.isFinite(avg?.price)?local-avg.price:null;
   const regional=selection?'<p>'+escapeHtml(selection.center.name)+' 평균 <strong>'+money(local)+'</strong>'+(diff===null?'':Math.abs(diff)<=5?' · 전국과 비슷해요(±5원 안)':' · 전국보다 '+money(Math.abs(diff))+(diff>0?' 비싸요':' 싸요'))+'</p>':'';
   const daily=!Number.isFinite(avg?.diff)?'전일 자료 미제공':Math.abs(avg.diff)<1?'어제와 비슷':'어제보다 '+money(Math.abs(avg.diff))+(avg.diff>0?' ↑':' ↓');
-  exploreTools.innerHTML='<div class="fuel-summary"><div><p>전국 평균 <strong>'+money(avg?.price)+'</strong> · '+daily+'</p>'+regional+'</div><div class="explore-toggle">'+['B027','D047'].map(p=>'<button type="button" data-product="'+p+'" aria-pressed="'+(fuelProduct===p)+'">'+(p==='B027'?'휘발유':'경유')+'</button>').join('')+'</div></div>'+sourceDisclosure('오피넷(한국석유공사) 기준 · '+(fuelData.date || '날짜 미제공')+' · 주유소가 알린 가격이라 실제와 다를 수 있어요')+'<div class="fuel-legend"><span>쌈</span>'+['50원 넘게 쌈','10~50원 쌈','비슷(±10원)','10~50원 비쌈','50원 넘게 비쌈'].map((v,i)=>'<button type="button" title="'+v+'" aria-label="전국 평균 대비 '+v+'" data-legend="'+v+'" style="background:'+fuelColors[i]+'"></button>').join('')+'<span>비쌈</span></div><small class="legend-detail" aria-live="polite"></small>';
+  exploreTools.innerHTML='<div class="fuel-summary"><div><p>전국 평균 <strong>'+money(avg?.price)+'</strong> · '+daily+'</p>'+regional+'</div><div class="explore-toggle">'+['B027','D047'].map(p=>'<button type="button" data-product="'+p+'" aria-pressed="'+(fuelProduct===p)+'">'+(p==='B027'?'휘발유':'경유')+'</button>').join('')+'</div></div>'+sourceDisclosure('오피넷 '+(fuelData.date || '날짜 미제공')+' 기준','오피넷(한국석유공사) 기준 · '+(fuelData.date || '날짜 미제공')+' · 주유소가 알린 가격이라 실제와 다를 수 있어요 · 지도 색은 '+productName()+' 전국 평균 대비: '+['50원 넘게 쌈','10~50원 쌈','비슷(±10원)','10~50원 비쌈','50원 넘게 비쌈'].join(' → '),'<span class="fuel-legend" role="img" aria-label="지도 색: 전국 평균보다 쌀수록 초록, 비쌀수록 보라"><span>쌈</span>'+fuelColors.map(c=>'<i style="background:'+c+'"></i>').join('')+'<span>비쌈</span></span>');
   const rank=s=>!selection?0:String(s.sgg)===selection.center.code?0:String(s.sgg).slice(0,2)===selection.center.sido?1:2;
   const stations=fuelData.stations.filter(s=>Number.isFinite(s.price?.[fuelProduct]) && (!selection || rank(s)<2)).sort((a,b)=>rank(a)-rank(b)||a.price[fuelProduct]-b.price[fuelProduct]);
   feedEl.innerHTML='<li class="explore-source">시·도별 최저가 10곳만 보여줘요</li>'+stations.map(s=>'<li class="festival-card">'+stationText(s)+'</li>').join('')+(stations.length?'':'<li class="empty">이 지역의 해당 유종 최저가 목록이 없어요.</li>');
@@ -1134,7 +1185,8 @@ function renderFood() {
   const code=selection?.center.code;
   if(foodCode!==code) { foodCode=code; foodQuery=''; foodKind=''; foodLimit=50; }
   const data=foodCache.get(code);
-  exploreTools.innerHTML=sourceDisclosure('위생 상태를 확인해 지정한 음식점이에요. 맛이나 서비스 평가는 아니에요 · 식품안전나라 '+(data?.updated || foodIndex.updated || '').slice(5,10).replace('-', '.')+' 기준');
+  const foodDay=(data?.updated || foodIndex.updated || '').slice(5,10).replace('-', '.');
+  exploreTools.innerHTML=sourceDisclosure('위생등급 지정 업소 · 맛 평가 아님 · '+foodDay+' 기준','위생 상태를 확인해 지정한 음식점이에요. 맛이나 서비스 평가는 아니에요 · 식품안전나라 '+foodDay+' 기준');
   if(!code) { feedEl.innerHTML='<li class="empty">지도에서 시·군·구를 고르면 그 동네 식품안심업소를 보여드려요<div class="explore-toggle">'+favorites.map(r=>'<button type="button" data-food-region="'+escapeHtml(r.code)+'" aria-pressed="false">'+escapeHtml(r.name)+'</button>').join('')+'</div></li>'; return; }
   if(!data) {
     if(foodIndex.counts[code]===0 || !(code in foodIndex.counts)) { feedEl.innerHTML='<li class="empty">이 지역에 제공된 식품안심업소 자료가 없어요.</li>'; return; }
@@ -1150,7 +1202,7 @@ function renderFoodCards() {
   const list=data.items.filter(x=>(!foodKind||x.kind===foodKind)&&String(x.name).toLocaleLowerCase().includes(foodQuery.toLocaleLowerCase()));
   feedEl.innerHTML=list.slice(0,foodLimit).map(x=>{
     const name=String(x.name).replace(/^(?:(?:\((?:주|유)\)|㈜|㈲|주식회사|유한회사)\s*)+/,'');
-    return '<li class="festival-card food-card"><h3>'+escapeHtml(name)+'</h3><p>'+escapeHtml(x.kind || '업종 미제공')+(x.level&&x.level!=='적합'?' <span class="festival-day">'+escapeHtml(x.level)+'</span>':'')+' · 지정 ~'+escapeHtml(x.to?x.to.replaceAll('-','.'):'기간 미제공')+'</p>'+sourceDisclosure(x.address || '주소 미제공')+addressLink(x.address)+'</li>';
+    return '<li class="festival-card food-card"><h3>'+escapeHtml(name)+'</h3><p>'+escapeHtml(x.kind || '업종 미제공')+(x.level&&x.level!=='적합'?' <span class="festival-day">'+escapeHtml(x.level)+'</span>':'')+' · 지정 ~'+escapeHtml(x.to?x.to.replaceAll('-','.'):'기간 미제공')+'</p>'+'<p class="card-address">'+escapeHtml(x.address || '주소 미제공')+'</p>'+addressLink(x.address)+'</li>';
   }).join('') || '<li class="empty">조건에 맞는 업소가 없어요.</li>';
   if(list.length>foodLimit) feedEl.insertAdjacentHTML('beforeend','<li><button type="button" data-food-more>더 보기 ('+Math.min(foodLimit,list.length)+' / '+list.length+')</button></li>');
 }
@@ -1203,7 +1255,7 @@ function updateFestivalStatus() {
   const alert = document.getElementById('collection-alert');
   alert.hidden = !festivalFailed && !stale;
   setAlert(festivalFailed ? 'failed' : 'stale', festivalFailed ? (festivalLoaded ? '축제를 새로 확인하지 못했어요 · 이전 자료를 보여 줘요' : '축제 자료를 불러오지 못했어요') : '축제 자료가 ' + (validDate(festivalUpdated) ? ago(festivalUpdated) + ' 기준이에요' : '확인 시각이 없어요'), '자세히');
-  document.getElementById('sources-detail').innerHTML = '<p>전국문화축제표준데이터</p><p>확인 시각: ' + escapeHtml(validDate(festivalUpdated) ? festivalUpdated.toLocaleString('ko-KR') : '미제공') + '</p><p>진행 중 · 30일 안 시작하는 축제예요. 일정은 누리집에서 다시 확인해 주세요.</p>' + (festivalFailed ? '<p>새로 확인하지 못했어요. 이전 자료가 있으면 유지해요.</p>' : '');
+  document.getElementById('sources-detail').innerHTML = '<p>전국문화축제표준데이터</p><p>확인 시각: ' + escapeHtml(validDate(festivalUpdated) ? festivalUpdated.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}) : '미제공') + '</p><p>진행 중 · 30일 안 시작하는 축제예요. 일정은 누리집에서 다시 확인해 주세요.</p>' + (festivalFailed ? '<p>새로 확인하지 못했어요. 이전 자료가 있으면 유지해요.</p>' : '');
   noteExploreMissing();
 }
 function renderFestivals() {

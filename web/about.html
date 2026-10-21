@@ -3,36 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b1220">
+  <meta name="theme-color" content="#F7F7F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111B20" media="(prefers-color-scheme: dark)">
+  <script>try { const t = localStorage.getItem('nallae-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}</script>
   <title>앱 정보 — 날래</title>
   <link rel="stylesheet" href="doc.css">
+  <link rel="stylesheet" href="fonts/pretendard/pretendard-subset.css">
 </head>
 <body>
 <main>
   <a class="back" href="./">← 날래로 돌아가기</a>
-  <h1>날래</h1>
-  <p>우리 동네 소식, 날래. 재난문자, 기상특보, 지역 소식이 들어오면 지도에서 그 지역이 반짝입니다.</p>
+  <div class="brand-head"><img class="logo-light" src="icons/logo-header.png" alt="" width="52" height="48"><img class="logo-dark" src="icons/logo-header-dark.png" alt="" width="52" height="48"><div><h1>날래</h1><p class="slogan">동네 소식, <b>날래</b> 왔다오</p></div></div>
+  <p>재난문자·기상특보·지진정보가 들어오면 지도에서 그 지역이 반짝이고, 동네 탐험에서 날씨·축제·주유소·주차장·식품안심업소를 볼 수 있습니다.</p>
 
   <h2>알아두세요</h2>
   <ul>
     <li>날래는 공공기관이 공개한 정보를 모아 지도에 보여주는 <b>개인이 만든 앱</b>입니다. 행정안전부, 기상청 등 공공기관과 관계가 없습니다.</li>
     <li>소식은 약 10분 간격으로 모읍니다. <b>긴급 상황에서는 휴대폰 재난문자와 기관 공식 발표를 먼저 확인하세요.</b></li>
-    <li>지역 표시는 발송 지역이나 제목에 나온 지명을 기준으로 자동으로 정하므로 실제와 다를 수 있습니다.</li>
+    <li>지도에는 자료에 적힌 지역에만 표시합니다. 재난문자는 발송(수신) 지역, 기상특보는 특보 구역, 지진은 기상청이 발표한 진앙 위치입니다. 제목에 지명이 나왔다는 이유만으로 그 지역에 표시하지 않습니다.</li>
+    <li>정책브리핑은 제목의 지명을 ‘관련’ 지역으로 목록에만 보여 주고 지도에는 표시하지 않습니다.</li>
+    <li>지역 판별은 자동이라 실제와 다를 수 있습니다. 새 소식이 없다는 것이 안전하다는 뜻은 아닙니다.</li>
   </ul>
 
   <h2>정보 출처</h2>
-  <table>
+  <div class="table-wrap"><table>
     <tr><th>소식</th><th>출처</th><th>이용 조건</th></tr>
     <tr><td>긴급재난문자</td><td>행정안전부 재난안전데이터공유플랫폼</td><td>공공누리 (출처표시, 내용 변경 없이 표시)</td></tr>
     <tr><td>기상특보</td><td>기상청 API허브</td><td>공공누리 제1유형</td></tr>
-    <tr><td>현재 기온</td><td>기상청 초단기실황(공공데이터포털)</td><td>시·군·구 대표 지점 격자(5km) 값</td></tr>
+    <tr><td>지진정보</td><td>기상청 API허브</td><td>공공누리 제1유형</td></tr>
+    <tr><td>날씨 실황</td><td>기상청 초단기실황(공공데이터포털)</td><td>시·군·구 대표 지점 격자(5km) 값</td></tr>
+    <tr><td>오늘·내일 예보</td><td>기상청 단기예보(공공데이터포털)</td><td>시·군·구 대표 지점 격자(5km) 값, 05시·17시 발표</td></tr>
     <tr><td>정책·보도자료</td><td>문화체육관광부 정책브리핑</td><td>공공누리 제1유형 자료만, 제목과 원문 링크</td></tr>
     <tr><td>행정구역 경계</td><td>통계청 SGIS, <a href="https://github.com/vuski/admdongkor" target="_blank" rel="noopener">admdongkor</a></td><td>공공누리 제1유형, CC BY 4.0</td></tr>
     <tr><td>축제</td><td>전국문화축제표준데이터 (공공데이터포털, 한국관광공사 등)</td><td>원자료의 행사 정보와 누리집 링크를 표시해요.</td></tr>
     <tr><td>주유소 가격</td><td>오피넷(한국석유공사)</td><td>주유소가 알린 가격이라 실제와 다를 수 있어요.</td></tr>
     <tr><td>주차장</td><td>전국주차장정보표준데이터(공공데이터포털), 서울시 공영주차장 안내·시영주차장 실시간(서울열린데이터광장)</td><td>기준일은 지자체마다 다르며 현장과 다를 수 있어요.</td></tr>
     <tr><td>식품안심업소</td><td>식품안전나라(식품의약품안전처)</td><td>위생등급 지정 현황을 표시해요.</td></tr>
-  </table>
+  </table></div>
   <p class="muted">재난문자 본문은 받은 그대로 보여주며, 제목은 본문 앞부분을 줄인 것입니다.</p>
 
   <h2>오픈소스</h2>
