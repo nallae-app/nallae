@@ -468,3 +468,7 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .map-bubble.openable { pointer-events:auto; cursor:pointer; }
 .map-bubble.openable::after { content:'›'; flex:none; font-size:18px; color:var(--brand); }
 .map-bubble:disabled { color:var(--text); opacity:1; }
+/* 유종 버튼 글자가 접히지 않게(긴 지역 평균 문구가 버튼을 밀던 문제) */
+.fuel-summary > div:first-child { min-width:0; flex:1; }
+.fuel-summary .explore-toggle { flex:none; }
+.fuel-summary .explore-toggle button { white-space:nowrap; }
