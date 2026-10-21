@@ -1230,4 +1230,42 @@ function escapeHtml(s) {
 function escapeAttr(s) {
   return /^https?:\/\//i.test(s) ? escapeHtml(s) : '#';
 }
+
+// PC 마우스로도 가로 칩 줄을 넘길 수 있게: 끌기 + 세로 휠 → 가로 이동 (터치는 브라우저 기본 스크롤)
+const H_SCROLL = '.chips, .favorites, .filter-row, .food-controls';
+// 줄 안에 줄이 있을 수 있다(.filter-row > .chips) → 실제로 넘치는 가장 가까운 줄
+const scrollRow = (el) => {
+  for (let r = el?.closest?.(H_SCROLL); r; r = r.parentElement?.closest(H_SCROLL)) if (r.scrollWidth > r.clientWidth) return r;
+  return null;
+};
+let hDrag = null;
+document.addEventListener('pointerdown', (e) => {
+  const row = e.pointerType === 'mouse' && e.button === 0 && scrollRow(e.target);
+  if (!row || e.target.closest('input, textarea, select')) return;
+  hDrag = { row, x: e.clientX, left: row.scrollLeft, moved: false };
+});
+window.addEventListener('pointermove', (e) => {
+  if (!hDrag) return;
+  const dx = e.clientX - hDrag.x;
+  if (!hDrag.moved && Math.abs(dx) < 6) return; // 살짝 흔들린 클릭은 그대로 클릭
+  hDrag.moved = true;
+  hDrag.row.classList.add('dragging');
+  hDrag.row.scrollLeft = hDrag.left - dx;
+});
+window.addEventListener('pointerup', () => {
+  if (!hDrag) return;
+  const { row, moved } = hDrag;
+  hDrag = null;
+  row.classList.remove('dragging');
+  // 끌기를 끝낸 자리의 칩이 눌리지 않게 바로 뒤 클릭 한 번을 막는다
+  if (moved) window.addEventListener('click', (ev) => { ev.stopPropagation(); ev.preventDefault(); }, { capture: true, once: true });
+});
+document.addEventListener('wheel', (e) => {
+  const row = scrollRow(e.target);
+  if (!row || e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+  const max = row.scrollWidth - row.clientWidth;
+  if ((e.deltaY < 0 && row.scrollLeft <= 0) || (e.deltaY > 0 && row.scrollLeft >= max - 1)) return; // 끝에 닿으면 원래대로 세로 스크롤
+  row.scrollLeft += e.deltaY;
+  e.preventDefault();
+}, { passive: false });
 })();

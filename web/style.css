@@ -338,3 +338,7 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .bubble-quake-detail{display:block;margin-top:5px;font-size:11px}
 .forecast-days{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line,#ddd);margin-top:16px;padding-top:12px}
 .forecast-days h4{margin:0 0 8px;font-size:13px}.forecast-days p{margin:5px 0;font-size:13px}.forecast-source{font-size:11px;opacity:.7}
+
+/* PC 마우스로 가로 칩 줄 끌기 (app.js H_SCROLL) */
+@media (hover:hover) and (pointer:fine) { .chips, .favorites, .filter-row, .food-controls { cursor:grab; } }
+.dragging, .dragging * { cursor:grabbing !important; user-select:none; }
