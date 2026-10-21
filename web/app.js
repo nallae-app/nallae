@@ -301,14 +301,16 @@ new MutationObserver(() => { placeMapOverlays(); scheduleLabels(); }).observe(re
 map.on('move zoom resize', placeMapOverlays);
 window.addEventListener('resize', placeMapOverlays);
 const onMap = (item) => item.onMap !== false && item.src !== 'brief';
+const hasPoint = (item) => Number.isFinite(item.lat) && Number.isFinite(item.lon);
 
 function pulse(item, withBubble) {
   if (mode !== 'news' || !onMap(item)) return;
   const signal = signalName(item);
   const targets = itemMunis(item);
-  if (!targets.length) return;
+  const point = hasPoint(item) ? L.latLng(item.lat, item.lon) : null; // 지진 진앙처럼 좌표가 온 소식
+  if (!targets.length && !point) return;
   targets.forEach((m) => flash(m, signal));
-  const at = item.sgg?.length ? muniByCode.get(item.sgg[0])?.center : sidos.get(item.sido?.[0])?.center;
+  const at = point || (item.sgg?.length ? muniByCode.get(item.sgg[0])?.center : sidos.get(item.sido?.[0])?.center);
   if (!at) return;
   const html = `<div class="pulse" style="${signalStyle(item)}">
     ${reducedMotion.matches ? '' : '<span class="ring"></span>'}<span class="dot"></span>
@@ -332,7 +334,7 @@ function placeLabel(item) {
   const sgg = (item.sgg || []).map((c) => muniByCode.get(c)).filter(Boolean);
   const sido = (item.sido || []).map((c) => sidos.get(c)).filter(Boolean);
   const names = [...sido.map((s) => `${s.short} 전체`), ...sgg.map(label)];
-  if (!names.length) return '전국';
+  if (!names.length) return hasPoint(item) ? '진앙 위치' : '전국'; // 바다 지진: 시·군·구 없이 점만
   const text = names.length > 2 ? `${names[0]} 외 ${names.length - 1}곳` : names.join(', ');
   return onMap(item) ? text : `관련: ${text}`;
 }
@@ -436,8 +438,8 @@ function sourceState(key) {
   return {rank:Date.now()-at >= 1800000 ? 1 : 0,text:(Date.now()-at >= 1800000 ? '지연' : '정상') + ' · 마지막 성공 ' + ago(at)};
 }
 function sourceStatus() {
-  const names = {sms:'긴급재난문자',wrn:'기상특보',brief:'정책브리핑'};
-  return ['sms','wrn','brief'].map(key => {
+  const names = {sms:'긴급재난문자',wrn:'기상특보',eqk:'지진정보',brief:'정책브리핑'};
+  return ['sms','wrn','eqk','brief'].map(key => {
     const v = sources[key];
     return '<p class="source-status"><strong>' + names[key] + '</strong><br>' + sourceState(key).text + (v?.at ? '<br>확인 시각: ' + escapeHtml(v.at) : '') + (v?.note ? '<br>' + escapeHtml(v.note) : '') + '</p>';
   }).join('');
@@ -525,6 +527,10 @@ feedEl.addEventListener('click', (e) => {
     const b = L.latLngBounds([]);
     targets.forEach((m) => b.extend(m.layer.getBounds()));
     moveToBounds(b, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 10.5 });
+    setTimeout(() => pulse(item, true), 700);
+  } else if (onMap(item) && hasPoint(item)) {
+    // 바다 지진처럼 점만 있는 소식: 진앙 둘레로 이동
+    moveToBounds(L.latLng(item.lat, item.lon).toBounds(60000), { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 8 });
     setTimeout(() => pulse(item, true), 700);
   }
 });

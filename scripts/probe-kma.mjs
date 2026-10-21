@@ -21,8 +21,8 @@ if (dg) {
   urls['에어코리아 측정소정보'] = `https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getMsrstnList?serviceKey=${k}&returnType=json&numOfRows=2&pageNo=1`;
   urls['에어코리아 대기오염 전국'] = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=${k}&returnType=json&numOfRows=2&pageNo=1&sidoName=${encodeURIComponent('전국')}&ver=1.0`;
   const hour = kst.toISOString().slice(0, 13).replace(/[-T]/g, '');
-  urls['생활기상 자외선 V4'] = `https://apis.data.go.kr/1360000/LivingWthrIdxServiceV4/getUVIdxV4?serviceKey=${k}&pageNo=1&numOfRows=2&dataType=JSON&areaNo=1100000000&time=${hour}`;
-  urls['생활기상 대기정체 V4'] = `https://apis.data.go.kr/1360000/LivingWthrIdxServiceV4/getAirDiffusionIdxV4?serviceKey=${k}&pageNo=1&numOfRows=2&dataType=JSON&areaNo=1100000000&time=${hour}`;
+  urls['생활기상 자외선 V5'] = `https://apis.data.go.kr/1360000/LivingWthrIdxServiceV5/getUVIdxV5?serviceKey=${k}&pageNo=1&numOfRows=2&dataType=JSON&areaNo=1100000000&time=${hour}`;
+  urls['생활기상 대기정체 V5'] = `https://apis.data.go.kr/1360000/LivingWthrIdxServiceV5/getAirDiffusionIdxV5?serviceKey=${k}&pageNo=1&numOfRows=2&dataType=JSON&areaNo=1100000000&time=${hour}`;
 }
 for (const [name, url] of Object.entries(urls)) {
   try {

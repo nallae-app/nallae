@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import * as sms from './sources/disaster-sms.mjs';
 import * as wrn from './sources/weather-warning.mjs';
+import * as eqk from './sources/earthquake.mjs';
 import { findPlacesInText } from './lib/regions.mjs';
 
 const now = Date.now();
@@ -48,8 +49,11 @@ const briefTitles = [
   source: '데모 데이터', url: 'https://www.korea.kr/',
 }));
 
-const items = [...sms.parse(smsRows), ...wrn.toItems(wrn.parseText(wrnText)), ...briefTitles]
-  .filter((it) => it.sgg.length || it.sido.length)
+// 바다 지진: 시·군·구 없이 진앙 점만
+const eqkText = `  3 ${tmfc(4)} 1 ${tmfc(7)}00.000 2.6   35.5600  125.3400 전북 군산시 어청도 남서쪽 85km 해역,최대진도 Ⅰ,지진피해 없을 것으로 예상됨,,=`;
+
+const items = [...sms.parse(smsRows), ...wrn.toItems(wrn.parseText(wrnText)), ...eqk.toItems(eqk.parseQuakes(eqkText)), ...briefTitles]
+  .filter((it) => it.sgg.length || it.sido.length || Number.isFinite(it.lat))
   .map((it) => ({ ...it, source: `${it.source} (데모)` }))
   .sort((a, b) => new Date(b.time) - new Date(a.time));
 

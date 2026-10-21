@@ -3,7 +3,7 @@
 //
 // 환경 변수
 //   SAFETYDATA_KEY   긴급재난문자 (safetydata.go.kr)
-//   KMA_APIHUB_KEY   기상특보 (apihub.kma.go.kr)
+//   KMA_APIHUB_KEY   기상특보·지진정보 (apihub.kma.go.kr)
 //   DATA_GO_KR_KEY   정책브리핑·전국문화축제·초단기실황 기온 (data.go.kr) → 기온은 web/data/weather.json, 매시
 //   OPINET_KEY       주유소 기름값 (opinet.co.kr) → web/data/fuel.json, 3시간마다
 //   FOODSAFETY_KEY   식품안심업소 (foodsafetykorea.go.kr) → web/data/food/, 하루 한 번
@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import * as sms from './sources/disaster-sms.mjs';
 import * as wrn from './sources/weather-warning.mjs';
 import * as brief from './sources/policy-news.mjs';
+import * as eqk from './sources/earthquake.mjs';
 import { fetchFestivals } from './sources/festivals.mjs';
 import { fetchFuel, PRODUCTS } from './sources/fuel.mjs';
 import { fetchFood } from './sources/food-safety.mjs';
@@ -43,6 +44,7 @@ const SOURCES = [
   { name: 'sms', label: '긴급재난문자', mod: sms, key: process.env.SAFETYDATA_KEY },
   { name: 'wrn', label: '기상특보', mod: wrn, key: process.env.KMA_APIHUB_KEY },
   { name: 'brief', label: '정책브리핑', mod: brief, key: process.env.DATA_GO_KR_KEY },
+  { name: 'eqk', label: '지진정보', mod: eqk, key: process.env.KMA_APIHUB_KEY },
 ];
 
 async function loadPrevious() {
