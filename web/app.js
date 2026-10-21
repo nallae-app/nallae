@@ -344,6 +344,21 @@ function itemMunis(item) {
   return [...out];
 }
 
+// 선택한 중심 지역과 이 소식의 관계. 데이터에 적힌 시·군·구/시·도만 근거로 하고 새 관계를 만들지 않는다.
+//  centerPlus: 중심 구 + 다른 곳 · centerWide: 중심 구를 포함한 시·도 전체 · neighbor: 맞닿은 시·군·구만 · neighborWide: 맞닿은 지역의 시·도 전체만
+//  중심 구만 지정된 소식·전국 모드·목록 전용(정책)·해역 지진('가까운 해역')에는 붙이지 않는다.
+function selectionRelation(item) {
+  if (!selection || !onMap(item)) return null;
+  const c = selection.center.code;
+  const sgg = item.sgg || [], sido = item.src === 'eqk' ? [] : item.sido || [];
+  if (sgg.includes(c)) return sgg.length > 1 || sido.length ? 'centerPlus' : null;
+  if (sido.includes(selection.center.sido)) return 'centerWide';
+  if (sgg.some((x) => selection.codes.has(x))) return 'neighbor';
+  if (itemMunis(item).some((m) => selection.codes.has(m.code))) return 'neighborWide';
+  return null;
+}
+const RELATION_TEXT = { centerPlus: '선택 지역 포함', centerWide: '시·도 전체 · 선택 지역 포함', neighbor: '인접 지역', neighborWide: '인접 시·도 전체' };
+const relationHtml = (it) => { const t = RELATION_TEXT[selectionRelation(it)]; return t ? '<span class="relation-label">' + t + '</span>' : ''; };
 function placeLabel(item) {
   const sgg = (item.sgg || []).map((c) => muniByCode.get(c)).filter(Boolean);
   const sido = (item.src==='eqk' ? [] : item.sido || []).map((c) => sidos.get(c)).filter(Boolean);
@@ -424,7 +439,7 @@ function renderEarthquakes() {
   earthquakeMarkers.clearLayers(); if(mode!=='news') return;
   items.filter(it=>it.src==='eqk' && hasPoint(it) && visible(it)).forEach(it=>{
     const size=14+Math.max(0,Math.min(6,(it.mag||0)-2));
-    const marker=L.marker([it.lat,it.lon],{pane:'pulses',title:it.title,icon:L.divIcon({className:'earthquake-marker',iconSize:[size,size],iconAnchor:[size/2,size/2],html:'<span class="earthquake-pin'+(Date.now()-new Date(it.time)>86400000?' faded':'')+'" style="--eq-size:'+size+'px"><i></i><b>M'+escapeHtml(Number(it.mag).toFixed(1))+'</b></span>'})}).addTo(earthquakeMarkers);
+    const marker=L.marker([it.lat,it.lon],{pane:'pulses',title:it.title,icon:L.divIcon({className:'earthquake-marker',iconSize:[size,size],iconAnchor:[size/2,size/2],html:'<span class="earthquake-pin'+(Date.now()-new Date(it.time)>86400000?' faded':'')+'" style="--eq-size:'+size+'px"><i></i>'+(it.mag!=null&&it.mag!==''&&Number.isFinite(Number(it.mag))?'<b>M'+escapeHtml(Number(it.mag).toFixed(1))+'</b>':'')+'</span>'})}).addTo(earthquakeMarkers);
     marker.on('click',()=>{pending.delete(it.id);openId=it.id;bubbleUntil=0;renderFeed(null,true);feedEl.querySelector('[data-id="'+it.id+'"]')?.scrollIntoView({block:'nearest'});showMapBubble(it,L.latLng(it.lat,it.lon));});
   });
 }
@@ -498,7 +513,7 @@ function sourceStatus() {
 }
 function card(it) {
   const open = it.id === openId;
-  return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span><span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '">' + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(it.title) + '</span></button>' + (open ? detail(it) : '');
+  return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span>' + relationHtml(it) + '<span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '">' + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(it.title) + '</span></button>' + (open ? detail(it) : '');
 }
 function renderFeed(newIds, preserve = false) {
   if (mode === 'explore') { renderExplore(); return; }
@@ -525,7 +540,7 @@ function renderFeed(newIds, preserve = false) {
   for (const it of list) {
     let li = existing.get(it.id);
     if (!li) { li = document.createElement('li'); li.dataset.id = it.id; }
-    const signature = JSON.stringify(it) + (it.id === openId) + placeLabel(it);
+    const signature = JSON.stringify(it) + (it.id === openId) + placeLabel(it) + selectionRelation(it);
     if (li._signature !== signature) { li.innerHTML = card(it); li._signature = signature; }
     li.classList.toggle('open',it.id === openId);
     li.classList.toggle('critical',it.urgency === 'critical');
@@ -566,6 +581,7 @@ function renderFeed(newIds, preserve = false) {
   newButton.hidden = !pending.size;
   newButton.textContent = '새 소식 ' + pending.size + '건';
   updateTimes();
+  fitSheet();
 }
 function detail(it) {
   return '<div class="detail">' + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + (it.src==='eqk'?'</span><span>기상청 지진정보 · 진앙 위치는 발표 좌표':'') + '</span>' + (it.url ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener">원문 보기 ↗</a>' : '') + '</div></div>';
@@ -824,20 +840,35 @@ function sheetHeights() {
     return el._sheetH = el.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
   };
   const extra = outer(document.getElementById('collection-alert')) + outer(document.querySelector('.category-row')) + outer(document.querySelector('.explore-tools'));
-  const want = folded + extra + TWO_CARDS;
+  const cards = mode === 'news' ? firstTwoHeight() : TWO_CARDS;
+  const want = folded + extra + cards;
   const mapRoom = H - document.querySelector('.controls').getBoundingClientRect().bottom - MAP_MIN;
   let middle = Math.min(full, Math.max(low, H * .48, Math.min(want, mapRoom)));
   const fixed = folded + extra;
   if (middle - fixed < MIN_FEED) middle = full; // 확대·낮은 화면: 중간에서 소식을 읽을 수 없으면 전체로 펼친다
   const heights = [low, middle, full];
   heights.fixed = fixed;
+  heights.fits = middle - fixed >= cards - 2 || middle === full; // 중간에서 앞 두 소식이 다 보이는지
   return heights;
 }
 const MIN_FEED = 100, SCROLL_FEED = 240;
+// 소식 앞 두 카드의 실제 높이(제목 3~5줄·긴 지역명 포함). 펼친 카드는 높이가 커지므로 재지 않고 마지막 값을 쓴다.
+function firstTwoHeight() {
+  const lis = [...feedEl.children].filter((li) => li.dataset.id).slice(0, 2);
+  if (lis.length && !lis.some((li) => li.classList.contains('open'))) {
+    const h = lis.reduce((sum, li) => sum + li.offsetHeight, 0);
+    if (h > 0) feedEl._twoH = h + 8;
+  }
+  return feedEl._twoH || TWO_CARDS;
+}
 // 전체 단계의 목록 자리가 좁으면 상단 고정 영역까지 함께 스크롤해 마지막 소식·상세·버튼에 닿게 한다
 function applySheetHeight(heights) {
   const before = parseFloat(panel.style.height) || 0, h = heights[sheetStage];
   panel.style.height = h + 'px';
+  // 중간에서 앞 두 소식을 다 담지 못하면 손잡이에 '전체 목록 보기'를 보여 준다(글자를 줄이거나 제목을 자르지 않는다)
+  const hint = sheetStage === 1 && !heights.fits;
+  panel.classList.toggle('needs-expand', hint);
+  handle.setAttribute('aria-label', '소식 목록 높이: ' + stageNames[sheetStage] + (hint ? '. 앞 소식이 다 보이지 않아요. 누르면 전체 목록' : '. 누르면 다음 높이로 바뀌어요'));
   const scroll = sheetStage === 2 && h - heights.fixed < SCROLL_FEED;
   if (panel.classList.contains('sheet-scroll') !== scroll) { panel.classList.toggle('sheet-scroll', scroll); if (!scroll) panel.scrollTop = 0; }
   if (Math.abs(before - h) > 4) refitAfterSheet();

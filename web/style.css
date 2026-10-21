@@ -440,3 +440,10 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 :root[data-theme="dark"] :is(.parking-live,.parking-tag).normal { color:#E8C46A; }
 :root[data-theme="dark"] :is(.parking-live,.parking-tag).busy { color:#FF9B9E; }
 .fuel-local strong { font-size:16px; }
+
+/* UX 마감 (2026-10-21): 소식 메타 13px, 선택 지역 관계 표기, 중간 시트에서 앞 두 소식이 안 들어갈 때 손잡이 안내 */
+.meta, .meta .urgency { font-size:13px; line-height:19px; }
+.relation-label { color:var(--text); font-weight:600; border:1px solid var(--border-sido); border-radius:4px; padding:0 4px; }
+@media(max-width:759px) {
+  .panel.needs-expand .panel-handle::before { content:'전체 목록 보기 ↑'; position:absolute; right:16px; top:4px; font-size:13px; line-height:19px; font-weight:600; color:var(--brand); }
+}
