@@ -880,7 +880,8 @@ function updateFestivalStatus() {
   document.getElementById('sources-detail').innerHTML = '<p>전국문화축제표준데이터</p><p>확인 시각: ' + escapeHtml(validDate(festivalUpdated) ? festivalUpdated.toLocaleString('ko-KR') : '미제공') + '</p><p>진행 중 · 30일 안 시작하는 축제예요. 일정은 누리집에서 다시 확인해 주세요.</p>' + (festivalFailed ? '<p>새로 확인하지 못했어요. 이전 자료가 있으면 유지해요.</p>' : '');
 }
 function renderFestivals() {
-  const list = festivalList(), codes = emergencyCodes(), quiet = list.some(f => restrained(f,codes)) || loadFailed || !lastChecked;
+  // 상단 유머 문구는 '보고 있는 지역'(선택 지역+맞닿은 곳)에 위급·긴급 소식이 있을 때만 끈다. 카드별 억제는 따로(restrained).
+  const list = festivalList(), codes = emergencyCodes(), quiet = loadFailed || !lastChecked || (!!selection && [...selection.codes].some(c => codes.has(c)));
   titleEl.textContent = selection ? label(selection.center) + ' 주변 축제' : '동네 탐험';
   const now = today(), ongoing = list.filter(f => dayNumber(f.start) <= now).length;
   const weekday = new Date((now + 9/24) * 86400000).getUTCDay();
