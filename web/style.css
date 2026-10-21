@@ -439,3 +439,4 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 :root[data-theme="dark"] :is(.parking-live,.parking-tag).easy { color:#7FD3B8; }
 :root[data-theme="dark"] :is(.parking-live,.parking-tag).normal { color:#E8C46A; }
 :root[data-theme="dark"] :is(.parking-live,.parking-tag).busy { color:#FF9B9E; }
+.fuel-local strong { font-size:16px; }

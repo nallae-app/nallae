@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { katecToWgs84 } from '../lib/katec.mjs';
-import { sigunToSgg, toStation } from '../sources/fuel.mjs';
+import { sigunToSgg, toStation, parseOil, mergeFuel, SIDO_ORDER } from '../sources/fuel.mjs';
 import { toFoodBySgg, parseCsv } from '../sources/food-safety.mjs';
 import { toGrid, latestBase, toObs, sggGrids } from '../sources/temperature.mjs';
 import { forecastBase, toDays } from '../sources/forecast.mjs';
@@ -75,4 +75,33 @@ test('식품안심업소 거르기', () => {
   assert.deepEqual(by[codes[0]].map((i) => i.name), ['기관이 시·도', '유효']);
   assert.equal(by[codes[0]][1].to, '2027-03-29');
   assert.ok(!JSON.stringify(by).includes('홍길동') && !JSON.stringify(by).includes('"123"'));
+});
+
+test('오피넷 응답: 빈 OIL·비JSON·구조 불량은 실패, 시·도 호출 순서 고정', () => {
+  assert.equal(parseOil('{"RESULT":{"OIL":[{"PRICE":1}]}}').length, 1);
+  assert.throws(() => parseOil('{"RESULT":{"OIL":[]}}'), (e) => e.kind === 'empty');
+  assert.throws(() => parseOil('<html>오류</html>'), (e) => e.kind === 'not-json');
+  assert.throws(() => parseOil('{"RESULT":{}}'), (e) => e.kind === 'bad-shape');
+  assert.equal(SIDO_ORDER[0], '01'); // 정수 키('10'~'19')가 먼저 돌던 문제
+  assert.equal(SIDO_ORDER.length, 17);
+});
+
+test('구별 평균: 서울 중구·부산 중구 구분, 노원구, 휘발유·경유 각각', () => {
+  const seoulB = sigunToSgg([{ SIGUNNM: '서울 노원구', PRODCD: 'B027', PRICE: 1851.2 }, { SIGUNNM: '서울 중구', PRODCD: 'B027', PRICE: 2059.11 }]);
+  const seoulD = sigunToSgg([{ SIGUNNM: '서울 노원구', PRODCD: 'D047', PRICE: 1790.5 }, { SIGUNNM: '서울 중구', PRODCD: 'D047', PRICE: 1999.3 }]);
+  const busan = sigunToSgg([{ SIGUNNM: '부산 중구', PRODCD: 'B027', PRICE: 1840 }]);
+  assert.deepEqual(seoulB.prices, { 11350: 1851.2, 11140: 2059.11 });
+  assert.deepEqual(seoulD.prices, { 11350: 1790.5, 11140: 1999.3 });
+  assert.deepEqual(busan.prices, { 26110: 1840 });
+  assert.deepEqual([seoulB.unmatched, busan.unmatched], [[], []]);
+});
+
+test('부분 실패: 실패한 시·도×유종만 직전 값과 그 기준 시각 유지, 다른 시·도로 번지지 않음', () => {
+  const prev = { updated: '2026-10-21T06:00:00Z', areas: { 11350: '01', 11140: '01', 26110: '10' }, sgg: { 11350: { B027: 1850, D047: 1790 }, 11140: { B027: 2059, D047: 1999 }, 26110: { B027: 1840, D047: 1780 } } };
+  const cur = { sgg: { 11350: { B027: 1852 }, 11140: { B027: 2060 } }, areas: { 11350: '01', 11140: '01' }, failed: [{ what: 'avg', sido: '01', prod: 'D047' }, { what: 'low', sido: '10', prod: 'B027' }] };
+  const m = mergeFuel(cur, prev);
+  assert.deepEqual(m.sgg, { 11350: { B027: 1852, D047: 1790 }, 11140: { B027: 2060, D047: 1999 } });
+  assert.deepEqual(m.asOf, { 11350: { D047: prev.updated }, 11140: { D047: prev.updated } });
+  assert.equal(m.sgg[26110], undefined); // 부산 평균은 실패 목록에 없으므로 채우지 않는다
+  assert.deepEqual(mergeFuel({ ...cur, failed: [{ what: 'avg', sido: '01', prod: 'D047' }] }, null).asOf, {}); // 직전 파일이 없으면 유지할 것도 없음
 });

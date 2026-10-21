@@ -17,7 +17,7 @@ import * as wrn from './sources/weather-warning.mjs';
 import * as brief from './sources/policy-news.mjs';
 import * as eqk from './sources/earthquake.mjs';
 import { fetchFestivals } from './sources/festivals.mjs';
-import { fetchFuel, PRODUCTS } from './sources/fuel.mjs';
+import { fetchFuel, mergeFuel, PRODUCTS, OPINET_SIDO } from './sources/fuel.mjs';
 import { fetchFood } from './sources/food-safety.mjs';
 import { fetchTemperature, latestBase } from './sources/temperature.mjs';
 import { fetchForecast, forecastBase } from './sources/forecast.mjs';
@@ -142,8 +142,16 @@ const FUEL_OUT = 'web/data/fuel.json';
       const r = await fetchFuel({ key: process.env.OPINET_KEY });
       if (r.skipped) console.log(`- 기름값: 건너뜀 (${r.skipped})`);
       else {
-        fs.writeFileSync(FUEL_OUT, JSON.stringify({ updated: now.toISOString(), date: r.date, source: '오피넷 (한국석유공사)', products: PRODUCTS, national: r.national, sgg: r.sgg, stations: r.stations }));
-        console.log(`- 기름값: 시·군·구 ${Object.keys(r.sgg).length}곳, 최저가 주유소 ${r.stations.length}곳 → ${FUEL_OUT}`);
+        // 실패한 시·도×유종은 직전 값을 원래 기준 시각(asOf)과 함께 유지하고, 부분 실패를 파일에 남긴다
+        const m = mergeFuel(r, prevFuel);
+        const lowFailed = r.failed.filter((x) => x.what === 'low');
+        const ids = new Set(r.stations.map((x) => x.id));
+        const keptStations = (prevFuel?.stations || []).filter((st) => !ids.has(st.id) && lowFailed.some((x) => prevFuel.areas?.[st.sgg] === x.sido && Number.isFinite(st.price?.[x.prod])))
+          .map((st) => ({ ...st, asOf: st.asOf || prevFuel.updated }));
+        const partial = r.failed.length ? { failed: r.failed.map((x) => `${OPINET_SIDO[x.sido]} ${PRODUCTS[x.prod]} ${x.what === 'avg' ? '평균' : '최저가'}`), kept: m.kept.filter((x) => x.kept).map((x) => `${OPINET_SIDO[x.sido]} ${PRODUCTS[x.prod]} ${x.kept}곳`) } : undefined;
+        fs.writeFileSync(FUEL_OUT, JSON.stringify({ updated: now.toISOString(), date: r.date, source: '오피넷 (한국석유공사)', products: PRODUCTS, national: r.national, sgg: m.sgg, asOf: m.asOf, areas: m.areas, stations: [...r.stations, ...keptStations], partial }));
+        const count = (p) => Object.values(m.sgg).filter((v) => Number.isFinite(v[p])).length;
+        console.log(`- 기름값: 시·군·구 휘발유 ${count('B027')}곳·경유 ${count('D047')}곳(직전 값 유지 ${Object.keys(m.asOf).length}곳), 최저가 주유소 ${r.stations.length}곳(+유지 ${keptStations.length}) → ${FUEL_OUT}${partial ? ' · 부분 실패' : ''}`);
       }
     }
   } catch (e) {
