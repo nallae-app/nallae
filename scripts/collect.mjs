@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import * as sms from './sources/disaster-sms.mjs';
 import * as wrn from './sources/weather-warning.mjs';
 import * as brief from './sources/policy-news.mjs';
+import { fetchFestivals } from './sources/festivals.mjs';
 
 // 일시적인 네트워크 오류('fetch failed')는 3초 뒤 한 번 더 시도한다
 const rawFetch = globalThis.fetch;
@@ -82,3 +83,25 @@ const items = [...byId.values()]
 fs.mkdirSync('web/data', { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ updated: now.toISOString(), sources: status, items }));
 console.log(`→ ${OUT}: ${items.length}건`);
+
+// ---------- 축제(장소·일정): 소식과 섞지 않고 web/data/festivals.json으로 따로 ----------
+const FEST_OUT = 'web/data/festivals.json';
+try {
+  const r = await fetchFestivals({ key: process.env.DATA_GO_KR_KEY });
+  if (r.skipped) console.log(`- 축제: 건너뜀 (${r.skipped})`);
+  else {
+    fs.writeFileSync(FEST_OUT, JSON.stringify({ updated: now.toISOString(), source: '전국문화축제표준데이터 (공공데이터포털)', items: r.items }));
+    console.log(`- 축제: ${r.items.length}건 → ${FEST_OUT}`);
+  }
+} catch (e) {
+  // 실패하면 직전에 배포된 파일을 그대로 이어 쓴다 (축제 일정은 자주 바뀌지 않는다)
+  console.log(`- 축제: 실패 — ${e.message || e}${e.cause ? ` (${e.cause.code || ''})` : ''}`);
+  if (process.env.PREV_URL) {
+    try {
+      const prevFest = await (await fetch(process.env.PREV_URL.replace(/news\.json$/, 'festivals.json'), { signal: AbortSignal.timeout(15000) })).text();
+      JSON.parse(prevFest);
+      fs.writeFileSync(FEST_OUT, prevFest);
+      console.log('  직전 festivals.json 유지');
+    } catch { /* 없으면 이번 배포에는 축제 파일이 없다 */ }
+  }
+}
