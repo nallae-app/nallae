@@ -103,7 +103,7 @@ export async function fetchFestivals({ key }) {
     total = Number(body.totalCount || 0);
     const list = body.items || [];
     rows.push(...(Array.isArray(list) ? list : list.item || []));
-    if (page === 1) console.log(`  축제 응답: ${j.response?.header?.resultCode} ${j.response?.header?.resultMsg} 전체 ${total}건`);
+    if (page === 1) console.log(`  축제 응답: ${j.response?.header?.resultCode} ${j.response?.header?.resultMsg} 전체 ${total}건${j.response ? '' : ` / 원문: ${JSON.stringify(j).slice(0, 300)}`}`);
     if (!(Array.isArray(list) ? list.length : (list.item || []).length)) break;
   }
   const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
