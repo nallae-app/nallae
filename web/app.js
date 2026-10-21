@@ -67,10 +67,57 @@
   map.createPane('munis').style.zIndex = 400;
   map.createPane('provs').style.zIndex = 410;
   map.getPane('provs').style.pointerEvents = 'none';
+  map.createPane('labels').style.zIndex = 420;
+  map.getPane('labels').style.pointerEvents = 'none';
+  map.createPane('selection').style.zIndex = 430;
+  map.getPane('selection').style.pointerEvents = 'none';
   map.createPane('pulses').style.zIndex = 650;
 
   const baseStyle = { color: token('border-sgg'), weight: 0.6, fillColor: token('land'), fillOpacity: 1 };
-  let provinceLayer;
+  let provinceLayer, selectionOutline;
+  const regionLabels = [];
+  let labelTimer, outlinedRegion;
+  function scheduleLabels() { clearTimeout(labelTimer); labelTimer = setTimeout(renderLabels, 90); }
+  function renderLabels() {
+    if (outlinedRegion !== selection?.center) {
+      if (selectionOutline) map.removeLayer(selectionOutline);
+      outlinedRegion = selection?.center;
+      selectionOutline = selection ? L.geoJSON(selection.center.feature, { pane:"selection", interactive:false, style:{color:token("brand"),weight:2,fill:false} }).addTo(map) : null;
+    }
+    selectionOutline?.setStyle({color:token("brand")});
+    const safe = mapSafeArea();
+    if (!replayEl.hidden) safe.top += replayEl.getBoundingClientRect().height + 8;
+    const occupied = [];
+    const zoomed = map.getZoom() >= MUNI_ZOOM;
+    const sorted = regionLabels.slice().sort((a,b) => {
+      const rank = r => selection?.center.code === r.code ? 0 : r.kind === "sido" ? 1 : 2;
+      return rank(a)-rank(b) || b.area-a.area || a.code.localeCompare(b.code);
+    });
+    for (const r of sorted) {
+      const selected = selection?.center.code === r.code;
+      r.el.hidden = true;
+      if (!zoomed && r.kind !== "sido" && !selected) continue;
+      const pt = map.latLngToContainerPoint(r.at);
+      r.el.classList.toggle("selected", !!selected);
+      r.el.hidden = false;
+      const w = r.el.offsetWidth, h = r.el.offsetHeight;
+      const box = {left:pt.x-w/2-4,right:pt.x+w/2+4,top:pt.y-h/2-3,bottom:pt.y+h/2+3};
+      if (box.left < safe.left || box.right > safe.right || box.top < safe.top || box.bottom > safe.bottom || occupied.some(b => box.left < b.right && box.right > b.left && box.top < b.bottom && box.bottom > b.top)) { r.el.hidden=true; continue; }
+      occupied.push(box);
+      L.DomUtil.setPosition(r.el, map.latLngToLayerPoint(r.at).subtract([w/2,h/2]));
+    }
+  }
+  function addRegionLabel(f, kind) {
+    const p=f.properties;
+    if (!Number.isFinite(p.lx) || !Number.isFinite(p.ly)) return;
+    const el=document.createElement("span");
+    el.className="region-label"; el.textContent=kind === "sido" ? p.short || p.name : p.name;
+    el.hidden=true; el.setAttribute("aria-hidden","true");
+    map.getPane("labels").append(el);
+    regionLabels.push({el,kind,code:p.code,area:p.la || 0,at:[p.ly,p.lx]});
+  }
+  map.on("moveend zoomend resize", scheduleLabels);
+  document.fonts?.ready.then(scheduleLabels);
   const moveToBounds = (bounds, options) => reducedMotion.matches ? map.fitBounds(bounds, { ...options, animate:false }) : map.flyToBounds(bounds, options);
   let munis = [], muniByCode = new Map(), sidos = new Map(), neighborIdx = [], homeBounds = null;
 
@@ -106,6 +153,8 @@
       },
     }).addTo(map);
     const sidoGeo = topojson.feature(topo, topo.objects.sido);
+    sggGeo.features.forEach(f => addRegionLabel(f, "sgg"));
+    sidoGeo.features.forEach(f => addRegionLabel(f, "sido"));
     sidoGeo.features.forEach((f) => { const s = sidos.get(f.properties.code); if (s) s.short = f.properties.short; });
     provinceLayer = L.geoJSON(sidoGeo, {
       pane: 'provs', interactive: false, style: { color: token('border-sido'), weight: 1.3, fill: false },
@@ -118,6 +167,7 @@
     }
     homeBounds = muniLayer.getBounds();
     fitHome();
+    scheduleLabels();
   }
 
   // 화면 크기가 바뀌면(앱이 백그라운드에서 열려 크기가 0이었던 경우 포함) 아직 손대지 않은 전국 화면을 다시 맞춘다
@@ -164,6 +214,7 @@
     const prev = selection;
     const codes = new Set([m.code, ...neighborIdx[m.i].map((j) => munis[j].code)]);
     selection = { center: m, codes, fromLocation };
+    scheduleLabels();
     if (prev) prev.codes.forEach((c) => restyle(muniByCode.get(c)));
     codes.forEach((c) => restyle(muniByCode.get(c)));
     const bounds = L.latLngBounds([]);
@@ -175,6 +226,7 @@
   function clearSelection() {
     const prev = selection;
     selection = null;
+    scheduleLabels();
     if (prev) prev.codes.forEach((c) => restyle(muniByCode.get(c)));
     locateBtn.classList.remove('active');
     if (meMarker) { map.removeLayer(meMarker); meMarker = null; }
@@ -203,15 +255,21 @@
   document.body.append(bubbleEl);
   let bubbleAt = null, bubbleUntil = 0, bubbleTimer;
   const replayEl = document.getElementById('replay-status');
-  function placeMapOverlays() {
+  function mapSafeArea() {
     const sheet = panel.getBoundingClientRect();
     const controls = document.querySelector('.controls').getBoundingClientRect();
     const header = document.querySelector('.topbar').getBoundingClientRect();
     const desktop = matchMedia('(min-width:760px)').matches;
     const left = desktop ? sheet.right + 16 : 12;
     const right = desktop ? controls.left - 12 : innerWidth - 12;
-    const top = Math.max(header.bottom, controls.bottom) + 8;
+    const legendEl = document.getElementById('map-legend');
+    const legend = (legendEl.open ? legendEl.querySelector('.legend-content') : legendEl).getBoundingClientRect();
+    const top = Math.max(header.bottom, controls.bottom, legend.bottom) + 8;
     const bottom = desktop ? innerHeight - 28 : sheet.top - 12;
+    return {left,right,top,bottom};
+  }
+  function placeMapOverlays() {
+    const {left,right,top,bottom} = mapSafeArea();
     const width = Math.max(0, right - left);
     replayEl.style.left = left + 'px';
     replayEl.style.top = top + 'px';
@@ -220,8 +278,9 @@
     bubbleEl.style.maxWidth = Math.min(innerWidth * .72, width) + 'px';
     if (!bubbleAt || bubbleEl.hidden) return;
     const box = bubbleEl.getBoundingClientRect();
-    bubbleEl.style.visibility = width >= 80 && bottom - minY >= box.height ? 'visible' : 'hidden';
     const point = map.latLngToContainerPoint(bubbleAt);
+    const inView = point.x >= left && point.x <= right && point.y >= minY && point.y <= bottom;
+    bubbleEl.style.visibility = inView && width >= 80 && bottom - minY >= box.height ? 'visible' : 'hidden';
     const x = point.x + box.width > right ? point.x - box.width : point.x;
     const y = point.y - box.height - 14 < minY ? point.y + 14 : point.y - box.height - 14;
     bubbleEl.style.left = Math.max(left, Math.min(x, right - box.width)) + 'px';
@@ -237,9 +296,10 @@
     placeMapOverlays();
     bubbleTimer = setTimeout(() => { bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; }, item.urgency === 'critical' ? 4000 : 2800);
   }
-  const overlayObserver = new ResizeObserver(placeMapOverlays);
+  const overlayObserver = new ResizeObserver(() => { placeMapOverlays(); scheduleLabels(); });
+  document.getElementById("map-legend").addEventListener("toggle", () => { placeMapOverlays(); scheduleLabels(); });
   [panel, document.querySelector('.topbar'), document.querySelector('.controls')].forEach(el => overlayObserver.observe(el));
-  new MutationObserver(placeMapOverlays).observe(replayEl, { attributes:true, attributeFilter:['hidden'] });
+  new MutationObserver(() => { placeMapOverlays(); scheduleLabels(); }).observe(replayEl, { attributes:true, attributeFilter:['hidden'] });
   map.on('move zoom resize', placeMapOverlays);
   window.addEventListener('resize', placeMapOverlays);
   // 정책브리핑처럼 지명이 '언급'만 된 자료는 목록에만 두고 지도에 찍지 않는다
@@ -513,7 +573,8 @@
         el.classList.remove('flash'); restyle(m);
       }));
     });
-  }).observe(root, {attributes:true, attributeFilter:['data-theme','data-design']});
+    scheduleLabels();
+  }).observe(root, {attributes:true, attributeFilter:['data-theme']});
 
   // ---------- 시작 ----------
   fetch('data/regions.json')
