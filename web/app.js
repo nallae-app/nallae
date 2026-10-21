@@ -978,11 +978,17 @@ function renderWeather() {
 feedEl.addEventListener('click',e=>{if(e.target.closest('[data-weather-news]')) document.querySelector('[data-mode-choice="news"]').click();});
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-legend]');if(b) exploreTools.querySelector('.legend-detail').textContent=b.dataset.legend;});
 function stationText(s) { return '<h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+' · <strong>'+money(s.price[fuelProduct])+'</strong></p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'+routeLink(s); }
-// 카카오맵 길찾기(도착지 = 주유소 좌표). 앱이 있으면 앱, 없으면 웹. 누를 때만 외부로 나간다.
+// 카카오맵 연결 (키·요금 없는 공개 링크). 앱이 있으면 앱, 없으면 웹. 누를 때만 외부로 나간다.
+// 좌표가 있으면 그 지점을 도착지로 길찾기, 주소만 있으면 주소 검색.
 function routeLink(s) {
-  if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return '';
+  if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return addressLink(s.address);
   const url = 'https://map.kakao.com/link/to/' + encodeURIComponent(String(s.name).replace(/,/g, ' ')) + ',' + s.lat + ',' + s.lon;
   return '<a class="food-map" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">길찾기 ↗</a>';
+}
+function addressLink(address) {
+  const q = String(address || '').replace(/\s*\(.*\)\s*$/, '').trim(); // 끝의 '(공덕동, 1층)' 같은 꼬리는 검색을 방해한다
+  if (!q) return '';
+  return '<a class="food-map" href="' + escapeHtml('https://map.kakao.com/link/search/' + encodeURIComponent(q)) + '" target="_blank" rel="noopener noreferrer">카카오맵에서 보기 ↗</a>';
 }
 function renderFuel() {
   const avg=fuelData.national[fuelProduct], local=selection && fuelData.sgg[selection.center.code]?.[fuelProduct];
@@ -1027,8 +1033,7 @@ function renderFoodCards() {
   const list=data.items.filter(x=>(!foodKind||x.kind===foodKind)&&String(x.name).toLocaleLowerCase().includes(foodQuery.toLocaleLowerCase()));
   feedEl.innerHTML=list.slice(0,foodLimit).map(x=>{
     const name=String(x.name).replace(/^(?:(?:\((?:주|유)\)|㈜|㈲|주식회사|유한회사)\s*)+/,'');
-    const url=/Android/i.test(navigator.userAgent)?'geo:0,0?q='+encodeURIComponent(x.address):'https://map.naver.com/p/search/'+encodeURIComponent(name+' '+x.address);
-    return '<li class="festival-card food-card"><h3>'+escapeHtml(name)+'</h3><p>'+escapeHtml(x.kind || '업종 미제공')+(x.level&&x.level!=='적합'?' <span class="festival-day">'+escapeHtml(x.level)+'</span>':'')+' · 지정 ~'+escapeHtml(x.to?x.to.replaceAll('-','.'):'기간 미제공')+'</p>'+sourceDisclosure(x.address || '주소 미제공')+'<a class="food-map" href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">지도에서 보기 ↗</a></li>';
+    return '<li class="festival-card food-card"><h3>'+escapeHtml(name)+'</h3><p>'+escapeHtml(x.kind || '업종 미제공')+(x.level&&x.level!=='적합'?' <span class="festival-day">'+escapeHtml(x.level)+'</span>':'')+' · 지정 ~'+escapeHtml(x.to?x.to.replaceAll('-','.'):'기간 미제공')+'</p>'+sourceDisclosure(x.address || '주소 미제공')+addressLink(x.address)+'</li>';
   }).join('') || '<li class="empty">조건에 맞는 업소가 없어요.</li>';
   if(list.length>foodLimit) feedEl.insertAdjacentHTML('beforeend','<li><button type="button" data-food-more>더 보기 ('+Math.min(foodLimit,list.length)+' / '+list.length+')</button></li>');
 }
@@ -1098,7 +1103,7 @@ function renderFestivals() {
     const muted = restrained(f,codes), end = dayNumber(f.end), start = dayNumber(f.start);
     const badge = end === now ? '오늘 끝나요' : start <= now ? '진행 중' : 'D-' + Math.ceil(start-now);
     const region = festivalCodes(f).map(c => muniByCode.get(c)).filter(Boolean).map(label).join(', ');
-    return '<li class="festival-card" data-festival="' + escapeAttr(f.id) + '"><details><summary><span class="festival-day ' + (end === now ? 'ending' : start <= now ? 'ongoing' : '') + '">' + badge + '</span><h3>' + escapeHtml(f.name) + '</h3><p>' + date(f.start) + ' – ' + date(f.end) + '</p><p class="festival-place">' + escapeHtml((f.place || f.address || '장소 미제공') + (region ? ' · ' + region : '')) + '</p>' + (f.content ? '<p class="festival-content">' + escapeHtml(f.content) + '</p>' : '') + (muted ? '<p class="festival-notice">이 지역에 긴급 소식이 있어요</p>' : end === now && !quiet ? '<p>오늘이 마지막 날이에요, 날래 가세요!</p>' : '') + '</summary><div class="festival-detail"><p>주최: ' + escapeHtml(f.host || '미제공') + '</p><p>전화: ' + escapeHtml(f.phone || '미제공') + '</p>' + (/^https?:\/\//i.test(f.url || '') ? '<a href="' + escapeAttr(f.url) + '" target="_blank" rel="noopener">누리집 ↗</a>' : '') + '<p class="src">출처: 전국문화축제표준데이터</p></div></details></li>';
+    return '<li class="festival-card" data-festival="' + escapeAttr(f.id) + '"><details><summary><span class="festival-day ' + (end === now ? 'ending' : start <= now ? 'ongoing' : '') + '">' + badge + '</span><h3>' + escapeHtml(f.name) + '</h3><p>' + date(f.start) + ' – ' + date(f.end) + '</p><p class="festival-place">' + escapeHtml((f.place || f.address || '장소 미제공') + (region ? ' · ' + region : '')) + '</p>' + (f.content ? '<p class="festival-content">' + escapeHtml(f.content) + '</p>' : '') + (muted ? '<p class="festival-notice">이 지역에 긴급 소식이 있어요</p>' : end === now && !quiet ? '<p>오늘이 마지막 날이에요, 날래 가세요!</p>' : '') + '</summary><div class="festival-detail"><p>주최: ' + escapeHtml(f.host || '미제공') + '</p><p>전화: ' + escapeHtml(f.phone || '미제공') + '</p>' + (/^https?:\/\//i.test(f.url || '') ? '<a href="' + escapeAttr(f.url) + '" target="_blank" rel="noopener">누리집 ↗</a>' : '') + routeLink(f) + '<p class="src">출처: 전국문화축제표준데이터</p></div></details></li>';
   };
   const regular = list.filter(f => dayNumber(f.end)-dayNumber(f.start)+1 < 30), long = list.filter(f => dayNumber(f.end)-dayNumber(f.start)+1 >= 30);
   feedEl.innerHTML = regular.map(card).join('') + (long.length ? '<li class="festival-group"><details><summary>상시 진행 ' + long.length + '건</summary><ul>' + long.map(card).join('') + '</ul></details></li>' : '') || '<li class="empty"><p>' + (festivalFailed ? '축제를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.' : !festivalLoaded ? '축제를 불러오는 중이에요.' : '진행 중이거나 30일 안에 시작하는 축제가 없어요.') + '</p><p>출처: 전국문화축제표준데이터 · 선택 지역과 맞닿은 지역 포함</p></li>';
@@ -1136,7 +1141,7 @@ function renderFestivalMarkers() {
       if (map.getZoom() < 13) continue;
     }
     const popup = document.createElement('div');
-    g.items.forEach(f => { const p=document.createElement('p'); p.textContent=f.name; popup.append(p); });
+    g.items.forEach(f => { const p=document.createElement('p'); p.textContent=f.name; popup.append(p); popup.insertAdjacentHTML('beforeend', routeLink(f)); });
     if (muted) { const p=document.createElement('p'); p.textContent='이 지역에 긴급 소식이 있어요'; popup.append(p); }
     marker.bindPopup(popup);
   }
