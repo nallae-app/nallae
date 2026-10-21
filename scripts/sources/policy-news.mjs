@@ -2,8 +2,8 @@
 // https://www.data.go.kr/data/15095335/openapi.do
 // 필요: DATA_GO_KR_KEY (공공데이터포털 회원가입 + 활용신청, 자동승인)
 // 지역 이름이 제목에 나오고 공공누리 1유형인 자료만 쓴다. 본문은 싣지 않고 제목과 원문 링크만.
+// 제목에 지명이 '언급'됐을 뿐 그곳에서 일어난 일이라는 보장이 없으므로 지도에는 찍지 않고(onMap: false) 목록에만 둔다.
 import { findPlacesInText } from '../lib/regions.mjs';
-import { classify } from '../lib/classify.mjs';
 
 const ENDPOINT = 'https://apis.data.go.kr/1371000/policyNewsService2/policyNewsList2';
 
@@ -40,7 +40,8 @@ export function parse(xml) {
     items.push({
       id: `brief-${tag(x, 'NewsItemId')}`,
       src: 'brief',
-      cat: classify(title),
+      cat: '정책',
+      onMap: false,
       title,
       time: toIso(tag(x, 'ApproveDate') || tag(x, 'ModifyDate')),
       sgg, sido,

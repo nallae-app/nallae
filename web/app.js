@@ -10,7 +10,7 @@
   const REPLAY_STEP_MS = 550;
   const MUNI_ZOOM = 8.5;              // 이 배율부터 시·군·구 단위로 본다
 
-  const CATEGORIES = ['재난', '기상', '사건', '교통', '개발', '행정', '생활'];
+  const CATEGORIES = ['재난', '기상', '사건', '교통', '개발', '행정', '생활', '정책'];
   const css = getComputedStyle(document.documentElement);
   const colorOf = (cat) => css.getPropertyValue(`--c-${cat}`).trim() || '#9fb3d9';
 
@@ -159,7 +159,11 @@
   }
 
   let bubbleMarker = null;
+  // 정책브리핑처럼 지명이 '언급'만 된 자료는 목록에만 두고 지도에 찍지 않는다
+  const onMap = (item) => item.onMap !== false && item.src !== 'brief';
+
   function pulse(item, withBubble) {
+    if (!onMap(item)) return;
     const color = colorOf(item.cat);
     const targets = itemMunis(item);
     if (!targets.length) return;
@@ -199,7 +203,8 @@
     const sido = (item.sido || []).map((c) => sidos.get(c)).filter(Boolean);
     const names = [...sido.map((s) => `${s.short} 전체`), ...sgg.map(label)];
     if (!names.length) return '전국';
-    return names.length > 2 ? `${names[0]} 외 ${names.length - 1}곳` : names.join(', ');
+    const text = names.length > 2 ? `${names[0]} 외 ${names.length - 1}곳` : names.join(', ');
+    return onMap(item) ? text : `관련: ${text}`;
   }
 
   // ---------- 소식 ----------
@@ -245,6 +250,7 @@
 
   function visible(item) {
     if (category && item.cat !== category) return false;
+    if (selection && !onMap(item)) return false;
     if (selection && !itemMunis(item).some((m) => selection.codes.has(m.code))) return false;
     return true;
   }
@@ -291,7 +297,7 @@
     openId = openId === item.id ? null : item.id;
     atHome = false;
     renderFeed();
-    const targets = itemMunis(item);
+    const targets = onMap(item) ? itemMunis(item) : [];
     if (targets.length) {
       const b = L.latLngBounds([]);
       targets.forEach((m) => b.extend(m.layer.getBounds()));

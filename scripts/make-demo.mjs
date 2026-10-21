@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import * as sms from './sources/disaster-sms.mjs';
 import * as wrn from './sources/weather-warning.mjs';
 import { findPlacesInText } from './lib/regions.mjs';
-import { classify } from './lib/classify.mjs';
 
 const now = Date.now();
 const kst = (minAgo) => {
@@ -43,7 +42,7 @@ const briefTitles = [
   [150, '창원시 성산구 S-BRT 2단계 개통'],
   [200, '아산시 탕정 산업단지 2단계 분양 공고'],
 ].map(([m, title], i) => ({
-  id: `demo-brief-${i}`, src: 'brief', cat: classify(title), title,
+  id: `demo-brief-${i}`, src: 'brief', cat: '정책', onMap: false, title,
   time: new Date(now - m * 60000).toISOString(), ...findPlacesInText(title),
   source: '데모 데이터', url: 'https://www.korea.kr/',
 }));

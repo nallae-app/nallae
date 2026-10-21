@@ -34,7 +34,7 @@
 - 태그 후보: 지역 뉴스, 재난문자, 날씨 특보, 지도
 
 ## 연락처
-- 이메일: rehyyn@gmail.com
+- 이메일: nallae.app@gmail.com
 - 웹사이트: https://nallae-app.github.io/nallae/
 - 개인정보처리방침: https://nallae-app.github.io/nallae/privacy.html
 

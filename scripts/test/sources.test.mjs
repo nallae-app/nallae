@@ -79,7 +79,8 @@ test('정책브리핑 파싱: 공공누리 1유형 + 지명 있는 것만', () =
   </body></response>`;
   const items = brief.parse(xml);
   assert.equal(items.length, 1);
-  assert.equal(items[0].cat, '교통');
+  assert.equal(items[0].cat, '정책');
+  assert.equal(items[0].onMap, false); // 지명 언급만으로 지도에 찍지 않는다
   assert.deepEqual(items[0].sgg, ['41117']);
   assert.ok(items[0].url.startsWith('https://'));
 });
