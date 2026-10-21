@@ -342,3 +342,39 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .dragging, .dragging * { cursor:grabbing !important; user-select:none; }
 
 .parking-marker{background:none;border:0}.parking-pin{position:absolute;left:12px;top:12px;display:grid;place-items:center;width:22px;height:22px;border:2px solid #536c99;border-radius:5px;background:var(--land);color:var(--text);font-size:13px;font-weight:800;box-shadow:0 1px 4px #0003}.parking-pin.free{border-color:#288575}.parking-pin small{position:absolute;left:17px;top:-9px;background:var(--land);border:1px solid #536c99;border-radius:12px;padding:1px 4px;font-size:11px}.parking-tag{position:absolute;left:36px;top:12px;white-space:nowrap;background:var(--land);border:1px solid currentColor;border-radius:4px;padding:2px 4px;font-size:11px}.parking-live.easy,.parking-tag.easy{color:#237c69}.parking-live.normal,.parking-tag.normal{color:#896515}.parking-live.busy,.parking-tag.busy{color:#b14845}
+
+/* UX P0 (2026-10-21): 헤더 아이콘 정리, 지역(1차)·분류(2차) 줄 분리, 시트 고정 영역 축소, 상태 한 줄 안내 */
+.badge-sample { white-space:nowrap; }
+.map-legend summary { list-style:none; position:relative; display:grid; place-items:center; width:44px; min-height:44px; padding:0; background:none; }
+.map-legend summary::-webkit-details-marker { display:none; }
+.map-legend summary::before { content:''; position:absolute; inset:3px; background:var(--surface); border-radius:12px; z-index:-1; }
+.map-legend[open] summary::before { background:var(--selection-fill); }
+.map-legend summary svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
+.filter-row .chips:not(:empty) { border-left:0; margin-left:0; padding-left:0; }
+.region-row { padding-bottom:0; }
+.category-row { padding-bottom:4px; }
+.favorites button[aria-pressed="true"] { background:var(--brand); color:var(--on-brand); }
+.chips button { background:none; border:1px solid var(--border-sgg); padding:4px 10px; }
+.chips button[aria-pressed="true"] { border-color:transparent; }
+.collection-alert { display:flex; align-items:center; gap:6px; min-height:44px; min-width:0; width:auto; text-align:left; border:0; font:inherit; font-size:12px; line-height:18px; padding:4px 8px; }
+.collection-alert .category-icon { width:16px; height:16px; }
+.collection-alert span:first-of-type { flex:1; min-width:0; }
+.alert-action { flex:none; font-weight:600; text-decoration:underline; text-underline-offset:2px; }
+.empty-note { font-size:13px; line-height:19px; }
+.empty-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.empty-actions button { border:0; border-radius:24px; padding:8px 14px; background:var(--selection-fill); color:var(--brand); font-size:14px; font-weight:600; }
+@media(max-width:759px) {
+  .panel-handle { margin-bottom:-16px; }
+  .panel-head { z-index:1; }
+  .panel[data-sheet-stage="collapsed"] > :is(.category-row,.explore-tools) { display:none; }
+}
+/* 상태 안내: 터치 목표는 44px, 보이는 띠는 32px */
+.collection-alert { margin:0 16px; padding:2px 8px; border:solid transparent; border-width:6px 0; background:var(--surface-muted); background-clip:padding-box; border-radius:12px; }
+/* 화면 키보드가 visualViewport만 줄일 때 시트·관심 지역 창을 키보드 위로 (app.js keyboardInset → --kb) */
+@media(max-width:759px) {
+  .panel { bottom:var(--kb,0px); }
+  #favorites-dialog { margin-bottom:var(--kb,0px); max-height:calc(88dvh - var(--kb,0px)); }
+}
+/* 아주 좁은 화면(320px 등)에서는 슬로건을 숨겨 헤더 버튼이 넘치지 않게 */
+.brand { min-width:0; }
+@media(max-width:349px) { .brand p { display:none; } }

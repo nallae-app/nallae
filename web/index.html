@@ -39,8 +39,8 @@
     <div class="top-right">
       <button id="btn-theme" type="button" aria-label="화면 테마 전환">시스템</button>
       <span class="badge-sample" id="badge-demo" hidden>데모</span>
-<details class="map-legend" id="map-legend">
-    <summary>지도 보는 법</summary>
+      <details class="map-legend" id="map-legend">
+    <summary aria-label="지도 보는 법" title="지도 보는 법"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5V4l-6 2.5L9 4ZM9 4v13m6-10.5v13"/></svg></summary>
     <div class="legend-content"><p><span class="legend-critical">위급</span> · <span class="legend-urgent">긴급</span> · <span class="legend-normal">일반</span></p>
     <p>색은 출처가 정한 발송 구분이에요.</p>
     <p>점은 지역 대표 위치예요.</p>
@@ -73,9 +73,9 @@
       </div>
       <button id="collection-status" class="collection-status" type="button" aria-haspopup="dialog">수집 상태 확인 중</button>
     </div>
-    <p id="collection-alert" class="collection-alert" hidden></p>
-    <div class="filter-row"><div id="favorites" class="favorites" aria-label="관심 지역"></div>
-    <div class="chips" id="chips"></div></div>
+    <button id="collection-alert" class="collection-alert" type="button" hidden></button>
+    <div class="filter-row region-row"><div id="favorites" class="favorites" role="group" aria-label="보는 지역"></div></div>
+    <div class="filter-row category-row"><div class="chips" id="chips" role="group" aria-label="분류"></div></div>
 
     <button id="new-items" type="button" hidden></button>
     <ul class="feed" id="feed"></ul>

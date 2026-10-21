@@ -176,6 +176,8 @@ new ResizeObserver(() => {
 }).observe(document.getElementById('map'));
 
 const label = (m) => `${m.short} ${m.name}`;
+// 관심 지역이면 별명과 실제 행정구역을 함께 보여 준다 (예: 집 · 서울 마포구)
+const regionTitle = (m) => { const f = favorites.find(r => r.code === m.code); return f ? f.name + ' · ' + label(m) : label(m); };
 
 map.on('zoomend', () => {
   const z = map.getZoom() >= MUNI_ZOOM;
@@ -433,21 +435,43 @@ function updateTimes() {
   if (mode === 'explore') { updateExploreStatus(); return; }
   feedEl.querySelectorAll('time').forEach(el => { el.textContent = ago(new Date(el.dateTime)); });
   const status = document.getElementById('collection-status');
-  const states = ['sms','wrn','brief'].map(sourceState);
-  const failed = loadFailed || states.some(s => s.rank === 2);
+  const keys = newsSourceKeys(), states = keys.map(sourceState);
+  const failedNames = keys.filter((k,i) => states[i].rank === 2).map(k => SOURCE_NAMES[k]);
+  const failed = loadFailed || failedNames.length > 0;
   const stale = states.some(s => s.rank === 1) || !validDate(updatedAt) || Date.now()-updatedAt >= 1800000;
   status.classList.toggle('failed', failed);
   status.classList.toggle('stale', !failed && stale);
-  const statusText = loadFailed ? (lastChecked ? '마지막 확인 ' + lastChecked.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}) + ' · ' : '') + '새로 고치지 못했어요' : (failed ? '출처 오류' : stale ? '갱신 지연' : '정상') + ' · ' + (validDate(updatedAt) ? ago(updatedAt) : '시각 미제공');
+  const statusText = loadFailed ? (lastChecked ? '앱이 마지막으로 받은 시각 ' + lastChecked.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}) + ' · ' : '') + '새로 고치지 못했어요' : (failed ? '출처 오류' : stale ? '갱신 지연' : '정상') + ' · ' + (validDate(updatedAt) ? ago(updatedAt) : '시각 미제공');
   status.textContent = validDate(updatedAt) ? ago(updatedAt) : '시각 미제공';
   status.setAttribute('aria-label', statusText + '. 출처별 수집 상태 보기');
   const alert = document.getElementById('collection-alert');
   alert.hidden = !failed && !stale;
-  alert.textContent = failed ? '새 소식을 확인하지 못한 출처가 있어요.' : '소식 갱신이 늦어지고 있어요.';
-  alert.classList.toggle('failed', failed);
+  const hhmm = d => d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false});
+  setAlert(failed ? 'failed' : 'stale',
+    // 보여 주는 자료의 시각은 수집 파일 생성 시각(updatedAt). 앱이 마지막으로 받은 시각(lastChecked)은 상세에만.
+    loadFailed ? (navigator.onLine === false ? '인터넷에 연결되지 않았어요' : '소식을 새로 고치지 못했어요') + (items.length && validDate(updatedAt) ? ' · ' + hhmm(updatedAt) + ' 수집 자료를 보여 줘요' : '')
+    : failed ? (failedNames.length === keys.length ? '모든 출처의 소식을 불러오지 못했어요' : failedNames.join('·') + ' 소식을 불러오지 못했어요 · 다른 출처는 그대로 보여요')
+    : '일부 자료의 갱신이 늦어지고 있어요' + (validDate(updatedAt) ? ' · ' + ago(updatedAt) + ' 수집' : ''),
+    loadFailed ? '다시 시도' : '자세히', loadFailed ? 'news' : '');
   document.getElementById('sources-detail').innerHTML = sourceStatus() + '<p>' + escapeHtml(statusText) + '</p>';
 }
 const validDate = d => d instanceof Date && Number.isFinite(d.getTime());
+const SOURCE_NAMES = {sms:'긴급재난문자',wrn:'기상특보',eqk:'지진정보',brief:'정책브리핑'};
+// 지진정보는 수집 파일에 상태가 있을 때만 판단에 넣는다 (예전 파일에는 없음)
+const newsSourceKeys = () => ['sms','wrn','eqk','brief'].filter(k => k !== 'eqk' || sources.eqk);
+const ALERT_ICONS = {stale:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>', failed:'<path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4m0 3v.5"/>'};
+function setAlert(kind, text, action, retry = '') {
+  const alert = document.getElementById('collection-alert');
+  alert.dataset.retry = retry;
+  alert.classList.toggle('failed', kind === 'failed');
+  alert.innerHTML = '<svg class="category-icon" viewBox="0 0 24 24" aria-hidden="true">' + ALERT_ICONS[kind] + '</svg><span>' + escapeHtml(text) + '</span><span class="alert-action">' + escapeHtml(action) + '</span>';
+}
+document.getElementById('collection-alert').addEventListener('click', () => {
+  const retry = document.getElementById('collection-alert').dataset.retry;
+  if (retry === 'news') { load(); return; }
+  if (retry === 'explore') { loadExploreData([...exploreFailed]); return; }
+  updateTimes(); document.getElementById('sources-dialog').showModal();
+});
 function sourceState(key) {
   const v = sources[key], at = new Date(v?.at);
   if (v?.ok === false) return {rank:2,text:'오류 · 마지막 성공 시각은 확인할 수 없어요'};
@@ -455,7 +479,7 @@ function sourceState(key) {
   return {rank:Date.now()-at >= 1800000 ? 1 : 0,text:(Date.now()-at >= 1800000 ? '지연' : '정상') + ' · 마지막 성공 ' + ago(at)};
 }
 function sourceStatus() {
-  const names = {sms:'긴급재난문자',wrn:'기상특보',eqk:'지진정보',brief:'정책브리핑'};
+  const names = SOURCE_NAMES;
   return ['sms','wrn','eqk','brief'].map(key => {
     const v = sources[key];
     return '<p class="source-status"><strong>' + names[key] + '</strong><br>' + sourceState(key).text + (v?.at ? '<br>확인 시각: ' + escapeHtml(v.at) : '') + (v?.note ? '<br>' + escapeHtml(v.note) : '') + '</p>';
@@ -469,7 +493,7 @@ function renderFeed(newIds, preserve = false) {
   if (mode === 'explore') { renderExplore(); return; }
   renderEarthquakes();
   if (!preserve) pending.clear();
-  titleEl.textContent = selection ? label(selection.center) + ' 주변' : '전국 소식';
+  titleEl.textContent = selection ? regionTitle(selection.center) + ' 주변' : '전국 소식';
   subEl.textContent = selection ? (selection.fromLocation ? '내 위치 기준 · ' : '') + selection.center.name + '와 맞닿은 ' + (selection.codes.size - 1) + '곳 포함' : '최근 72시간 · 새 소식은 지도에서 먼저 반짝여요';
   const oldScroll = feedEl.scrollTop;
   const focused = document.activeElement;
@@ -507,8 +531,15 @@ function renderFeed(newIds, preserve = false) {
   }
   if (!desired.length) {
     const li = document.createElement('li'); li.className = 'empty';
-    const failed = loadFailed || Object.values(sources).some(v => v.ok === false);
-    li.innerHTML = '<p>' + (failed ? '수집 상태를 확인해 주세요' : '선택한 지역에 수집된 소식이 없어요') + '</p><p>최근 72시간 · 포함 지역 ' + (selection ? selection.codes.size : munis.length) + '곳' + (category ? ' · ' + escapeHtml(category) : '') + '</p>' + sourceStatus();
+    const failedNames = newsSourceKeys().filter(k => sourceState(k).rank === 2).map(k => SOURCE_NAMES[k]);
+    if (loadFailed && !items.length) {
+      li.innerHTML = '<p>' + (navigator.onLine === false ? '인터넷에 연결되지 않았어요' : '소식을 불러오지 못했어요') + '</p><p class="empty-note">연결을 확인하고 다시 시도해 주세요.</p><div class="empty-actions"><button type="button" data-retry>다시 시도</button></div>';
+    } else {
+      li.innerHTML = '<p>' + (category ? escapeHtml(category) + ' 분류에 수집된 소식이 없어요' : selection ? '선택한 지역에 수집된 소식이 없어요' : '지금 수집된 소식이 없어요') + '</p>'
+        + '<p class="empty-note">최근 72시간 · 포함 지역 ' + (selection ? selection.codes.size : munis.length) + '곳 기준이에요. 안전하다는 뜻은 아니에요.</p>'
+        + (failedNames.length ? '<p class="empty-note">' + escapeHtml(failedNames.join('·')) + ' 소식을 불러오지 못해 빠진 소식이 있을 수 있어요.</p>' : '')
+        + ((category || selection) ? '<div class="empty-actions">' + (category ? '<button type="button" data-all-cats>전체 분류 보기</button>' : '') + (selection ? '<button type="button" data-home-empty>전국 소식 보기</button>' : '') + '</div>' : '');
+    }
     desired.push(li);
   }
   [...feedEl.children].forEach(el => { if (!desired.includes(el)) el.remove(); });
@@ -532,6 +563,9 @@ function detail(it) {
 feedEl.addEventListener('click', (e) => {
   if (e.target.closest('a')) return;
   if (e.target.closest('.policy-group')) { chipsEl.querySelector('[data-cat="정책"]').click(); return; }
+  if (e.target.closest('[data-retry]')) { load(); return; }
+  if (e.target.closest('[data-all-cats]')) { chipsEl.querySelector('[data-cat=""]')?.click(); return; }
+  if (e.target.closest('[data-home-empty]')) { clearSelection(); atHome = true; fitHome(); return; }
   if (!e.target.closest('.card-toggle')) return;
   const li = e.target.closest('li[data-id]');
   if (!li) return;
@@ -565,7 +599,7 @@ function syncCategories() {
 chipsEl.addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
-  if (mode === 'explore') { if (b.dataset.layer) { exploreLayer=b.dataset.layer; try { localStorage.setItem('nallae-explore-layer',exploreLayer); } catch (_) {} map.closePopup(); feedEl.scrollTop=0; renderExplore(); } return; }
+  if (mode === 'explore') { if (b.dataset.layer) { exploreLayer=b.dataset.layer; try { localStorage.setItem('nallae-explore-layer',exploreLayer); } catch (_) {} map.closePopup(); feedEl.scrollTop=0; renderExplore(); fitSheet(); } return; }
   category = b.dataset.cat || null;
   chipsEl.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   renderFeed();
@@ -753,12 +787,31 @@ try {
   const saved = stages.indexOf(localStorage.getItem('nallae-sheet-stage'));
   if (saved >= 0) sheetStage = saved;
 } catch (_) {}
+const TWO_CARDS = 172, MAP_MIN = 140; // 두 줄 제목 소식 2건, 중간 시트에서 남길 지도 최소 높이
+// 화면 키보드처럼 visualViewport만 줄어드는 경우(Android Chrome 기본·iOS) 가려지는 높이
+function keyboardInset() { const vv = window.visualViewport; return vv ? Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)) : 0; }
 function sheetHeights() {
-  const full = Math.max(0, innerHeight - document.querySelector('.topbar').getBoundingClientRect().bottom - 8);
-  const folded = handle.offsetHeight + sheetHead.offsetHeight + favoritesRow.offsetHeight + parseFloat(getComputedStyle(panel).paddingBottom);
+  const H = innerHeight - keyboardInset();
+  const full = Math.max(0, H - document.querySelector('.topbar').getBoundingClientRect().bottom - 8);
+  const handleH = handle.offsetHeight + parseFloat(getComputedStyle(handle).marginBottom);
+  const pad = parseFloat(getComputedStyle(panel).paddingBottom);
+  const folded = handleH + sheetHead.offsetHeight + favoritesRow.offsetHeight + pad;
   const low = Math.min(folded, full);
-  return [low, Math.min(full, Math.max(low, innerHeight * .48)), full];
+  // 상태 안내·분류 줄·탐험 도구의 실제 높이를 더한다. 접힘에서는 숨어서 0이 되므로 마지막 측정값을 쓴다.
+  const outer = el => {
+    if (!el || el.hidden) return 0;
+    if (!el.offsetHeight) return el._sheetH || 0;
+    const cs = getComputedStyle(el);
+    return el._sheetH = el.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+  };
+  const extra = outer(document.getElementById('collection-alert')) + outer(document.querySelector('.category-row')) + outer(document.querySelector('.explore-tools'));
+  const want = folded + extra + TWO_CARDS;
+  const mapRoom = H - document.querySelector('.controls').getBoundingClientRect().bottom - MAP_MIN;
+  const middle = Math.max(H * .48, Math.min(want, mapRoom));
+  return [low, Math.min(full, Math.max(low, middle)), full];
 }
+// 모드·탐험 레이어를 바꾼 직후 현재 단계 높이를 다시 맞춘다 (ResizeObserver와 같은 계산)
+function fitSheet() { if (!sheetDrag && mobileSheet.matches) panel.style.height = sheetHeights()[sheetStage] + 'px'; }
 function feedTouchAction() {
   feedEl.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && feedEl.scrollTop <= 0);
 }
@@ -837,12 +890,15 @@ function resizeSheet() {
   const id = sheetDrag?.id;
   sheetDrag = null;
   if (id !== undefined && panel.hasPointerCapture(id)) panel.releasePointerCapture(id);
+  root.style.setProperty('--kb', keyboardInset() + 'px');
   setSheetStage(sheetStage, false);
 }
 window.addEventListener('resize', resizeSheet);
+window.visualViewport?.addEventListener('resize', resizeSheet);
 mobileSheet.addEventListener('change', resizeSheet);
-const sheetContentObserver = new ResizeObserver(() => { if (!sheetDrag) setSheetStage(sheetStage, false); });
-[sheetHead, favoritesRow, document.querySelector('.topbar')].forEach(el => sheetContentObserver.observe(el));
+// 시트 안 줄(상태 안내·분류·탐험 도구)의 높이가 바뀌면 현재 단계 높이만 다시 맞춘다
+const sheetContentObserver = new ResizeObserver(fitSheet);
+[sheetHead, favoritesRow, document.getElementById('collection-alert'), document.querySelector('.category-row'), document.querySelector('.topbar')].forEach(el => sheetContentObserver.observe(el));
 setSheetStage(sheetStage, false);
 
 let toastTimer;
@@ -876,7 +932,8 @@ const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
 let foodQuery='', foodKind='', foodLimit=50, foodCode=null;
 const fuelMarkers=L.layerGroup().addTo(map);
 const exploreTools=document.createElement('div'); exploreTools.className='explore-tools';
-feedEl.before(exploreTools);
+feedEl.before(exploreTools); sheetContentObserver.observe(exploreTools);
+const exploreFailed=new Set(); let exploreReady=false;
 const fuelColors=['#b5d9d1','#c7ded5','#e0e4da','#d7dce6','#d9cee5'];
 const productName=()=>fuelProduct==='B027'?'휘발유':'경유';
 const money=v=>Number.isFinite(v)?v.toLocaleString('ko-KR',{maximumFractionDigits:0})+'원':'미제공';
@@ -932,30 +989,42 @@ function fuelColor(code) {
   if (!Number.isFinite(price) || !Number.isFinite(avg)) return null;
   const d=price-avg; return fuelColors[d < -50?0:d < -10?1:d <= 10?2:d <= 50?3:4];
 }
-async function loadExploreData() {
-  await Promise.all(['fuel','food/index','weather','forecast','parking/index','parking-live'].map(async key=>{
+// 탐험 자료: 응답이 200이어도 필수 구조가 없으면 실패로 본다. 재시도에 성공하면 실패 표시를 지운다.
+const EXPLORE_NAMES={fuel:'주유소',weather:'날씨','parking/index':'주차장','food/index':'식품안심업소'};
+const exploreValid={fuel:d=>d.sgg&&Array.isArray(d.stations)&&d.national,'food/index':d=>d.counts,weather:d=>d.sgg,forecast:d=>d.sgg,'parking/index':d=>d.counts,'parking-live':d=>Array.isArray(d.items)};
+const exploreMissing=()=>Object.entries(EXPLORE_NAMES).filter(([k])=>exploreFailed.has(k)).map(x=>x[1]);
+async function loadExploreData(keys=Object.keys(exploreValid)) {
+  await Promise.all(keys.map(async key=>{
     try {
       const r=await fetch('data/'+(DEMO?(key==='food/index'?'demo-food/index':'demo-'+key):key)+'.json',{cache:'no-store'});
       if (!r.ok) throw Error(); const data=await r.json();
-      if(key==='fuel' && data.sgg && Array.isArray(data.stations) && data.national) fuelData=data;
-      if(key==='weather' && data.sgg) weatherData=data;
-      if(key==='forecast' && data.sgg) forecastData=data;
-      if(key==='food/index' && data.counts) foodIndex=data;
-if(key==='parking/index'&&data.counts) parkingIndex=data;
-if(key==='parking-live'&&Array.isArray(data.items)) parkingLive=data;
-    } catch (_) {}
+      if (!data || !exploreValid[key](data)) throw Error('invalid');
+      if(key==='fuel') fuelData=data; else if(key==='weather') weatherData=data; else if(key==='forecast') forecastData=data;
+      else if(key==='food/index') foodIndex=data; else if(key==='parking/index') parkingIndex=data; else parkingLive=data;
+      exploreFailed.delete(key);
+    } catch (_) { exploreFailed.add(key); }
   }));
+  exploreReady=true;
   if(availableLayers().some(x=>x[0]===preferredExploreLayer)) exploreLayer=preferredExploreLayer;
-  if(mode==='explore') renderExplore();
+  if(mode==='explore') { syncCategories(); renderExplore(); fitSheet(); }
+}
+// 보고 있는 정보가 정상이어도 빠진 생활 정보가 있으면 한 줄로 알리고 다시 시도할 수 있게 한다
+function noteExploreMissing() {
+  const missing=exploreMissing(), alert=document.getElementById('collection-alert');
+  if(!exploreReady || !missing.length || !alert.hidden) return missing;
+  alert.hidden=false; setAlert('failed',missing.join('·')+' 자료를 불러오지 못해 분류에서 뺐어요','다시 시도','explore');
+  return missing;
 }
 function updateExploreStatus() {
   if(exploreLayer==='festival') return updateFestivalStatus();
   const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:foodIndex, date=new Date(data?.updated);
   const status=document.getElementById('collection-status'), stale=!validDate(date)||Date.now()-date>(exploreLayer==='weather'?2:exploreLayer==='fuel'?6:48)*3600000;
-  status.textContent=validDate(date)?ago(date):'확인 중'; status.classList.remove('failed'); status.classList.toggle('stale',stale);
+  status.textContent=!exploreReady?'불러오는 중':validDate(date)?ago(date):'시각 미제공'; status.classList.remove('failed'); status.classList.toggle('stale',stale);
   status.setAttribute('aria-label','자료 확인 시각: '+status.textContent+'. 상세 보기');
-  const alert=document.getElementById('collection-alert'); alert.hidden=!stale; alert.classList.remove('failed'); alert.textContent='자료 갱신 시각을 확인해 주세요.';
-  document.getElementById('sources-detail').textContent=(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR'):'미제공');
+  const alert=document.getElementById('collection-alert'); alert.hidden=!stale;
+  if(stale) setAlert('stale',validDate(date)?(availableLayers().find(x=>x[0]===exploreLayer)?.[1]||'자료')+' 자료가 '+ago(date)+' 기준이에요':'자료 확인 시각이 없어요','자세히');
+  const missing=noteExploreMissing();
+  document.getElementById('sources-detail').textContent=(missing.length?'불러오지 못한 자료: '+missing.join('·')+' · ':'')+(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR'):'미제공');
 }
 function renderExplore() {
   const available=availableLayers();
@@ -965,7 +1034,7 @@ function renderExplore() {
   if(mode!=='explore') return;
   if(exploreLayer==='festival') return renderFestivals();
   syncCategories(); newButton.hidden=true; updateExploreStatus();
-  titleEl.textContent=selection?label(selection.center):'동네 탐험';
+  titleEl.textContent=selection?regionTitle(selection.center):'동네 탐험';
   subEl.textContent=exploreLayer==='weather'?'현재 동네 날씨':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':exploreLayer==='parking'?'동네 주차장':'동네 식품안심업소';
   if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else renderFood();
 }
@@ -1133,14 +1202,14 @@ function updateFestivalStatus() {
   status.setAttribute('aria-label','축제 수집 상태: ' + status.textContent + '. 상세 보기');
   const alert = document.getElementById('collection-alert');
   alert.hidden = !festivalFailed && !stale;
-  alert.textContent = festivalFailed ? '축제를 새로 확인하지 못했어요.' : '축제 갱신 시각을 확인해 주세요.';
-  alert.classList.toggle('failed',festivalFailed);
+  setAlert(festivalFailed ? 'failed' : 'stale', festivalFailed ? (festivalLoaded ? '축제를 새로 확인하지 못했어요 · 이전 자료를 보여 줘요' : '축제 자료를 불러오지 못했어요') : '축제 자료가 ' + (validDate(festivalUpdated) ? ago(festivalUpdated) + ' 기준이에요' : '확인 시각이 없어요'), '자세히');
   document.getElementById('sources-detail').innerHTML = '<p>전국문화축제표준데이터</p><p>확인 시각: ' + escapeHtml(validDate(festivalUpdated) ? festivalUpdated.toLocaleString('ko-KR') : '미제공') + '</p><p>진행 중 · 30일 안 시작하는 축제예요. 일정은 누리집에서 다시 확인해 주세요.</p>' + (festivalFailed ? '<p>새로 확인하지 못했어요. 이전 자료가 있으면 유지해요.</p>' : '');
+  noteExploreMissing();
 }
 function renderFestivals() {
   // 상단 유머 문구는 '보고 있는 지역'(선택 지역+맞닿은 곳)에 위급·긴급 소식이 있을 때만 끈다. 카드별 억제는 따로(restrained).
   const list = festivalList(), codes = emergencyCodes(), quiet = loadFailed || !lastChecked || (!!selection && [...selection.codes].some(c => codes.has(c)));
-  titleEl.textContent = selection ? label(selection.center) + ' 주변 축제' : '동네 탐험';
+  titleEl.textContent = selection ? regionTitle(selection.center) + ' 주변 축제' : '동네 탐험';
   const now = today(), ongoing = list.filter(f => dayNumber(f.start) <= now).length;
   const weekday = new Date((now + 9/24) * 86400000).getUTCDay();
   subEl.textContent = quiet ? '진행 중 · 30일 안 시작하는 축제예요' : !ongoing ? '지금은 쉬어 가는 중이에요. 다가올 축제를 만나 보세요.' : [0,5,6].includes(weekday) ? '이번 주말, 동네가 들썩여요' : '퇴근길에 들러볼 축제가 ' + ongoing + '곳 있어요';
@@ -1203,7 +1272,7 @@ function applyMode() {
   if (mode === 'explore') festivalMarkers.addTo(map); else map.removeLayer(festivalMarkers);
   document.getElementById('map-legend').hidden = mode === 'explore';
   munis.forEach(m => { clearTimeout(m.flashTimer); m.flashing=false; m.layer.getElement()?.classList.remove('flash'); restyle(m); });
-  syncCategories(); renderFeed();
+  syncCategories(); renderFeed(); fitSheet();
 }
 document.querySelectorAll('[data-mode-choice]').forEach(b=>b.addEventListener('click',()=>{
   if (mode === b.dataset.modeChoice) return;
