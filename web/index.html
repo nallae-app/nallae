@@ -8,14 +8,14 @@
       try { t = localStorage.getItem('nallae-theme') || t; } catch (_) {}
       if (['light', 'dark'].includes(p.get('theme'))) t = p.get('theme');
       if (!['light', 'dark', 'system'].includes(t)) t = 'system';
-      r.dataset.design = p.get('design') === 'B' ? 'B' : 'A';
       r.dataset.themeMode = t;
       r.dataset.theme = t === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
     })();
   </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b1220">
+  <meta name="theme-color" content="#F7F7F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111B20" media="(prefers-color-scheme: dark)">
   <meta name="description" content="지도 위에서 우리 동네 소식을 가장 빨리. 재난문자, 기상특보, 지역 뉴스가 들어오면 그 지역이 반짝여요.">
   <title>날래 — 나와 동네를 잇다</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -45,6 +45,7 @@
     <p>색은 출처가 정한 발송 구분이에요.</p>
     <p>점은 지역 대표 위치예요.</p>
     <p>정책 소식은 목록에만 보여요.</p>
+    <p>옅게 칠한 지역 = 발효 중인 기상특보예요.</p>
     </div>
   </details>
       <a class="info" href="about.html" aria-label="앱 정보"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg></a>
@@ -69,8 +70,10 @@
         <h2 id="panel-title">전국 소식</h2>
         <p id="panel-sub">소식을 불러오는 중…</p>
       </div>
+      <button id="collection-status" class="collection-status" type="button" aria-haspopup="dialog">수집 상태 확인 중</button>
     </div>
-    <p id="collection-status" class="collection-status" role="status"></p>
+    <p id="collection-alert" class="collection-alert" hidden></p>
+    <div id="favorites" class="favorites" aria-label="관심 지역"></div>
     <div class="chips" id="chips"></div>
 
     <button id="new-items" type="button" hidden></button>
@@ -79,6 +82,20 @@
 
   <p id="replay-status" class="replay-toast" role="status" hidden>최근 1시간 소식 재생 중</p>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="favorites-dialog" aria-labelledby="favorites-title">
+    <div class="dialog-head"><h2 id="favorites-title">관심 지역</h2><button type="button" data-close>닫기</button></div>
+    <div id="favorite-list"><p>자주 가는 동네를 모아 두세요.</p><div id="saved-regions"></div><button type="button" id="favorite-add">＋ 추가</button></div>
+    <form id="favorite-form" hidden>
+      <button type="button" id="favorite-back">이전으로</button>
+      <div id="favorite-search-step"><label for="region-search">어느 동네를 저장할까요?</label><input id="region-search" type="search" placeholder="시·군·구 검색, 예: 마포" autocomplete="off"><div id="region-results" aria-label="지역 검색 결과"></div></div>
+      <div id="favorite-name-step" hidden><p id="favorite-choice" role="status"></p><p>어떤 이름으로 부를까요?</p><div id="favorite-presets" class="name-chips"></div><label for="favorite-name" hidden>직접 입력</label><input id="favorite-name" maxlength="20" value="집" required hidden><button id="favorite-save" type="submit" disabled>저장</button></div>
+    </form>
+    <p id="storage-note" role="status">이 기기에만 저장해요. 최대 5곳까지 추가할 수 있어요.</p>
+  </dialog>
+  <dialog id="sources-dialog" aria-labelledby="sources-title">
+    <div class="dialog-head"><h2 id="sources-title">출처별 수집 상태</h2><button type="button" data-close>닫기</button></div>
+    <div id="sources-detail"></div>
+  </dialog>
 
   <script src="vendor/leaflet.min.js"></script>
   <script src="vendor/topojson-client.min.js"></script>

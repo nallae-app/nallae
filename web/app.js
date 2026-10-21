@@ -86,8 +86,7 @@
     }
     selectionOutline?.setStyle({color:token("brand")});
     const safe = mapSafeArea();
-    if (!replayEl.hidden) safe.top += replayEl.getBoundingClientRect().height + 8;
-    const occupied = [];
+    const occupied = replayEl.hidden ? [] : [replayEl.getBoundingClientRect()];
     const zoomed = map.getZoom() >= MUNI_ZOOM;
     const sorted = regionLabels.slice().sort((a,b) => {
       const rank = r => selection?.center.code === r.code ? 0 : r.kind === "sido" ? 1 : 2;
@@ -101,7 +100,7 @@
       r.el.classList.toggle("selected", !!selected);
       r.el.hidden = false;
       const w = r.el.offsetWidth, h = r.el.offsetHeight;
-      const box = {left:pt.x-w/2-4,right:pt.x+w/2+4,top:pt.y-h/2-3,bottom:pt.y+h/2+3};
+      const box = {left:pt.x-w/2-2,right:pt.x+w/2+2,top:pt.y-h/2-1,bottom:pt.y+h/2+1};
       if (box.left < safe.left || box.right > safe.right || box.top < safe.top || box.bottom > safe.bottom || occupied.some(b => box.left < b.right && box.right > b.left && box.top < b.bottom && box.bottom > b.top)) { r.el.hidden=true; continue; }
       occupied.push(box);
       L.DomUtil.setPosition(r.el, map.latLngToLayerPoint(r.at).subtract([w/2,h/2]));
@@ -195,9 +194,10 @@
   const isSelected = (m) => !!selection && selection.codes.has(m.code);
   function restyle(m) {
     if (!m.layer) return;
-    if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, fillColor: token('selection-fill'), color: token('brand'), weight: 2 });
-    else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, fillColor: token('selection-fill'), color: token('border-sido'), weight: 1 });
-    else m.layer.setStyle(baseStyle);
+    const fill = m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:isSelected(m) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
+    if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 2.5 });
+    else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 1.3 });
+    else m.layer.setStyle({...baseStyle,...fill});
   }
 
   function onRegionClick(m) {
@@ -221,6 +221,7 @@
     codes.forEach((c) => bounds.extend(muniByCode.get(c).layer.getBounds()));
     moveToBounds(bounds, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 11 });
     renderFeed();
+    renderFavorites();
   }
 
   function clearSelection() {
@@ -231,6 +232,7 @@
     locateBtn.classList.remove('active');
     if (meMarker) { map.removeLayer(meMarker); meMarker = null; }
     renderFeed();
+    renderFavorites();
   }
 
   // ---------- 위잉 ----------
@@ -243,7 +245,7 @@
     m.layer.setStyle({ fillColor: token(signal), fillOpacity: 0.85 });
     requestAnimationFrame(() => requestAnimationFrame(() => {
       el.classList.remove('flash');
-      m.layer.setStyle({ fillColor: isSelected(m) ? token('selection-fill') : baseStyle.fillColor, fillOpacity: 1 });
+      restyle(m);
     }));
     clearTimeout(m.flashTimer);
     m.flashTimer = setTimeout(() => { m.flashing = false; restyle(m); }, 2400);
@@ -354,6 +356,7 @@
       const res = await fetch(NEWS_URL, { cache: 'no-store' });
       if (!res.ok) throw new Error(res.status);
       data = await res.json();
+      if (!Array.isArray(data.items)) throw new Error('invalid data');
     } catch (e) {
       loadFailed = true;
       renderFeed(null, true);
@@ -364,6 +367,7 @@
       return;
     }
     loadFailed = false;
+    lastChecked = new Date();
     sources = data.sources || {};
     const incoming = (data.items || [])
       .filter((it) => it.id && it.title && it.time)
@@ -372,6 +376,14 @@
     incoming.forEach((it) => seen.add(it.id));
     items = incoming;
     updatedAt = data.updated ? new Date(data.updated) : null;
+    syncCategories();
+    munis.forEach(m => { m.warning = null; });
+    const severity = {'signal-critical':3,'signal-urgent':2,'brand':1,'signal-unknown':0};
+    items.filter(it => it.src === 'wrn' && onMap(it)).forEach(it => itemMunis(it).forEach(m => {
+      const signal = signalName(it);
+      if (!m.warning || severity[signal] > severity[m.warning]) m.warning = signal;
+    }));
+    munis.forEach(m => { if (!m.flashing) restyle(m); });
 
     if (firstLoad) {
       firstLoad = false;
@@ -405,24 +417,39 @@
     return true;
   }
 
-  let sources = {}, loadFailed = false;
+  let sources = {}, loadFailed = false, lastChecked = null;
   const pending = new Set();
   const newButton = document.getElementById('new-items');
   newButton.addEventListener('click', () => { pending.clear(); renderFeed(); feedEl.scrollTop = 0; });
   function updateTimes() {
     feedEl.querySelectorAll('time').forEach(el => { el.textContent = ago(new Date(el.dateTime)); });
     const status = document.getElementById('collection-status');
-    const failed = Object.entries(sources).filter(([,v]) => v.ok === false);
-    const stale = updatedAt && Date.now() - updatedAt > 60 * 60 * 1000;
-    status.classList.toggle('failed', loadFailed || !!failed.length);
-    status.classList.toggle('stale', !!stale);
-    status.textContent = (loadFailed ? '소식을 새로 불러오지 못했어요 · ' : failed.length ? '일부 출처 수집 실패 · ' : stale ? '갱신이 지연되고 있어요 · ' : '') + (updatedAt ? ago(updatedAt) : '갱신 시각 미제공');
+    const states = ['sms','wrn','brief'].map(sourceState);
+    const failed = loadFailed || states.some(s => s.rank === 2);
+    const stale = states.some(s => s.rank === 1) || !validDate(updatedAt) || Date.now()-updatedAt >= 1800000;
+    status.classList.toggle('failed', failed);
+    status.classList.toggle('stale', !failed && stale);
+    const statusText = loadFailed ? (lastChecked ? '마지막 확인 ' + lastChecked.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}) + ' · ' : '') + '새로 고치지 못했어요' : (failed ? '출처 오류' : stale ? '갱신 지연' : '정상') + ' · ' + (validDate(updatedAt) ? ago(updatedAt) : '시각 미제공');
+    status.textContent = validDate(updatedAt) ? ago(updatedAt) : '시각 미제공';
+    status.setAttribute('aria-label', statusText + '. 출처별 수집 상태 보기');
+    const alert = document.getElementById('collection-alert');
+    alert.hidden = !failed && !stale;
+    alert.textContent = failed ? '새 소식을 확인하지 못한 출처가 있어요.' : '소식 갱신이 늦어지고 있어요.';
+    alert.classList.toggle('failed', failed);
+    document.getElementById('sources-detail').innerHTML = sourceStatus() + '<p>' + escapeHtml(statusText) + '</p>';
+  }
+  const validDate = d => d instanceof Date && Number.isFinite(d.getTime());
+  function sourceState(key) {
+    const v = sources[key], at = new Date(v?.at);
+    if (v?.ok === false) return {rank:2,text:'오류 · 마지막 성공 시각은 확인할 수 없어요'};
+    if (v?.ok !== true || !validDate(at)) return {rank:1,text:'지연 · 마지막 성공 시각 미제공'};
+    return {rank:Date.now()-at >= 1800000 ? 1 : 0,text:(Date.now()-at >= 1800000 ? '지연' : '정상') + ' · 마지막 성공 ' + ago(at)};
   }
   function sourceStatus() {
     const names = {sms:'긴급재난문자',wrn:'기상특보',brief:'정책브리핑'};
     return ['sms','wrn','brief'].map(key => {
       const v = sources[key];
-      return '<p class="source-status">' + names[key] + ': ' + (!v ? '확인 정보 없음' : (v.ok === false ? '수집 실패' : '확인') + ' · ' + (v.at ? escapeHtml(new Date(v.at).toLocaleString('ko-KR')) : '시각 미제공')) + '</p>';
+      return '<p class="source-status"><strong>' + names[key] + '</strong><br>' + sourceState(key).text + (v?.at ? '<br>확인 시각: ' + escapeHtml(v.at) : '') + (v?.note ? '<br>' + escapeHtml(v.note) : '') + '</p>';
     }).join('');
   }
   function card(it) {
@@ -512,15 +539,172 @@
     }
   });
 
-  chipsEl.innerHTML = [null, ...CATEGORIES].map((c) =>
-    `<button type="button" data-cat="${c || ''}" aria-pressed="${c === null}" >${c ? icon(c) : ''}${c || '전체'}</button>`
-  ).join('');
+  function syncCategories() {
+    const available = CATEGORIES.filter(c => items.some(it => it.cat === c));
+    if (category && !available.includes(category)) category = null;
+    const cats = [null,...available];
+    if (chipsEl.dataset.cats === cats.join('|')) return;
+    chipsEl.dataset.cats = cats.join('|');
+    chipsEl.innerHTML = cats.map(c => `<button type="button" data-cat="${c || ''}" aria-pressed="${c === category}">${c ? icon(c) : ''}${c || '전체'}</button>`).join('');
+  }
+  syncCategories();
   chipsEl.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
     category = b.dataset.cat || null;
     chipsEl.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     renderFeed();
+  });
+
+  // ---------- 관심 지역: 좌표 없이 기기 안에만 저장 ----------
+  const favoriteKey = 'nallae-favorites-v1';
+  let favorites = [], startCode = null, chosenCode = null;
+  const favoritesEl = document.getElementById('favorites');
+  const favoriteDialog = document.getElementById('favorites-dialog');
+  const nameInput = document.getElementById('favorite-name');
+  const searchInput = document.getElementById('region-search');
+  document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+  document.getElementById('collection-status').addEventListener('click', () => {
+    updateTimes(); document.getElementById('sources-dialog').showModal();
+  });
+  function saveFavorites() {
+    try {
+      localStorage.setItem(favoriteKey, JSON.stringify({version:1,regions:favorites,startCode}));
+      document.getElementById('storage-note').textContent = '이 기기에만 저장했어요. 최대 5곳까지 추가할 수 있어요.';
+    } catch (_) {
+      document.getElementById('storage-note').textContent = '기기에 저장하지 못했어요. 이번에 앱을 보는 동안만 유지돼요.';
+      toast('기기에 저장하지 못했어요. 이번에 앱을 보는 동안만 유지돼요.');
+    }
+    renderFavorites(); renderSavedRegions();
+  }
+  function initFavorites() {
+    try {
+      const data = JSON.parse(localStorage.getItem(favoriteKey));
+      const used = new Set();
+      if (data?.version === 1 && Array.isArray(data.regions)) {
+        favorites = data.regions.filter(r => {
+          if (!r || !muniByCode.has(r.code) || typeof r.name !== 'string' || !r.name.trim() || used.has(r.code)) return false;
+          used.add(r.code); return true;
+        }).slice(0,5).map(r => ({code:r.code,name:r.name.trim().slice(0,20)}));
+        startCode = favorites.some(r => r.code === data.startCode) ? data.startCode : null;
+      }
+    } catch (_) {}
+    renderFavorites();
+    if (startCode) select(muniByCode.get(startCode), false);
+  }
+  const favoriteShapes = {
+    home:'M3 11 12 3l9 8M5 10v11h5v-7h4v7h5V10',
+    work:'M4 7h16v14H4ZM9 7V3h6v4M4 12h16M10 12v3h4v-3',
+    family:'M12 21S3 15 3 9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z',
+    place:'M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0ZM9 10h6m-3-3v6',
+    pin:'M9 3h6l-1 6 4 5H6l4-5-1-6ZM12 14v7',
+    edit:'m4 16 12-12 4 4L8 20H4v-4ZM14 6l4 4',
+    plus:'M12 5v14M5 12h14', more:'M5 12h1m5 0h1m5 0h1',
+    globe:'M3 12h18M12 3c-6 6-6 12 0 18 6-6 6-12 0-18ZM3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0'
+  };
+  const favoriteIcon = key => '<svg class="category-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="' + favoriteShapes[key] + '"/></svg>';
+  const favoriteType = name => ({'집':'home','직장':'work','부모님 동네':'family'}[name] || 'place');
+  let editingCode = null;
+  function favoriteStep(step) {
+    document.getElementById('favorite-list').hidden = step !== 'list';
+    document.getElementById('favorite-form').hidden = step === 'list';
+    document.getElementById('favorite-search-step').hidden = step !== 'search';
+    document.getElementById('favorite-name-step').hidden = step !== 'name';
+    document.getElementById('favorites-title').textContent = step === 'list' ? '관심 지역' : editingCode ? '이름 바꾸기' : '관심 지역 추가';
+  }
+  function nameStep(name = '집') {
+    nameInput.value = name;
+    setName(name);
+    favoriteStep('name');
+    document.querySelector('#favorite-presets button').focus();
+  }
+  function setName(name) {
+    const presets = ['집','직장','부모님 동네'];
+    const custom = !presets.includes(name);
+    nameInput.hidden = !custom;
+    nameInput.previousElementSibling.hidden = !custom;
+    document.getElementById('favorite-presets').innerHTML = [...presets,'직접 입력'].map(n => '<button type="button" data-name="' + n + '" aria-pressed="' + (n === name || n === '직접 입력' && custom) + '">' + favoriteIcon(favoriteType(n)) + n + '</button>').join('');
+  }
+  document.getElementById('favorite-presets').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const name = b.dataset.name === '직접 입력' ? '' : b.dataset.name;
+    nameInput.value = name; setName(name);
+    (nameInput.hidden ? document.querySelector('[data-name="' + b.dataset.name + '"]') : nameInput).focus();
+  });
+  function beginAdd(code = null) {
+    if (favorites.length >= 5) return toast('관심 지역은 최대 5곳까지 저장할 수 있어요.');
+    editingCode = null; searchInput.value = ''; document.getElementById('region-results').replaceChildren();
+    chooseFavorite(code);
+    if (code) nameStep(); else { favoriteStep('search'); searchInput.focus(); }
+  }
+  document.getElementById('favorite-add').addEventListener('click', () => beginAdd());
+  document.getElementById('favorite-back').addEventListener('click', () => {
+    if (editingCode || !document.getElementById('favorite-search-step').hidden) { favoriteStep('list'); document.getElementById('favorite-add').focus(); }
+    else { favoriteStep('search'); searchInput.focus(); }
+  });
+  function renderFavorites() {
+    favoritesEl.innerHTML = '<button type="button" data-home aria-pressed="' + !selection + '">' + favoriteIcon('globe') + '전국</button>' + favorites.map(r => '<button type="button" data-code="' + r.code + '" aria-pressed="' + (selection?.center.code === r.code) + '" aria-label="' + escapeHtml(r.name + (startCode === r.code ? ', 시작 지역' : '')) + '">' + favoriteIcon(favoriteType(r.name)) + escapeHtml(r.name) + (startCode === r.code ? favoriteIcon('pin') : '') + '</button>').join('') + '<button type="button" data-new aria-label="관심 지역 추가">' + favoriteIcon('plus') + '</button><button type="button" data-manage aria-label="관심 지역 관리">' + favoriteIcon('edit') + '</button>' + (selection && !favorites.some(r => r.code === selection.center.code) ? '<button type="button" data-add>' + favoriteIcon('plus') + '저장</button>' : '');
+  }
+  function chooseFavorite(code) {
+    chosenCode = code;
+    document.getElementById('favorite-choice').textContent = code ? label(muniByCode.get(code)) : '저장할 지역을 골라 주세요.';
+    document.getElementById('favorite-save').disabled = !code || !editingCode && (favorites.length >= 5 || favorites.some(r => r.code === code));
+  }
+  favoritesEl.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-home')) { clearSelection(); atHome = true; fitHome(); }
+    else if (b.dataset.code) select(muniByCode.get(b.dataset.code), false);
+    else {
+      renderSavedRegions(); favoriteStep('list'); favoriteDialog.showModal();
+      if (!b.hasAttribute('data-manage')) beginAdd(b.hasAttribute('data-add') ? selection?.center.code : null);
+    }
+  });
+  function renderSavedRegions() {
+    document.getElementById('saved-regions').innerHTML = favorites.map((r,i) => '<section class="saved-region" data-code="' + r.code + '"><div class="saved-main">' + favoriteIcon(favoriteType(r.name)) + '<div><strong>' + escapeHtml(r.name) + '</strong><small>' + escapeHtml(label(muniByCode.get(r.code))) + '</small></div><button type="button" data-action="start" aria-label="' + escapeHtml(r.name) + ' 시작 지역" aria-pressed="' + (startCode === r.code) + '">' + favoriteIcon('pin') + '시작</button><button type="button" data-action="menu" aria-expanded="false" aria-label="' + escapeHtml(r.name) + ' 더보기">' + favoriteIcon('more') + '</button></div><div class="saved-actions" hidden><button type="button" data-action="rename">이름 바꾸기</button><button type="button" data-action="up" ' + (i === 0 ? 'disabled' : '') + '>위로</button><button type="button" data-action="down" ' + (i === favorites.length-1 ? 'disabled' : '') + '>아래로</button><button type="button" data-action="delete">삭제</button></div></section>').join('') || '<p>아직 저장한 동네가 없어요.</p>';
+    document.getElementById('favorite-add').disabled = favorites.length >= 5;
+  }
+  document.getElementById('saved-regions').addEventListener('click', e => {
+    const b = e.target.closest('button'), row = b?.closest('[data-code]'); if (!row) return;
+    const i = favorites.findIndex(r => r.code === row.dataset.code), r = favorites[i], action = b.dataset.action;
+    if (action === 'menu') {
+      const menu = row.querySelector('.saved-actions'); menu.hidden = !menu.hidden; b.setAttribute('aria-expanded', !menu.hidden); return;
+    }
+    if (action === 'rename') { editingCode = r.code; chooseFavorite(r.code); nameStep(r.name); return; }
+    if (action === 'start') startCode = startCode === r.code ? null : r.code;
+    else if (action === 'delete') { favorites.splice(i,1); if (startCode === r.code) startCode = null; }
+    else {
+      const j = i + (action === 'up' ? -1 : 1);
+      if (j < 0 || j >= favorites.length) return;
+      [favorites[i],favorites[j]] = [favorites[j],favorites[i]];
+    }
+    saveFavorites();
+    const nextRow = [...document.querySelectorAll('#saved-regions section')].find(el => el.dataset.code === r.code);
+    (nextRow?.querySelector('[data-action="' + (action === 'start' ? 'start' : 'menu') + '"]') || document.getElementById('favorite-add')).focus();
+  });
+  searchInput.addEventListener('input', () => {
+    chooseFavorite(null);
+    const q = searchInput.value.trim().replace(/\s+/g,'');
+    const matches = q ? munis.filter(m => (m.sidoName + m.name).replace(/\s+/g,'').includes(q) || label(m).replace(/\s+/g,'').includes(q)) : [];
+    const results = document.getElementById('region-results');
+    results.innerHTML = matches.map(m => '<button type="button" data-code="' + m.code + '">' + escapeHtml(label(m)) + '</button>').join('');
+    if (q && !matches.length) results.textContent = '일치하는 지역이 없어요. 시·군·구 이름을 확인해 주세요.';
+  });
+  document.getElementById('region-results').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (b) { chooseFavorite(b.dataset.code); if (!document.getElementById('favorite-save').disabled) nameStep(); else toast('이미 저장한 지역이에요.'); }
+  });
+  document.getElementById('favorite-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = nameInput.value.trim();
+    if (!name || !muniByCode.has(chosenCode)) return toast('이름과 지역을 골라 주세요.');
+    if (editingCode) {
+      favorites.find(r => r.code === editingCode).name = name.slice(0,20);
+      editingCode = null; saveFavorites(); favoriteStep('list'); document.getElementById('favorite-add').focus(); return;
+    }
+    if (favorites.length >= 5) return toast('관심 지역은 최대 5곳까지 저장할 수 있어요.');
+    if (favorites.some(r => r.code === chosenCode)) return toast('이미 저장한 지역이에요.');
+    favorites.push({code:chosenCode,name:name.slice(0,20)});
+    saveFavorites(); chooseFavorite(null); favoriteStep('list');
+    document.querySelector('#favorites-dialog [data-close]').focus();
   });
 
   // ---------- 내 위치 (좌표는 기기 밖으로 보내지 않는다) ----------
@@ -581,6 +765,7 @@
     .then((r) => r.json())
     .then((topo) => {
       setupRegions(topo);
+      initFavorites();
       if (params.has('debug')) window.nallae = { map, munis, sidos };
       // 데모 전용(스토어 스크린샷용): ?demo&near=11440 → 그 지역을 '내 위치'처럼 선택, &open → 첫 소식 펼치기
       if (DEMO && muniByCode.has(params.get('near'))) {
