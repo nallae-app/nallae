@@ -4,6 +4,18 @@ import assert from 'node:assert/strict';
 import { katecToWgs84 } from '../lib/katec.mjs';
 import { sigunToSgg, toStation } from '../sources/fuel.mjs';
 import { toFoodBySgg, parseCsv } from '../sources/food-safety.mjs';
+import { toGrid, latestBase, toObs, sggGrids } from '../sources/temperature.mjs';
+
+test('기상청 격자·발표 시각·실황 값', () => {
+  assert.deepEqual(toGrid(37.5665, 126.978), { nx: 60, ny: 127 }); // 서울시청 (기상청 문서 예시)
+  assert.deepEqual(toGrid(35.1796, 129.0756), { nx: 98, ny: 76 }); // 부산시청
+  assert.equal(latestBase(new Date('2026-10-21T05:44:00Z')).time, '1300'); // 14:44 KST → 13시 발표
+  assert.equal(latestBase(new Date('2026-10-21T05:46:00Z')).time, '1400');
+  assert.equal(latestBase(new Date('2026-10-20T15:10:00Z')).date, '20261020'); // 00:10 KST → 전날 23시
+  assert.deepEqual(toObs([{ category: 'T1H', obsrValue: '18.3' }, { category: 'RN1', obsrValue: '0' }, { category: 'REH', obsrValue: '-999' }]), { t: 18.3, rn: 0, reh: undefined, wsd: undefined, pty: undefined });
+  assert.equal(toObs([{ category: 'T1H', obsrValue: '-999' }]), null);
+  assert.equal(new Set(sggGrids().map((g) => `${g.nx},${g.ny}`)).size > 200, true);
+});
 
 test('CSV 읽기', () => {
   const rows = parseCsv('﻿BSSH_NM,ADDR,TELNO\r\n"가게, 본점","서울 ""중구""\n2층",\r\n나,다,02\r\n');

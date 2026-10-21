@@ -4,7 +4,7 @@
 // 환경 변수
 //   SAFETYDATA_KEY   긴급재난문자 (safetydata.go.kr)
 //   KMA_APIHUB_KEY   기상특보 (apihub.kma.go.kr)
-//   DATA_GO_KR_KEY   정책브리핑·전국문화축제 (data.go.kr)
+//   DATA_GO_KR_KEY   정책브리핑·전국문화축제·초단기실황 기온 (data.go.kr) → 기온은 web/data/weather.json, 매시
 //   OPINET_KEY       주유소 기름값 (opinet.co.kr) → web/data/fuel.json, 3시간마다
 //   FOODSAFETY_KEY   식품안심업소 (foodsafetykorea.go.kr) → web/data/food/, 하루 한 번
 //   FORCE_REFRESH    1이면 간격과 상관없이 기름값·식품안심업소를 새로 받는다
@@ -16,6 +16,7 @@ import * as brief from './sources/policy-news.mjs';
 import { fetchFestivals } from './sources/festivals.mjs';
 import { fetchFuel, PRODUCTS } from './sources/fuel.mjs';
 import { fetchFood } from './sources/food-safety.mjs';
+import { fetchTemperature, latestBase } from './sources/temperature.mjs';
 
 // 일시적인 네트워크 오류('fetch failed')는 3초 뒤 한 번 더 시도한다
 const rawFetch = globalThis.fetch;
@@ -142,6 +143,29 @@ const FUEL_OUT = 'web/data/fuel.json';
   } catch (e) {
     console.log(`- 기름값: 실패 — ${e.message || e}${e.cause ? ` (${e.cause.code || ''})` : ''}`);
     if (prevFuel) { fs.writeFileSync(FUEL_OUT, JSON.stringify(prevFuel)); console.log('  직전 fuel.json 유지'); }
+  }
+}
+
+// 현재 기온 (기상청 초단기실황) — 발표 시각(매시)이 바뀔 때만
+const WEATHER_OUT = 'web/data/weather.json';
+{
+  const prevW = await prevJson('weather.json');
+  const base = latestBase(now);
+  try {
+    if (!process.env.FORCE_REFRESH && prevW?.base === base.iso) {
+      fs.writeFileSync(WEATHER_OUT, JSON.stringify(prevW));
+      console.log(`- 기온: 직전 파일 유지 (${prevW.base} 발표)`);
+    } else {
+      const r = await fetchTemperature({ key: process.env.DATA_GO_KR_KEY, base });
+      if (r.skipped) console.log(`- 기온: 건너뜀 (${r.skipped})`);
+      else {
+        fs.writeFileSync(WEATHER_OUT, JSON.stringify({ updated: now.toISOString(), base: r.base, source: '기상청 초단기실황 (공공데이터포털)', sgg: r.sgg }));
+        console.log(`- 기온: 시·군·구 ${Object.keys(r.sgg).length}곳 → ${WEATHER_OUT}`);
+      }
+    }
+  } catch (e) {
+    console.log(`- 기온: 실패 — ${e.message || e}`);
+    if (prevW) { fs.writeFileSync(WEATHER_OUT, JSON.stringify(prevW)); console.log('  직전 weather.json 유지'); }
   }
 }
 
