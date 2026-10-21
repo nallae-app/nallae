@@ -10,7 +10,7 @@
   --border-sido: #879F99;
   --brand: #176B60;
   --selection-fill: #DFEEE7;
-  --signature: #E8A33D;
+  --signature: #B87418; /* 라이트: 배경 대비 3.5:1(그래픽 기준 3:1) */
 }
 :root[data-theme="dark"] {
   --bg: #111B20;
@@ -107,11 +107,11 @@ path.region.flash { transition:none; }
 
 .feed li.critical { box-shadow:inset 3px 0 var(--signal-critical); background:var(--surface-muted); }
 
-/* Claude 4?: A?B ?? ??, ??? ???? ??? ????. */
+/* Claude 4차 검토 반영 */
 .brand h1 { font-weight:600; }
 .brand p { font-size:12px; line-height:18px; }
-.logo { position:relative; width:28px; height:28px; border:1px solid var(--signature); border-radius:50%; }
-.logo::before { content:''; position:absolute; inset:5px; border:1px solid var(--signature); border-radius:50%; }
+.logo { position:relative; width:28px; height:28px; border:2px solid var(--signature); border-radius:50%; }
+.logo::before { content:''; position:absolute; inset:4px; border:2px solid var(--signature); border-radius:50%; opacity:.55; }
 .logo i { width:5px; height:5px; }
 .top-right { gap:4px; }
 .info,#btn-theme { width:44px; height:44px; padding:4px; background:none; box-shadow:none; position:relative; }
@@ -145,7 +145,6 @@ path.region.flash { transition:none; }
 /* Labels sit below selection outlines and news signals. */
 .region-label { position:absolute; width:max-content; pointer-events:none; color:var(--text); font-size:13px; line-height:20px; font-weight:600; white-space:nowrap; text-shadow:0 0 2px var(--land),0 0 4px var(--land),1px 0 var(--land),-1px 0 var(--land),0 1px var(--land),0 -1px var(--land); }
 .region-label.selected { font-size:14px; }
-.logo { background:#182C30; box-shadow:0 0 0 1px #182C30; }
 .map-legend { position:fixed; z-index:1001; top:76px; right:16px; max-width:calc(100vw - 32px); padding:8px 12px; border-radius:12px; background:var(--surface); box-shadow:var(--shadow); font-size:13px; line-height:20px; }
 .map-legend summary { min-height:44px; cursor:pointer; display:flex; align-items:center; }
 .map-legend p { margin:4px 0; }
