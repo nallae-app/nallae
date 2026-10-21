@@ -28,7 +28,13 @@ if (food) {
     const res = await fetch(`http://openapi.foodsafetykorea.go.kr/api/${food}/C004/file`, { signal: AbortSignal.timeout(120000) });
     const buf = Buffer.from(await res.arrayBuffer());
     console.log(`== C004 file: HTTP ${res.status}, ${res.headers.get('content-type')}, ${res.headers.get('content-disposition')}, ${buf.length} bytes, ${Date.now() - t}ms`);
-    console.log('  ' + mask(buf.subarray(0, 300).toString('utf8')).replace(/\s+/g, ' '));
+    const raw = (await import('node:zlib')).gunzipSync(buf);
+    for (const enc of ['utf-8', 'euc-kr']) {
+      const lines = new TextDecoder(enc).decode(raw.subarray(0, 3000)).split(/\r?\n/);
+      console.log(`  [${enc}] 머리줄: ${lines[0]}`);
+      console.log(`  [${enc}] 첫 줄: ${lines[1]}`);
+    }
+    console.log(`  풀린 크기 ${raw.length} bytes`);
   } catch (err) {
     console.log(`== C004 file: 실패 ${err.message} ${Date.now() - t}ms`);
   }
