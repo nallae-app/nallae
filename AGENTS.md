@@ -78,13 +78,21 @@ tools/serve.ps1          로컬 정적 서버 (http://localhost:5173/?demo)
 | 기상특보 | 작동 | 예비특보는 '발표', 주의보·경보는 '발효'. 광역시 내 권역(서울동남권 등)은 시·도 전체로 표시 |
 | 정책브리핑 | 작동, **목록 전용** | `cat:'정책'`, `onMap:false`. 제목에 지명 있는 1유형만. 표시는 "관련: ○○" |
 | ITS 돌발상황·재난상황 | **키 등록(ITS_KEY), 미연동** | `openapi.its.go.kr:9443/eventInfo`, `/disasterInfo`. **GitHub(해외) IP에서 연결 시간 초과** → 국내 서버 필요. 월 1,000건 한도 → 약 45~60분 간격. 국내 IP에서는 정상 응답(XML/JSON) 확인 |
-| 전국문화축제 표준데이터 | 활용신청 완료, 미연동 | data.go.kr 15013104, DATA_GO_KR_KEY로 사용. 장소(place) 데이터 → 피드가 아닌 별도 보기 필요 |
-| 에어코리아 대기질 | 활용신청 완료, 미연동 | 상태(state) 데이터 → '나쁨으로 바뀔 때만' 같은 규칙 필요 |
-| 기상청 단기·초단기예보 | 활용신청 완료, 미연동 | 상태 데이터, 특보와 시각적으로 구분 |
+| 지진정보 | 작동 (2026-10-21) | API허브 eqk_now.php. 소식 지도에 진앙 점(24h, 72h까지 흐리게). 국외 '국내영향없음' 제외, 조기경보만 긴급 |
+| 전국문화축제 표준데이터 | 작동 | data.go.kr 15013104 → festivals.json, 동네 탐험 '축제' |
+| 기상청 초단기실황·단기예보 | 작동 | 15084084. 시·군·구 대표 격자 → weather.json(매시), forecast.json(05·17시). 동네 탐험 '날씨' |
+| 오피넷 기름값 | 작동 | OPINET_KEY → fuel.json(3시간). 좌표 KATEC→WGS84(lib/katec.mjs) |
+| 식품안심업소(위생등급) | 작동 | 식품안전나라 C004 전체 파일(gzip CSV), FOODSAFETY_KEY → food/<코드>.json(하루). 좌표 없음, 목록 전용. '맛집' 표현 금지 |
+| 주차장 | 작동 | 전국주차장정보표준데이터(15012896) + 서울 공영주차장 안내(GetParkInfo, 빈 구 보강) → parking/<코드>.json(하루), 서울 시영 실시간(GetParkingInfo, SEOUL_KEY) → parking-live.json(매번) |
+| 생활기상지수 V5 | 응답 확인, 미연동 | LivingWthrIdxServiceV5 getUVIdxV5·getAirDiffusionIdxV5 (V4 아님) |
+| 에어코리아 대기질·측정소정보 | 대기질 응답 확인, 측정소정보 키 반영 대기 | 측정소 주소로 시·군·구 매칭 예정. '전국' 조회는 시간 초과 → 시·도별 |
+| 태풍 | 목록(typ_lst)만 작동 | 진로 API는 별도 활용신청 필요 |
 | 네이버 뉴스 검색 API | **사용 안 함** | 2026-07 신규 가입 종료, 2026-10 약관상 서버 저장·수익화 금지 |
 | 지자체 보도자료 | 보류 | 전국 통합 API 없음 |
 
-- GitHub Secrets: `SAFETYDATA_KEY`, `KMA_APIHUB_KEY`, `DATA_GO_KR_KEY`, `ITS_KEY`. 공공데이터포털은 계정당 키 1개라 새 데이터도 `DATA_GO_KR_KEY` 하나로 쓴다.
+- GitHub Secrets: `SAFETYDATA_KEY`, `KMA_APIHUB_KEY`, `DATA_GO_KR_KEY`, `ITS_KEY`, `OPINET_KEY`, `FOODSAFETY_KEY`, `SEOUL_KEY`.
+- 간격 두는 자료(기름값·예보·식품·주차장)는 직전 배포 파일을 재사용한다. 지금 새로 받으려면 Actions → collect-and-deploy → Run workflow에서 force 체크.
+- 주소·좌표가 있는 곳은 카카오맵 공개 링크로 연결(routeLink/addressLink, 키·요금 없음). 공공데이터포털은 계정당 키 1개라 새 데이터도 `DATA_GO_KR_KEY` 하나로 쓴다.
 - GitHub Actions에서 가끔 모든 출처가 `fetch failed`로 실패한다(해외 IP 문제로 추정). 수집기에 1회 재시도와 원인 코드 기록이 있다. 국내 서버로 옮기면 해결될 것으로 본다.
 
 ## 6. 진행 중: 국내 수집 서버 (Oracle Cloud 무료, 서울 리전)
