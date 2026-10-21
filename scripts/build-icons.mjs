@@ -1,7 +1,6 @@
 // 아이콘·스토어 그래픽 PNG 만들기
 //   web/icons/icon.svg           → icon-192.png, icon-512.png (PWA), store/icon-512.png (Play 스토어)
 //   web/icons/icon-maskable.svg  → maskable-512.png (안드로이드 마스크형). 없으면 icon.svg를 쓴다.
-//   store/feature.svg            → store/feature-1024x500.png (Play 그래픽 이미지)
 // 글자는 Windows 폰트(Malgun Gothic)로 래스터화된다.
 import fs from 'node:fs';
 import sharp from 'sharp';
@@ -16,7 +15,7 @@ const jobs = [
   // Play 스토어 아이콘은 스토어가 모서리를 둥글게 깎으므로 꽉 찬 마스크형을 쓴다
   ['store/icon-512.png', maskable, 512, 512],
 ];
-if (fs.existsSync('store/feature.svg')) jobs.push(['store/feature-1024x500.png', fs.readFileSync('store/feature.svg'), 1024, 500]);
+// 스토어 그래픽 이미지는 실제 앱 화면을 넣는 scripts/build-feature.mjs 가 만든다 (store/feature.svg는 화면 없는 대안 시안)
 
 fs.mkdirSync('store', { recursive: true });
 for (const [out, src, w, h] of jobs) {

@@ -42,8 +42,8 @@
 | 항목 | 규격 | 파일 |
 |---|---|---|
 | 앱 아이콘 | 512×512 PNG | `store/icon-512.png` |
-| 그래픽 이미지 | 1024×500 PNG/JPG | `store/feature-1024x500.png` |
-| 휴대전화 스크린샷 | 2~8장, 9:16 | `store/screenshot-*.png` |
+| 그래픽 이미지 | 1024×500 PNG/JPG | `store/feature-1024x500.png` (실제 앱 화면 + 아이콘, `node scripts/build-feature.mjs`) |
+| 휴대전화 스크린샷 | 2~8장, 9:16 | `store/screenshot-*.png` (실데이터 1080×1920: 전국·내 동네·목록·다크, `node scripts/screenshots.mjs`) |
 
 ## 데이터 보안 양식 (Data safety) 답변 초안
 - 앱이 사용자 데이터를 수집하거나 공유하나요? → **아니요**
