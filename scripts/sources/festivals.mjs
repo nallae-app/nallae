@@ -97,13 +97,14 @@ export async function fetchFestivals({ key }) {
     const res = await fetch(url, { signal: AbortSignal.timeout(40000) });
     if (!res.ok) throw new Error(`축제 HTTP ${res.status}`);
     const j = await res.json();
-    const code = j.response?.header?.resultCode;
-    if (code && code !== '00') throw new Error(`축제 오류 ${code} ${j.response?.header?.resultMsg || ''}`);
-    const body = j.response?.body || {};
+    // 응답이 { response: { header, body } } 또는 { header, body } 두 모양으로 온다
+    const head = j.response?.header || j.header || {};
+    if (head.resultCode && head.resultCode !== '00') throw new Error(`축제 오류 ${head.resultCode} ${head.resultMsg || ''}`);
+    const body = j.response?.body || j.body || {};
     total = Number(body.totalCount || 0);
     const list = body.items || [];
     rows.push(...(Array.isArray(list) ? list : list.item || []));
-    if (page === 1) console.log(`  축제 응답: ${j.response?.header?.resultCode} ${j.response?.header?.resultMsg} 전체 ${total}건${j.response ? '' : ` / 원문: ${JSON.stringify(j).slice(0, 300)}`}`);
+    if (page === 1) console.log(`  축제 응답: ${head.resultCode} 전체 ${total}건`);
     if (!(Array.isArray(list) ? list.length : (list.item || []).length)) break;
   }
   const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
