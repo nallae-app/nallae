@@ -24,7 +24,7 @@ const bg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" hei
   </g>
   <g transform="translate(84,92) scale(0.14)">${icon}</g>
   <text x="84" y="268" font-family="Pretendard, Malgun Gothic, sans-serif" font-size="76" font-weight="700" fill="${INK}">날래</text>
-  <text x="88" y="318" font-family="Pretendard, Malgun Gothic, sans-serif" font-size="28" fill="${MUTED}">나와 동네를 잇다</text>
+  <text x="88" y="318" font-family="Pretendard, Malgun Gothic, sans-serif" font-size="28" fill="${MUTED}">우리 동네 소식, 날래</text>
   <text x="88" y="378" font-family="Pretendard, Malgun Gothic, sans-serif" font-size="20" fill="${MUTED}">재난문자·기상특보가 오면 지도에서 우리 동네가 반짝여요</text>
   <rect x="${phoneX}" y="${phoneY}" width="${phoneW}" height="${screenH + 24}" rx="${radius}" fill="${INK}"/>
   <rect x="${phoneX + phoneW / 2 - 28}" y="${phoneY + 6}" width="56" height="6" rx="3" fill="#2E4448"/>
