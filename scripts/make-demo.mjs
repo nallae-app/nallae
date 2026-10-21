@@ -18,13 +18,14 @@ const smsRows = [
   [14, '강원특별자치도 강릉시', '산불', '[강릉시청] 산불 발생. 인근 주민은 마을회관으로 대피 바랍니다.'],
   [22, '부산광역시 해운대구', '기타', '[해운대구청] 이안류 발생 우려로 해수욕장 입수를 통제합니다.'],
   [27, '서울특별시 송파구', '교통', '[송파구청] 잠실대교 남단 교통사고로 2개 차로 통제 중. 우회 바랍니다.'],
-  [33, '경상북도 포항시', '지진', '[기상청] 경북 포항시 북구 북쪽 9km 지역 규모 2.4 지진 발생. 낙하물 주의.'],
+  [33, '경상북도 포항시', '지진', '[기상청] 경북 포항시 북구 북쪽 9km 지역 규모 4.6 지진 발생. 낙하물에 주의하고 여진에 대비하세요.', '긴급재난'],
+  [6, '제주특별자치도 서귀포시', '지진해일', '[행정안전부] 지진해일 경보 발령. 서귀포시 해안가 주민은 즉시 높은 곳으로 대피하시기 바랍니다.', '위급재난'],
   [41, '대구광역시 수성구', '실종', '[수성구청] 실종자를 찾습니다. 70세 남성, 165cm, 회색 점퍼.'],
   [48, '제주특별자치도 제주시', '호우', '[제주시청] 호우로 하천 범람 우려. 하천 산책로 출입을 금지합니다.'],
   [55, '광주광역시 북구', '정전', '[북구청] 용봉동 일대 정전 발생. 복구 중입니다.'],
   [130, '충청남도 아산시', '기타', '[아산시청] 탕정면 일대 단수 예정 안내 (14:00~18:00).'],
   [300, '인천광역시 전체', '미세먼지', '[인천광역시] 초미세먼지 주의보 발령. 실외 활동을 자제하세요.'],
-].map(([m, rg, kind, msg], i) => ({ SN: `demo${i}`, CRT_DT: kst(m), RCPTN_RGN_NM: rg, DST_SE_NM: kind, MSG_CN: msg, EMRG_STEP_NM: '안전안내' }));
+].map(([m, rg, kind, msg, level = '안전안내'], i) => ({ SN: `demo${i}`, CRT_DT: kst(m), RCPTN_RGN_NM: rg, DST_SE_NM: kind, MSG_CN: msg, EMRG_STEP_NM: level }));
 
 const wrnText = [
   '# REG_UP, REG_UP_KO, REG_ID, REG_KO, TM_FC, TM_EF, WRN, LVL, CMD, ED_TM',
@@ -42,7 +43,7 @@ const briefTitles = [
   [150, '창원시 성산구 S-BRT 2단계 개통'],
   [200, '아산시 탕정 산업단지 2단계 분양 공고'],
 ].map(([m, title], i) => ({
-  id: `demo-brief-${i}`, src: 'brief', cat: '정책', onMap: false, title,
+  id: `demo-brief-${i}`, src: 'brief', cat: '정책', onMap: false, urgency: 'normal', urgencyBasis: '정책·보도자료', title,
   time: new Date(now - m * 60000).toISOString(), ...findPlacesInText(title),
   source: '데모 데이터', url: 'https://www.korea.kr/',
 }));

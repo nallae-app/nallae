@@ -40,6 +40,8 @@ export function parse(xml) {
     items.push({
       id: `brief-${tag(x, 'NewsItemId')}`,
       src: 'brief',
+      urgency: 'normal',
+      urgencyBasis: '정책·보도자료',
       cat: '정책',
       onMap: false,
       title,
