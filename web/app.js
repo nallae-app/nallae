@@ -694,6 +694,7 @@ function saveFavorites() {
     toast('기기에 저장하지 못했어요. 이번에 앱을 보는 동안만 유지돼요.');
   }
   renderFavorites(); renderSavedRegions();
+  if (selection) renderFeed(null, true); // 선택 중인 지역의 별명이 바뀌거나 지워지면 제목('집 · 서울 마포구')도 바로 바꾼다
 }
 function initFavorites() {
   try {
@@ -1464,6 +1465,9 @@ fetch('data/regions.json')
     setInterval(load, POLL_MS);
     setInterval(updateTimes, 30000); // "n분 전" 갱신
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(); loadFestivals(); } });
+    // 다시 연결되면 바로 새로 받는다(예전에는 다음 주기까지 '인터넷에 연결되지 않았어요'가 남았다). 끊기면 안내를 바로 바꾼다.
+    window.addEventListener('online', () => { load(); loadFestivals(); });
+    window.addEventListener('offline', () => { if (mode === 'news') updateTimes(); });
   })
   .catch(() => toast('지도를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'));
 
