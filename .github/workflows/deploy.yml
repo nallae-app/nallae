@@ -41,6 +41,10 @@ jobs:
         with:
           node-version: 22
 
+      # 수집기에 필요한 것만 설치 (sharp·puppeteer 같은 개발 도구는 받지 않는다)
+      - name: Install collector deps
+        run: npm install --no-save --no-package-lock --ignore-scripts topojson-client@3.1.0
+
       - name: Test parsers
         run: node --test "scripts/test/*.test.mjs"
 
