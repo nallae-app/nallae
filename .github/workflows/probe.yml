@@ -21,6 +21,10 @@ jobs:
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: node scripts/probe-datago.mjs
+      - name: kma apihub (기온 관측)
+        env:
+          KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+        run: node scripts/probe-kma.mjs
       - name: life (opinet, foodsafety)
         env:
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
