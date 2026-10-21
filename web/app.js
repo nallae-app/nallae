@@ -740,7 +740,7 @@
   const sheetHead = panel.querySelector('.panel-head');
   const favoritesRow = document.getElementById('favorites');
   const stages = ['collapsed', 'middle', 'full'], stageNames = ['접힘', '중간', '전체'];
-  let sheetStage = 1, sheetDrag = null, suppressSheetClick = false;
+  let sheetStage = 1, sheetDrag = null, suppressSheetClick = false, sheetFitTimer;
   try {
     const saved = stages.indexOf(localStorage.getItem('nallae-sheet-stage'));
     if (saved >= 0) sheetStage = saved;
@@ -755,6 +755,7 @@
     feedEl.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && feedEl.scrollTop <= 0);
   }
   function setSheetStage(stage, remember = true) {
+    clearTimeout(sheetFitTimer);
     sheetStage = stage;
     panel.classList.remove('sheet-dragging');
     panel.dataset.sheetStage = stages[stage];
@@ -763,6 +764,17 @@
     [chipsEl, feedEl, document.getElementById('new-items')].forEach(el => { el.inert = mobileSheet.matches && stage === 0; });
     if (mobileSheet.matches) panel.style.height = sheetHeights()[stage] + 'px';
     else panel.style.removeProperty('height');
+    // 접힘 전환이 끝난 실제 높이로 지도 여백을 다시 계산해요.
+    if (mobileSheet.matches && stage === 0) {
+      sheetFitTimer = setTimeout(() => {
+        if (!mobileSheet.matches || sheetStage !== 0 || sheetDrag) return;
+        if (selection) {
+          const bounds = L.latLngBounds([]);
+          selection.codes.forEach(code => bounds.extend(muniByCode.get(code).layer.getBounds()));
+          map.fitBounds(bounds, { paddingTopLeft:leftPad(), paddingBottomRight:bottomPad(), maxZoom:11, animate:false });
+        } else if (atHome && homeBounds) fitHome();
+      }, reducedMotion.matches ? 0 : 320);
+    }
     feedTouchAction();
     if (remember) try { localStorage.setItem('nallae-sheet-stage', stages[stage]); } catch (_) {}
   }

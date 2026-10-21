@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <rect width="1024" height="500" fill="#F7F7F2"/>
+  <g fill="none" stroke="#176B60">
+    <circle cx="866" cy="250" r="206" stroke-width="2" opacity=".12"/>
+    <circle cx="866" cy="250" r="148" stroke-width="3" opacity=".22"/>
+    <circle cx="866" cy="250" r="88" stroke-width="4" opacity=".45"/>
+  </g>
+  <circle cx="866" cy="250" r="24" fill="#B87418"/>
+  <g fill="#B87418">
+    <circle cx="718" cy="250" r="9"/>
+    <circle cx="969" cy="144" r="7"/>
+    <circle cx="866" cy="456" r="6"/>
+  </g>
+  <rect x="72" y="112" width="112" height="112" rx="26" fill="#176B60"/>
+  <g fill="none" stroke="#E8A33D" stroke-width="5.25">
+    <circle cx="128" cy="168" r="36.75"/>
+    <circle cx="128" cy="168" r="22.75"/>
+  </g>
+  <circle cx="128" cy="168" r="7" fill="#E8A33D"/>
+  <g font-family="Pretendard, Malgun Gothic, sans-serif">
+    <text x="72" y="314" font-size="72" font-weight="700" fill="#176B60">날래</text>
+    <text x="76" y="370" font-size="30" font-weight="500" fill="#243D38">나와 동네를 잇다</text>
+  </g>
+</svg>
