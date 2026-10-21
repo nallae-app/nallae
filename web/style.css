@@ -244,3 +244,25 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
   .favorites,.panel .chips { padding-bottom:2px; }
   .feed li { padding-top:8px; padding-bottom:8px; }
 }
+/* 동네 탐험: 별도 장소 보기 */
+.panel-head { flex-wrap:wrap; }
+.mode-switch { display:flex; gap:4px; width:100%; flex-shrink:0; margin-bottom:4px; }
+.mode-switch button { border:0; border-radius:24px; padding:6px 14px; background:var(--surface-muted); font-size:14px; }
+.mode-switch button[aria-pressed="true"] { color:var(--on-brand); background:var(--brand); }
+.panel-head .collection-status { top:65px; }
+.festival-card { padding:14px 16px; }
+.festival-card h3 { font-size:17px; line-height:25px; margin:6px 0; overflow-wrap:anywhere; }
+.festival-card p { margin:4px 0; font-size:14px; line-height:22px; overflow-wrap:anywhere; }
+.festival-card .src { display:flex; flex-direction:column; font-size:12px; color:var(--text-muted); }
+.festival-card a { display:flex; align-items:center; min-height:44px; }
+.festival-day { background:var(--surface-muted); color:var(--text); border-radius:12px; padding:2px 8px; }
+.festival-notice { color:var(--signal-critical); font-weight:600; }
+.festival-group { padding:12px 16px; background:var(--surface-muted); font-weight:600; }
+.festival-marker { background:none; border:0; }
+.festival-pin { width:44px; height:44px; display:grid; place-items:center; position:relative; }
+.festival-pin svg { width:30px; height:30px; padding:4px; border-radius:8px; background:#F9DF9E; color:#533908; border:2px solid #533908; fill:none; stroke:currentColor; stroke-width:1.75; }
+.festival-pin b { position:absolute; top:0; right:0; border-radius:12px; padding:0 5px; background:#533908; color:#FFF4D8; font-size:12px; line-height:20px; }
+.festival-confetti { pointer-events:none; position:absolute; inset:0; overflow:hidden; }
+.festival-confetti i { position:absolute; left:calc(var(--i)*8% + 3%); top:20%; width:5px; height:9px; background:var(--signature); animation:festival-fall 1s ease-out both; transform:rotate(calc(var(--i)*37deg)); }
+@keyframes festival-fall { from { opacity:0; translate:0 -24px; } 20% { opacity:1; } to { opacity:0; translate:20px 130px; rotate:180deg; } }
+@media(prefers-reduced-motion:reduce) { .festival-confetti { display:none; } }

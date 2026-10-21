@@ -4,6 +4,10 @@
   // ---------- 설정 ----------
   const params = new URLSearchParams(location.search);
   const DEMO = params.has('demo');
+  let mode = 'news';
+  try { if (localStorage.getItem('nallae-mode') === 'explore') mode = 'explore'; } catch (_) {}
+  rootMode();
+  function rootMode() { document.documentElement.dataset.mode = mode; }
   const NEWS_URL = DEMO ? 'data/demo-news.json' : 'data/news.json';
   const POLL_MS = 60 * 1000;          // 소식 파일 다시 읽는 간격
   const REPLAY_WINDOW_MIN = 60;       // 첫 진입 때 재생할 최근 소식 범위
@@ -194,7 +198,7 @@
   const isSelected = (m) => !!selection && selection.codes.has(m.code);
   function restyle(m) {
     if (!m.layer) return;
-    const fill = m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:isSelected(m) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
+    const fill = mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:isSelected(m) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
     if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 2.5 });
     else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 1.3 });
     else m.layer.setStyle({...baseStyle,...fill});
@@ -309,7 +313,7 @@
   const onMap = (item) => item.onMap !== false && item.src !== 'brief';
 
   function pulse(item, withBubble) {
-    if (!onMap(item)) return;
+    if (mode !== 'news' || !onMap(item)) return;
     const signal = signalName(item);
     const targets = itemMunis(item);
     if (!targets.length) return;
@@ -362,7 +366,7 @@
       loadFailed = true;
       renderFeed(null, true);
       if (firstLoad) {
-        subEl.textContent = '소식을 불러오지 못했어요. 잠시 후 다시 시도할게요.';
+        if (mode === 'news') subEl.textContent = '소식을 불러오지 못했어요. 잠시 후 다시 시도할게요.';
         firstLoad = false;
       }
       return;
@@ -396,7 +400,7 @@
       const priority = it => ({critical:0,urgent:1}[it.urgency] ?? 2);
       replay.sort((a,b) => priority(a) - priority(b));
       const replayStatus = document.getElementById('replay-status');
-      replayStatus.hidden = !replay.length;
+      replayStatus.hidden = mode !== 'news' || !replay.length;
       setTimeout(() => { replayStatus.hidden = true; }, 500 + replay.length * REPLAY_STEP_MS + 5600);
       replay.forEach((it, k) => setTimeout(() => pulse(it, ['critical','urgent'].includes(it.urgency) || k === replay.length - 1 || k % 3 === 0), 500 + k * REPLAY_STEP_MS));
       return;
@@ -423,6 +427,7 @@
   const newButton = document.getElementById('new-items');
   newButton.addEventListener('click', () => { pending.clear(); renderFeed(); feedEl.scrollTop = 0; });
   function updateTimes() {
+    if (mode === 'explore') { updateFestivalStatus(); return; }
     feedEl.querySelectorAll('time').forEach(el => { el.textContent = ago(new Date(el.dateTime)); });
     const status = document.getElementById('collection-status');
     const states = ['sms','wrn','brief'].map(sourceState);
@@ -458,6 +463,7 @@
     return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span><span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '">' + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(it.title) + '</span></button>' + (open ? detail(it) : '');
   }
   function renderFeed(newIds, preserve = false) {
+    if (mode === 'explore') { renderFestivals(); return; }
     if (!preserve) pending.clear();
     titleEl.textContent = selection ? label(selection.center) + ' 주변' : '전국 소식';
     subEl.textContent = selection ? (selection.fromLocation ? '내 위치 기준 · ' : '') + selection.center.name + '와 맞닿은 ' + (selection.codes.size - 1) + '곳 포함' : '최근 72시간 · 새 소식은 지도에서 먼저 반짝여요';
@@ -541,6 +547,7 @@
   });
 
   function syncCategories() {
+    if (mode === 'explore') { chipsEl.dataset.cats = ''; chipsEl.innerHTML = festivals.length ? '<button type="button" aria-pressed="true">축제</button>' : ''; return; }
     const available = CATEGORIES.filter(c => items.some(it => it.cat === c));
     if (category && !available.includes(category)) category = null;
     const cats = [null,...available];
@@ -548,10 +555,9 @@
     chipsEl.dataset.cats = cats.join('|');
     chipsEl.innerHTML = cats.map(c => `<button type="button" data-cat="${c || ''}" aria-pressed="${c === category}">${c ? icon(c) : ''}${c || '전체'}</button>`).join('');
   }
-  syncCategories();
   chipsEl.addEventListener('click', (e) => {
     const b = e.target.closest('button');
-    if (!b) return;
+    if (!b || mode === 'explore') return;
     category = b.dataset.cat || null;
     chipsEl.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     renderFeed();
@@ -866,6 +872,109 @@
     scheduleLabels();
   }).observe(root, {attributes:true, attributeFilter:['data-theme']});
 
+
+  // ---------- 동네 탐험: 소식과 분리된 장소 레이어 ----------
+  let festivals = [], festivalUpdated = null, festivalFailed = false, festivalLoaded = false;
+  let festivalMarkers = L.layerGroup(), celebrated = false, newsScroll = 0, festivalScroll = 0;
+  const dayNumber = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? Date.parse(value + 'T00:00:00+09:00') / 86400000 : NaN;
+  const today = () => dayNumber(new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Seoul'}));
+  const festivalCodes = f => Array.isArray(f.sgg) ? f.sgg.map(String) : [String(f.sgg || '')];
+  const emergencyCodes = () => new Set(items.filter(it => ['critical','urgent'].includes(it.urgency)).flatMap(it => itemMunis(it).map(m => m.code)));
+  const restrained = (f, codes) => festivalCodes(f).some(c => codes.has(c));
+  function festivalList() {
+    const now = today();
+    return festivals.filter(f => dayNumber(f.end) >= now && dayNumber(f.start) <= now + 30 && (!selection || festivalCodes(f).some(c => selection.codes.has(c)))).sort((a,b) => {
+      const rank = f => dayNumber(f.end)-dayNumber(f.start)+1 >= 30 ? 2 : dayNumber(f.start) <= now ? 0 : 1;
+      return rank(a)-rank(b) || (rank(a) === 0 ? dayNumber(a.end)-dayNumber(b.end) : dayNumber(a.start)-dayNumber(b.start)) || String(a.name).localeCompare(String(b.name),'ko');
+    });
+  }
+  async function loadFestivals() {
+    try {
+      const res = await fetch(DEMO ? 'data/demo-festivals.json' : 'data/festivals.json', {cache:'no-store'});
+      if (!res.ok) throw new Error('festival response');
+      const data = await res.json();
+      if (!Array.isArray(data.items)) throw new Error('festival data');
+      festivals = data.items.filter(f => f && typeof f.name === 'string' && Number.isFinite(dayNumber(f.start)) && dayNumber(f.end) >= dayNumber(f.start));
+      festivalUpdated = new Date(data.updated); festivalFailed = false; festivalLoaded = true;
+    } catch (_) { festivalFailed = true; }
+    if (mode === 'explore') renderFestivals();
+  }
+  function updateFestivalStatus() {
+    const stale = !validDate(festivalUpdated) || Date.now()-festivalUpdated >= 86400000;
+    const status = document.getElementById('collection-status');
+    status.textContent = festivalFailed ? '갱신 실패' : validDate(festivalUpdated) ? ago(festivalUpdated) : '확인 중';
+    status.classList.toggle('failed',festivalFailed); status.classList.toggle('stale',!festivalFailed && stale);
+    status.setAttribute('aria-label','축제 수집 상태: ' + status.textContent + '. 상세 보기');
+    const alert = document.getElementById('collection-alert');
+    alert.hidden = !festivalFailed && !stale;
+    alert.textContent = festivalFailed ? '축제를 새로 확인하지 못했어요.' : '축제 갱신 시각을 확인해 주세요.';
+    alert.classList.toggle('failed',festivalFailed);
+    document.getElementById('sources-detail').innerHTML = '<p>전국문화축제표준데이터</p><p>확인 시각: ' + escapeHtml(validDate(festivalUpdated) ? festivalUpdated.toLocaleString('ko-KR') : '미제공') + '</p><p>진행 중 · 30일 안 시작하는 축제예요. 일정은 누리집에서 다시 확인해 주세요.</p>' + (festivalFailed ? '<p>새로 확인하지 못했어요. 이전 자료가 있으면 유지해요.</p>' : '');
+  }
+  function renderFestivals() {
+    const list = festivalList(), codes = emergencyCodes(), quiet = list.some(f => restrained(f,codes)) || loadFailed || !lastChecked;
+    titleEl.textContent = selection ? label(selection.center) + ' 주변 축제' : '동네 탐험';
+    subEl.textContent = quiet ? '진행 중 · 30일 안 시작하는 축제예요' : '이번 주말, 동네가 들썩여요';
+    syncCategories(); newButton.hidden = true; updateFestivalStatus();
+    const scroll = feedEl.scrollTop;
+    let longHeading = false;
+    feedEl.innerHTML = list.map(f => {
+      const muted = restrained(f,codes), end = dayNumber(f.end), start = dayNumber(f.start), now = today();
+      const long = end-start+1 >= 30;
+      const heading = long && !longHeading ? '<li class="festival-group">상시 진행</li>' : ''; if (long) longHeading = true;
+      const badge = end === now ? '오늘 끝나요' : start <= now ? '진행 중' : 'D-' + Math.ceil(start-now);
+      return heading + '<li class="festival-card" data-festival="' + escapeHtml(f.id) + '"><div class="meta"><span class="festival-day">' + badge + '</span></div><h3>' + escapeHtml(f.name) + '</h3><p>' + escapeHtml(f.start + ' ~ ' + f.end) + '</p><p>장소: ' + escapeHtml(f.place || f.address || '미제공') + '</p><p>주최: ' + escapeHtml(f.host || '미제공') + '</p>' + (f.content ? '<p>' + escapeHtml(f.content) + '</p>' : '') + (muted ? '<p class="festival-notice">이 지역에 긴급 소식이 있어요</p>' : end === now && !quiet ? '<p>오늘이 마지막 날이에요, 날래 가세요!</p>' : '') + '<div class="src">출처: 전국문화축제표준데이터' + (/^https?:\/\//i.test(f.url || '') ? '<a href="' + escapeAttr(f.url) + '" target="_blank" rel="noopener">원문(누리집) ↗</a>' : '') + '</div></li>';
+    }).join('') || '<li class="empty"><p>' + (festivalFailed ? '축제를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.' : !festivalLoaded ? '축제를 불러오는 중이에요.' : '진행 중이거나 30일 안에 시작하는 축제가 없어요.') + '</p>' + (festivalLoaded && !festivalFailed && !quiet ? '<p>근처가 조용하네요. 집에서 쉬는 것도 축제죠.</p>' : '') + '<p>출처: 전국문화축제표준데이터 · 선택 지역과 맞닿은 지역 포함</p></li>';
+    feedEl.scrollTop = scroll;
+    renderFestivalMarkers();
+    if (!celebrated && festivalLoaded) {
+      celebrated = true;
+      if (!quiet && !reducedMotion.matches && list.length) {
+        const confetti = document.createElement('div'); confetti.className = 'festival-confetti'; confetti.setAttribute('aria-hidden','true');
+        confetti.innerHTML = Array.from({length:12},(_,i) => '<i style="--i:' + i + '"></i>').join('');
+        panel.append(confetti); setTimeout(() => confetti.remove(),1100);
+      }
+    }
+  }
+  function renderFestivalMarkers() {
+    festivalMarkers.clearLayers();
+    if (mode !== 'explore') return;
+    const codes = emergencyCodes(), groups = [];
+    for (const f of festivalList()) {
+      if (typeof f.lat !== 'number' || typeof f.lon !== 'number' || !Number.isFinite(f.lat) || !Number.isFinite(f.lon) || Math.abs(f.lat)>90 || Math.abs(f.lon)>180) continue;
+      const at = [f.lat,f.lon], pt = map.latLngToContainerPoint(at);
+      let group = groups.find(g => g.pt.distanceTo(pt)<38);
+      if (!group) { group = {pt,at,items:[]}; groups.push(group); } group.items.push(f);
+    }
+    for (const g of groups) {
+      const muted = g.items.some(f => restrained(f,codes));
+      const svg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 20 2-12 7 7-9 5ZM12 4l1-3m4 7 4-1M8 5 6 3m12 10 3 2M15 6l3-3"/></svg>';
+      const marker = L.marker(g.at,{icon:L.divIcon({className:'festival-marker',html:'<span class="festival-pin">' + svg + (g.items.length>1 ? '<b>' + g.items.length + '</b>' : '') + '</span>',iconSize:[44,44],iconAnchor:[22,22]}),title:g.items.map(f=>f.name).join(' · ') + (muted ? ' · 이 지역에 긴급 소식이 있어요' : '')}).addTo(festivalMarkers);
+      const popup = document.createElement('div');
+      g.items.forEach(f => { const p=document.createElement('p'); p.textContent=f.name; popup.append(p); });
+      if (muted) { const p=document.createElement('p'); p.textContent='이 지역에 긴급 소식이 있어요'; popup.append(p); }
+      marker.bindPopup(popup);
+    }
+  }
+  function applyMode() {
+    rootMode();
+    document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode)));
+    map.closePopup(); bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; replayEl.hidden = true;
+    map.getPane('pulses').style.display = mode === 'explore' ? 'none' : '';
+    if (mode === 'explore') festivalMarkers.addTo(map); else map.removeLayer(festivalMarkers);
+    document.getElementById('map-legend').hidden = mode === 'explore';
+    munis.forEach(m => { clearTimeout(m.flashTimer); m.flashing=false; m.layer.getElement()?.classList.remove('flash'); restyle(m); });
+    syncCategories(); renderFeed();
+  }
+  document.querySelectorAll('[data-mode-choice]').forEach(b=>b.addEventListener('click',()=>{
+    if (mode === b.dataset.modeChoice) return;
+    if (mode === 'news') newsScroll=feedEl.scrollTop; else festivalScroll=feedEl.scrollTop;
+    mode=b.dataset.modeChoice;
+    try { localStorage.setItem('nallae-mode',mode); } catch (_) {}
+    applyMode(); feedEl.scrollTop=mode==='news' ? newsScroll : festivalScroll;
+  }));
+  map.on('moveend zoomend',renderFestivalMarkers);
+
   // ---------- 시작 ----------
   fetch('data/regions.json')
     .then((r) => r.json())
@@ -883,6 +992,9 @@
         }).addTo(map);
         select(m, true);
       }
+      applyMode();
+      loadFestivals();
+      setInterval(loadFestivals, POLL_MS);
       load().then(() => {
         if (DEMO && params.has('open')) {
           const first = items.find(visible);
@@ -891,7 +1003,7 @@
       });
       setInterval(load, POLL_MS);
       setInterval(updateTimes, 30000); // "n분 전" 갱신
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(); loadFestivals(); } });
     })
     .catch(() => toast('지도를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'));
 
