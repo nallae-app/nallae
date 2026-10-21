@@ -182,3 +182,52 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
   .panel.collapsed { height:228px; }
   .panel.collapsed .chips,.panel.collapsed .feed,.panel.collapsed #new-items { display:none; }
 }
+/* 관심 지역: 목록 → 검색 → 이름 선택 */
+.panel-head { position:relative; padding-bottom:8px; }
+.panel-head h2 { padding-right:100px; }
+.panel-head .collection-status { position:absolute; right:16px; top:17px; margin:0; padding:0; min-height:44px; max-width:96px; white-space:nowrap; font-size:12px; }
+.collection-alert { margin:0 16px 6px; padding:2px 8px; border-radius:6px; font-size:12px; line-height:18px; color:var(--signal-urgent); background:var(--surface-muted); flex-shrink:0; }
+.collection-alert.failed { color:var(--signal-critical); }
+.favorites { gap:6px; padding-bottom:6px; scrollbar-width:none; }
+.favorites button { display:inline-flex; align-items:center; justify-content:center; gap:4px; border:0; border-radius:24px; background:var(--surface-muted); padding:6px 10px; }
+.favorites .category-icon { width:20px; height:20px; }
+.favorites button[aria-pressed="true"] { border:0; }
+#favorites-dialog { padding:20px; border:0; }
+#favorites-dialog button { border:0; background:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+#favorites-dialog .dialog-head button { color:var(--brand); }
+#storage-note { color:var(--text-muted); font-size:12px; margin-bottom:0; }
+.saved-region { padding:8px 0; }
+.saved-main { display:flex; align-items:center; gap:10px; min-height:64px; }
+.saved-main>div { flex:1; min-width:0; overflow-wrap:anywhere; }
+.saved-main small { display:block; color:var(--text-muted); font-size:13px; line-height:19px; }
+#favorites-dialog .saved-main button { padding:6px; flex:none; font-size:13px; color:var(--text-muted); }
+#favorites-dialog .saved-main button[aria-pressed="true"] { background:var(--selection-fill); color:var(--brand); border-radius:24px; }
+.saved-actions { gap:0; justify-content:flex-end; flex-wrap:wrap; }
+#favorites-dialog .saved-actions button { font-size:13px; padding:8px; color:var(--brand); }
+#favorites-dialog button:disabled { color:var(--text-muted); }
+#favorites-dialog #favorite-add { color:var(--brand); width:100%; justify-content:flex-start; padding-left:0; margin-top:8px; }
+#favorite-back { color:var(--brand); padding-left:0; }
+#favorite-search-step label { font-size:18px; font-weight:600; margin:12px 0; }
+#region-search { min-height:52px; padding:12px; background:var(--surface-muted); }
+#region-results { max-height:34dvh; }
+#favorites-dialog #region-results button { display:flex; justify-content:flex-start; width:100%; border-radius:0; border-bottom:1px solid var(--border-sgg); margin:0; padding:12px 4px; }
+.name-chips { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
+#favorites-dialog .name-chips button { background:var(--surface-muted); border-radius:24px; font-size:14px; padding:8px 12px; }
+#favorites-dialog .name-chips button[aria-pressed="true"] { background:var(--selection-fill); color:var(--brand); font-weight:600; }
+#favorites-dialog #favorite-save { display:flex; width:100%; margin-top:24px; background:var(--brand); color:var(--on-brand); border-radius:24px; }
+@media(max-width:759px) {
+  #favorites-dialog { width:100%; max-width:100%; max-height:88dvh; margin:auto 0 0; border-radius:24px 24px 0 0; padding:20px 16px max(20px,env(safe-area-inset-bottom)); }
+  .panel-head h2 { font-size:20px; line-height:28px; }
+  .panel-head p { margin-top:2px; }
+  .panel-head .collection-status { top:12px; }
+  .panel .chips { padding-bottom:6px; }
+  .feed li { padding-top:10px; padding-bottom:10px; }
+  .feed .title { margin-top:4px; font-size:16px; line-height:23px; }
+}
+.collection-status.failed::before { background:var(--signal-critical); }
+@media(max-width:759px) {
+  .panel-head p { max-width:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .panel-head .collection-status { top:-8px; }
+  .favorites,.panel .chips { padding-bottom:2px; }
+  .feed li { padding-top:8px; padding-bottom:8px; }
+}

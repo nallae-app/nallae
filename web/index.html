@@ -70,8 +70,9 @@
         <h2 id="panel-title">전국 소식</h2>
         <p id="panel-sub">소식을 불러오는 중…</p>
       </div>
+      <button id="collection-status" class="collection-status" type="button" aria-haspopup="dialog">수집 상태 확인 중</button>
     </div>
-    <button id="collection-status" class="collection-status" type="button" aria-haspopup="dialog">수집 상태 확인 중</button>
+    <p id="collection-alert" class="collection-alert" hidden></p>
     <div id="favorites" class="favorites" aria-label="관심 지역"></div>
     <div class="chips" id="chips"></div>
 
@@ -83,17 +84,11 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <dialog id="favorites-dialog" aria-labelledby="favorites-title">
     <div class="dialog-head"><h2 id="favorites-title">관심 지역</h2><button type="button" data-close>닫기</button></div>
-    <p>집이나 자주 가는 동네를 저장해 보세요</p>
-    <div id="saved-regions"></div>
-    <form id="favorite-form">
-      <label for="favorite-name">이름</label>
-      <input id="favorite-name" maxlength="20" value="집" list="favorite-names" required>
-      <datalist id="favorite-names"><option value="집"><option value="직장"><option value="부모님 동네"></datalist>
-      <label for="region-search">지역 검색 (시·군·구 이름)</label>
-      <input id="region-search" type="search" placeholder="예: 마포" autocomplete="off">
-      <div id="region-results" aria-label="지역 검색 결과"></div>
-      <p id="favorite-choice" role="status">저장할 지역을 골라 주세요.</p>
-      <button id="favorite-save" type="submit" disabled>관심 지역에 추가</button>
+    <div id="favorite-list"><p>자주 가는 동네를 모아 두세요.</p><div id="saved-regions"></div><button type="button" id="favorite-add">＋ 추가</button></div>
+    <form id="favorite-form" hidden>
+      <button type="button" id="favorite-back">이전으로</button>
+      <div id="favorite-search-step"><label for="region-search">어느 동네를 저장할까요?</label><input id="region-search" type="search" placeholder="시·군·구 검색, 예: 마포" autocomplete="off"><div id="region-results" aria-label="지역 검색 결과"></div></div>
+      <div id="favorite-name-step" hidden><p id="favorite-choice" role="status"></p><p>어떤 이름으로 부를까요?</p><div id="favorite-presets" class="name-chips"></div><label for="favorite-name" hidden>직접 입력</label><input id="favorite-name" maxlength="20" value="집" required hidden><button id="favorite-save" type="submit" disabled>저장</button></div>
     </form>
     <p id="storage-note" role="status">이 기기에만 저장해요. 최대 5곳까지 추가할 수 있어요.</p>
   </dialog>

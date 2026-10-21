@@ -429,8 +429,14 @@
     const stale = states.some(s => s.rank === 1) || !validDate(updatedAt) || Date.now()-updatedAt >= 1800000;
     status.classList.toggle('failed', failed);
     status.classList.toggle('stale', !failed && stale);
-    status.textContent = loadFailed ? (lastChecked ? '마지막 확인 ' + lastChecked.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}) + ' · ' : '') + '새로 고치지 못했어요' : (failed ? '출처 오류' : stale ? '갱신 지연' : '정상') + ' · ' + (validDate(updatedAt) ? ago(updatedAt) : '시각 미제공');
-    document.getElementById('sources-detail').innerHTML = sourceStatus() + '<p>' + escapeHtml(status.textContent) + '</p>';
+    const statusText = loadFailed ? (lastChecked ? '마지막 확인 ' + lastChecked.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false}) + ' · ' : '') + '새로 고치지 못했어요' : (failed ? '출처 오류' : stale ? '갱신 지연' : '정상') + ' · ' + (validDate(updatedAt) ? ago(updatedAt) : '시각 미제공');
+    status.textContent = validDate(updatedAt) ? ago(updatedAt) : '시각 미제공';
+    status.setAttribute('aria-label', statusText + '. 출처별 수집 상태 보기');
+    const alert = document.getElementById('collection-alert');
+    alert.hidden = !failed && !stale;
+    alert.textContent = failed ? '새 소식을 확인하지 못한 출처가 있어요.' : '소식 갱신이 늦어지고 있어요.';
+    alert.classList.toggle('failed', failed);
+    document.getElementById('sources-detail').innerHTML = sourceStatus() + '<p>' + escapeHtml(statusText) + '</p>';
   }
   const validDate = d => d instanceof Date && Number.isFinite(d.getTime());
   function sourceState(key) {
@@ -586,51 +592,94 @@
     renderFavorites();
     if (startCode) select(muniByCode.get(startCode), false);
   }
+  const favoriteShapes = {
+    home:'M3 11 12 3l9 8M5 10v11h5v-7h4v7h5V10',
+    work:'M4 7h16v14H4ZM9 7V3h6v4M4 12h16M10 12v3h4v-3',
+    family:'M12 21S3 15 3 9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 12-9 12Z',
+    place:'M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0ZM9 10h6m-3-3v6',
+    pin:'M9 3h6l-1 6 4 5H6l4-5-1-6ZM12 14v7',
+    edit:'m4 16 12-12 4 4L8 20H4v-4ZM14 6l4 4',
+    plus:'M12 5v14M5 12h14', more:'M5 12h1m5 0h1m5 0h1',
+    globe:'M3 12h18M12 3c-6 6-6 12 0 18 6-6 6-12 0-18ZM3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0'
+  };
+  const favoriteIcon = key => '<svg class="category-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="' + favoriteShapes[key] + '"/></svg>';
+  const favoriteType = name => ({'집':'home','직장':'work','부모님 동네':'family'}[name] || 'place');
+  let editingCode = null;
+  function favoriteStep(step) {
+    document.getElementById('favorite-list').hidden = step !== 'list';
+    document.getElementById('favorite-form').hidden = step === 'list';
+    document.getElementById('favorite-search-step').hidden = step !== 'search';
+    document.getElementById('favorite-name-step').hidden = step !== 'name';
+    document.getElementById('favorites-title').textContent = step === 'list' ? '관심 지역' : editingCode ? '이름 바꾸기' : '관심 지역 추가';
+  }
+  function nameStep(name = '집') {
+    nameInput.value = name;
+    setName(name);
+    favoriteStep('name');
+    document.querySelector('#favorite-presets button').focus();
+  }
+  function setName(name) {
+    const presets = ['집','직장','부모님 동네'];
+    const custom = !presets.includes(name);
+    nameInput.hidden = !custom;
+    nameInput.previousElementSibling.hidden = !custom;
+    document.getElementById('favorite-presets').innerHTML = [...presets,'직접 입력'].map(n => '<button type="button" data-name="' + n + '" aria-pressed="' + (n === name || n === '직접 입력' && custom) + '">' + favoriteIcon(favoriteType(n)) + n + '</button>').join('');
+  }
+  document.getElementById('favorite-presets').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const name = b.dataset.name === '직접 입력' ? '' : b.dataset.name;
+    nameInput.value = name; setName(name);
+    (nameInput.hidden ? document.querySelector('[data-name="' + b.dataset.name + '"]') : nameInput).focus();
+  });
+  function beginAdd(code = null) {
+    if (favorites.length >= 5) return toast('관심 지역은 최대 5곳까지 저장할 수 있어요.');
+    editingCode = null; searchInput.value = ''; document.getElementById('region-results').replaceChildren();
+    chooseFavorite(code);
+    if (code) nameStep(); else { favoriteStep('search'); searchInput.focus(); }
+  }
+  document.getElementById('favorite-add').addEventListener('click', () => beginAdd());
+  document.getElementById('favorite-back').addEventListener('click', () => {
+    if (editingCode || !document.getElementById('favorite-search-step').hidden) { favoriteStep('list'); document.getElementById('favorite-add').focus(); }
+    else { favoriteStep('search'); searchInput.focus(); }
+  });
   function renderFavorites() {
-    favoritesEl.innerHTML = '<button type="button" data-home aria-pressed="' + !selection + '">전국</button>' + favorites.map(r => '<button type="button" data-code="' + r.code + '" aria-pressed="' + (selection?.center.code === r.code) + '">' + escapeHtml(r.name) + (startCode === r.code ? ' · 시작' : '') + '</button>').join('') + '<button type="button" data-manage>관심 지역 관리</button>' + (selection ? '<button type="button" data-add>관심 지역에 추가</button>' : '');
-    if (!favorites.length) {
-      const hint = document.createElement('p'); hint.className = 'favorite-hint';
-      hint.textContent = '집이나 자주 가는 동네를 저장해 보세요';
-      favoritesEl.append(hint);
-    }
+    favoritesEl.innerHTML = '<button type="button" data-home aria-pressed="' + !selection + '">' + favoriteIcon('globe') + '전국</button>' + favorites.map(r => '<button type="button" data-code="' + r.code + '" aria-pressed="' + (selection?.center.code === r.code) + '" aria-label="' + escapeHtml(r.name + (startCode === r.code ? ', 시작 지역' : '')) + '">' + favoriteIcon(favoriteType(r.name)) + escapeHtml(r.name) + (startCode === r.code ? favoriteIcon('pin') : '') + '</button>').join('') + '<button type="button" data-new aria-label="관심 지역 추가">' + favoriteIcon('plus') + '</button><button type="button" data-manage aria-label="관심 지역 관리">' + favoriteIcon('edit') + '</button>' + (selection && !favorites.some(r => r.code === selection.center.code) ? '<button type="button" data-add>' + favoriteIcon('plus') + '저장</button>' : '');
   }
   function chooseFavorite(code) {
     chosenCode = code;
-    document.getElementById('favorite-choice').textContent = code ? label(muniByCode.get(code)) + (favorites.some(r => r.code === code) ? '은 이미 저장한 지역이에요.' : '을 저장해요.') : '저장할 지역을 골라 주세요.';
-    document.getElementById('favorite-save').disabled = !code || favorites.length >= 5 || favorites.some(r => r.code === code);
+    document.getElementById('favorite-choice').textContent = code ? label(muniByCode.get(code)) : '저장할 지역을 골라 주세요.';
+    document.getElementById('favorite-save').disabled = !code || !editingCode && (favorites.length >= 5 || favorites.some(r => r.code === code));
   }
   favoritesEl.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.hasAttribute('data-home')) { clearSelection(); atHome = true; fitHome(); }
     else if (b.dataset.code) select(muniByCode.get(b.dataset.code), false);
     else {
-      renderSavedRegions(); searchInput.value = ''; document.getElementById('region-results').replaceChildren();
-      nameInput.value = '집'; chooseFavorite(b.hasAttribute('data-add') ? selection?.center.code : null);
-      favoriteDialog.showModal();
+      renderSavedRegions(); favoriteStep('list'); favoriteDialog.showModal();
+      if (!b.hasAttribute('data-manage')) beginAdd(b.hasAttribute('data-add') ? selection?.center.code : null);
     }
   });
   function renderSavedRegions() {
-    document.getElementById('saved-regions').innerHTML = favorites.map((r,i) => '<section class="saved-region" data-code="' + r.code + '"><p><strong>' + escapeHtml(r.name) + '</strong> · ' + escapeHtml(label(muniByCode.get(r.code))) + '</p><label>이름 바꾸기<input maxlength="20" value="' + escapeHtml(r.name) + '" aria-label="' + escapeHtml(r.name) + ' 이름 바꾸기"></label><div class="saved-actions"><button type="button" data-action="rename">이름 저장</button><button type="button" data-action="start" aria-pressed="' + (startCode === r.code) + '">' + (startCode === r.code ? '시작 화면 지정 해제' : '앱 시작 시 이 지역 보기') + '</button><button type="button" data-action="up" ' + (i === 0 ? 'disabled' : '') + '>앞으로</button><button type="button" data-action="down" ' + (i === favorites.length-1 ? 'disabled' : '') + '>뒤로</button><button type="button" data-action="delete">삭제</button></div></section>').join('');
-    document.getElementById('favorite-form').hidden = favorites.length >= 5;
+    document.getElementById('saved-regions').innerHTML = favorites.map((r,i) => '<section class="saved-region" data-code="' + r.code + '"><div class="saved-main">' + favoriteIcon(favoriteType(r.name)) + '<div><strong>' + escapeHtml(r.name) + '</strong><small>' + escapeHtml(label(muniByCode.get(r.code))) + '</small></div><button type="button" data-action="start" aria-label="' + escapeHtml(r.name) + ' 시작 지역" aria-pressed="' + (startCode === r.code) + '">' + favoriteIcon('pin') + '시작</button><button type="button" data-action="menu" aria-expanded="false" aria-label="' + escapeHtml(r.name) + ' 더보기">' + favoriteIcon('more') + '</button></div><div class="saved-actions" hidden><button type="button" data-action="rename">이름 바꾸기</button><button type="button" data-action="up" ' + (i === 0 ? 'disabled' : '') + '>위로</button><button type="button" data-action="down" ' + (i === favorites.length-1 ? 'disabled' : '') + '>아래로</button><button type="button" data-action="delete">삭제</button></div></section>').join('') || '<p>아직 저장한 동네가 없어요.</p>';
+    document.getElementById('favorite-add').disabled = favorites.length >= 5;
   }
   document.getElementById('saved-regions').addEventListener('click', e => {
     const b = e.target.closest('button'), row = b?.closest('[data-code]'); if (!row) return;
-    const i = favorites.findIndex(r => r.code === row.dataset.code), r = favorites[i];
-    if (b.dataset.action === 'rename') {
-      const name = row.querySelector('input').value.trim();
-      if (!name) return toast('관심 지역 이름을 입력해 주세요.');
-      r.name = name.slice(0,20);
-    } else if (b.dataset.action === 'start') startCode = startCode === r.code ? null : r.code;
-    else if (b.dataset.action === 'delete') { favorites.splice(i,1); if (startCode === r.code) startCode = null; }
+    const i = favorites.findIndex(r => r.code === row.dataset.code), r = favorites[i], action = b.dataset.action;
+    if (action === 'menu') {
+      const menu = row.querySelector('.saved-actions'); menu.hidden = !menu.hidden; b.setAttribute('aria-expanded', !menu.hidden); return;
+    }
+    if (action === 'rename') { editingCode = r.code; chooseFavorite(r.code); nameStep(r.name); return; }
+    if (action === 'start') startCode = startCode === r.code ? null : r.code;
+    else if (action === 'delete') { favorites.splice(i,1); if (startCode === r.code) startCode = null; }
     else {
-      const j = i + (b.dataset.action === 'up' ? -1 : 1);
+      const j = i + (action === 'up' ? -1 : 1);
       if (j < 0 || j >= favorites.length) return;
       [favorites[i],favorites[j]] = [favorites[j],favorites[i]];
     }
-    const action = b.dataset.action;
-    saveFavorites(); chooseFavorite(chosenCode);
+    saveFavorites();
     const nextRow = [...document.querySelectorAll('#saved-regions section')].find(el => el.dataset.code === r.code);
-    (nextRow?.querySelector('[data-action="' + action + '"]:not(:disabled)') || document.querySelector('#favorites-dialog [data-close]')).focus();
+    (nextRow?.querySelector('[data-action="' + (action === 'start' ? 'start' : 'menu') + '"]') || document.getElementById('favorite-add')).focus();
   });
   searchInput.addEventListener('input', () => {
     chooseFavorite(null);
@@ -641,16 +690,20 @@
     if (q && !matches.length) results.textContent = '일치하는 지역이 없어요. 시·군·구 이름을 확인해 주세요.';
   });
   document.getElementById('region-results').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (b) chooseFavorite(b.dataset.code);
+    const b = e.target.closest('button'); if (b) { chooseFavorite(b.dataset.code); if (!document.getElementById('favorite-save').disabled) nameStep(); else toast('이미 저장한 지역이에요.'); }
   });
   document.getElementById('favorite-form').addEventListener('submit', e => {
     e.preventDefault();
     const name = nameInput.value.trim();
     if (!name || !muniByCode.has(chosenCode)) return toast('이름과 지역을 골라 주세요.');
+    if (editingCode) {
+      favorites.find(r => r.code === editingCode).name = name.slice(0,20);
+      editingCode = null; saveFavorites(); favoriteStep('list'); document.getElementById('favorite-add').focus(); return;
+    }
     if (favorites.length >= 5) return toast('관심 지역은 최대 5곳까지 저장할 수 있어요.');
     if (favorites.some(r => r.code === chosenCode)) return toast('이미 저장한 지역이에요.');
     favorites.push({code:chosenCode,name:name.slice(0,20)});
-    saveFavorites(); chooseFavorite(null);
+    saveFavorites(); chooseFavorite(null); favoriteStep('list');
     document.querySelector('#favorites-dialog [data-close]').focus();
   });
 
