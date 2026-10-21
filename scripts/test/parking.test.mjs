@@ -1,7 +1,27 @@
 // 주차장 파서 시험. 필드는 실제 응답(2026-10-21 probe)과 같은 이름.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toParkingBySgg, toSeoulLive, normName, normLot } from '../sources/parking.mjs';
+import { toParkingBySgg, toSeoulLive, normName, normLot, mergeSeoulPublic } from '../sources/parking.mjs';
+
+test('서울 공영주차장으로 빈 구 보강: 겹치는 곳 빼고, 좌표는 그 구 안일 때만', () => {
+  const { by } = toParkingBySgg([std()]); // 종로 세종로
+  const row = (o) => ({ PKLT_CD: '1', PKLT_NM: '망원동 공영(구)', ADDR: '마포구 망원동 400-1', PKLT_KND_NM: '노외 주차장', TPKCT: 52.0, CHGD_FREE_NM: '유료', PRK_HM: 5.0, PRK_CRG: 150.0, ADD_UNIT_TM_MNT: 5.0, ADD_CRG: 150.0, WD_OPER_BGNG_TM: '0900', WD_OPER_END_TM: '2100', LAT: 37.556, LOT: 126.905, ...o });
+  const m = mergeSeoulPublic(by, [
+    row(),
+    row({ PKLT_CD: '1' }),                                     // 같은 코드 중복(노상 구간)
+    row({ PKLT_CD: '2', PKLT_NM: '세종로 공영주차장(시)', ADDR: '종로구 세종로 80-1' }), // 표준데이터에 있음
+    row({ PKLT_CD: '3', PKLT_NM: '좌표 없는 곳', ADDR: '마포구 합정동 1', LAT: 0, LOT: 0 }),
+    row({ PKLT_CD: '4', PKLT_NM: '좌표가 다른 구', ADDR: '마포구 서교동 2', LAT: 37.5735, LOT: 126.9769 }),
+  ]);
+  assert.deepEqual(m, { added: 3, withPoint: 1 });
+  const mapo = by['11440'];
+  assert.equal(mapo.length, 3);
+  const mw = mapo.find((p) => p.id === 'seoul-1');
+  assert.equal(mw.weekday, '09:00-21:00');
+  assert.ok(Number.isFinite(mw.lat));
+  assert.equal(mapo.find((p) => p.id === 'seoul-3').lat, undefined);
+  assert.equal(mapo.find((p) => p.id === 'seoul-4').lat, undefined);
+});
 
 const std = (o) => ({ prkplceNo: '1', prkplceNm: '세종로 공영주차장', prkplceSe: '공영', prkplceType: '노외', rdnmadr: '', lnmadr: '서울특별시 종로구 세종로 80-1', prkcmprt: '1260', operDay: '평일+토요일+공휴일', weekdayOperOpenHhmm: '00:00', weekdayOperColseHhmm: '23:59', satOperOperOpenHhmm: '00:00', satOperCloseHhmm: '23:59', holidayOperOpenHhmm: '', holidayCloseOpenHhmm: '', parkingchrgeInfo: '유료', basicTime: '5', basicCharge: '430', addUnitTime: '5', addUnitCharge: '430', dayCmmtkt: '', latitude: '37.5735', longitude: '126.9769', referenceDate: '2026-04-20', ...o });
 

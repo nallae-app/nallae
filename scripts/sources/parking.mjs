@@ -85,7 +85,67 @@ export function toSeoulLive(rows, by) {
   return out;
 }
 
-export async function fetchParking({ key }) {
+const hm4 = (a, b) => (/^\d{4}$/.test(clean(a)) && /^\d{4}$/.test(clean(b)) ? `${a.slice(0, 2)}:${a.slice(2)}-${b.slice(0, 2)}:${b.slice(2)}` : undefined);
+
+/**
+ * 서울 공영주차장 안내(GetParkInfo) → 표준데이터에 없는 곳만 by에 더한다(서울은 표준데이터 등록이 구마다 적다).
+ * 좌표가 그 구 안에 있을 때만 lat/lon을 붙이고, 아니면 좌표 없이(목록·주소 검색 전용) 둔다.
+ */
+export function mergeSeoulPublic(by, rows) {
+  const seen = new Set();
+  let added = 0, withPoint = 0;
+  for (const r of rows) {
+    const code = clean(r.PKLT_CD);
+    if (!code || seen.has(code)) continue; // 노상 주차장은 구간별로 여러 줄 온다
+    seen.add(code);
+    const gu = clean(r.ADDR).split(' ')[0];
+    const { sgg } = resolvePlace(`서울 ${gu}`, { strict: true });
+    if (sgg.length !== 1) continue;
+    const list = (by[sgg[0]] ??= []);
+    const name = normName(r.PKLT_NM), lot = normLot(r.ADDR);
+    if (list.some((p) => normName(p.name) === name || (lot && p.lot === lot))) continue;
+    const lat = Number(r.LAT), lon = Number(r.LOT);
+    const point = lat > 37 && lat < 38 && lon > 126 && lon < 128 && sggAt(lon, lat) === sgg[0];
+    list.push({
+      id: `seoul-${code}`,
+      name: clean(r.PKLT_NM),
+      kind: '공영',
+      type: clean(r.PKLT_KND_NM).replace(/\s*주차장$/, '') || undefined,
+      address: `서울 ${clean(r.ADDR)}`,
+      lot: lot || undefined,
+      ...(point ? { lat: +lat.toFixed(6), lon: +lon.toFixed(6) } : {}),
+      spaces: n(r.TPKCT) || undefined,
+      fee: clean(r.CHGD_FREE_NM) || undefined,
+      basic: n(r.PRK_HM) && n(r.PRK_CRG) !== undefined ? { min: n(r.PRK_HM), won: n(r.PRK_CRG) } : undefined,
+      add: n(r.ADD_UNIT_TM_MNT) && n(r.ADD_CRG) !== undefined ? { min: n(r.ADD_UNIT_TM_MNT), won: n(r.ADD_CRG) } : undefined,
+      dayMax: n(r.DLY_MAX_CRG) || undefined,
+      weekday: hm4(r.WD_OPER_BGNG_TM, r.WD_OPER_END_TM),
+      sat: hm4(r.WE_OPER_BGNG_TM, r.WE_OPER_END_TM),
+      holiday: hm4(r.LHLDY_BGNG, r.LHLDY),
+      phone: clean(r.TELNO) || undefined,
+      src: 'seoul',
+    });
+    added++;
+    if (point) withPoint++;
+  }
+  for (const list of Object.values(by)) list.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  return { added, withPoint };
+}
+
+async function fetchSeoulPublicRows(key) {
+  const rows = [];
+  for (let start = 1; start <= 10000; start += 1000) {
+    const res = await fetch(`http://openapi.seoul.go.kr:8088/${encodeURIComponent(key)}/json/GetParkInfo/${start}/${start + 999}/`, { signal: AbortSignal.timeout(30000) });
+    if (!res.ok) throw new Error(`서울 공영주차장 HTTP ${res.status}`);
+    const j = (await res.json()).GetParkInfo || {};
+    if (j.RESULT?.CODE !== 'INFO-000') throw new Error(`서울 공영주차장 오류 ${j.RESULT?.CODE}`);
+    rows.push(...(j.row || []));
+    if (rows.length >= Number(j.list_total_count || 0)) break;
+  }
+  return rows;
+}
+
+export async function fetchParking({ key, seoulKey }) {
   if (!key) return { skipped: 'DATA_GO_KR_KEY 없음' };
   const rows = [];
   let total = Infinity;
@@ -103,8 +163,17 @@ export async function fetchParking({ key }) {
   }
   if (rows.length < total * 0.95) throw new Error(`주차장 일부만 받음 ${rows.length}/${total}`);
   const { by, dropped } = toParkingBySgg(rows);
+  console.log(`  주차장 원자료 ${rows.length}건 → 좌표 있는 곳 ${Object.values(by).reduce((a, l) => a + l.length, 0)}, ${Object.keys(by).length}개 시·군·구 (좌표 없음·범위 밖 ${dropped})`);
+  if (seoulKey) {
+    try {
+      const s = await fetchSeoulPublicRows(seoulKey);
+      const m = mergeSeoulPublic(by, s);
+      console.log(`  서울 공영주차장 ${s.length}줄 → 표준데이터에 없는 ${m.added}곳 추가 (좌표 있음 ${m.withPoint})`);
+    } catch (e) {
+      console.log(`  서울 공영주차장 보강 실패 — ${e.message}`); // 표준데이터만으로 계속
+    }
+  }
   const count = Object.values(by).reduce((a, l) => a + l.length, 0);
-  console.log(`  주차장 원자료 ${rows.length}건 → 좌표 있는 ${count}곳, ${Object.keys(by).length}개 시·군·구 (좌표 없음·범위 밖 ${dropped})`);
   return { by, count };
 }
 

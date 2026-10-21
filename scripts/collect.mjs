@@ -252,8 +252,8 @@ await perSggDaily({
 // 주차장 (전국 표준데이터, 하루 한 번) + 서울 시영주차장 실시간 (매번)
 const parkingBy = await perSggDaily({
   dir: 'parking', label: '주차장',
-  source: '전국주차장정보표준데이터 (공공데이터포털)',
-  fetcher: () => fetchParking({ key: process.env.DATA_GO_KR_KEY }),
+  source: '전국주차장정보표준데이터 (공공데이터포털) + 서울시 공영주차장 안내 정보 (서울열린데이터광장)',
+  fetcher: () => fetchParking({ key: process.env.DATA_GO_KR_KEY, seoulKey: process.env.SEOUL_KEY }),
 });
 try {
   const r = await fetchSeoulLive({ key: process.env.SEOUL_KEY, by: parkingBy });
