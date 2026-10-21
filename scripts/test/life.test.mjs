@@ -83,7 +83,8 @@ test('오피넷 응답: 빈 OIL·비JSON·구조 불량은 실패, 시·도 호�
   assert.throws(() => parseOil('<html>오류</html>'), (e) => e.kind === 'not-json');
   assert.throws(() => parseOil('{"RESULT":{}}'), (e) => e.kind === 'bad-shape');
   assert.equal(SIDO_ORDER[0], '01'); // 정수 키('10'~'19')가 먼저 돌던 문제
-  assert.equal(SIDO_ORDER.length, 17);
+  assert.equal(SIDO_ORDER.length, 16);
+  assert.ok(SIDO_ORDER.includes('20') && !SIDO_ORDER.includes('07') && !SIDO_ORDER.includes('16')); // 통합 뒤 전남광주=20 (공식 지역코드 예시)
 });
 
 test('구별 평균: 서울 중구·부산 중구 구분, 노원구, 휘발유·경유 각각', () => {
@@ -104,4 +105,13 @@ test('부분 실패: 실패한 시·도×유종만 직전 값과 그 기준 시�
   assert.deepEqual(m.asOf, { 11350: { D047: prev.updated }, 11140: { D047: prev.updated } });
   assert.equal(m.sgg[26110], undefined); // 부산 평균은 실패 목록에 없으므로 채우지 않는다
   assert.deepEqual(mergeFuel({ ...cur, failed: [{ what: 'avg', sido: '01', prod: 'D047' }] }, null).asOf, {}); // 직전 파일이 없으면 유지할 것도 없음
+});
+
+test('전남광주(20) 시군구 이름: 통합 지역 접두·옛 광주/전남 접두 모두 실제 코드로', () => {
+  const { prices, unmatched } = sigunToSgg([
+    { SIGUNNM: '전남광주 여수시', PRICE: 1800 }, { SIGUNNM: '전남광주 북구', PRICE: 1810 },
+    { SIGUNNM: '광주 동구', PRICE: 1820 }, { SIGUNNM: '전남 순천시', PRICE: 1830 },
+  ]);
+  assert.deepEqual(prices, { 12130: 1800, 12300: 1810, 12210: 1820, 12150: 1830 });
+  assert.deepEqual(unmatched, []);
 });
