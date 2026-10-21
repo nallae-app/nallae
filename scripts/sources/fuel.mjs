@@ -3,7 +3,8 @@
 //  - 전국 평균(avgAllPrice)
 //  - 시·군·구 평균(avgSigunPrice, 시·도별) → 앱 시·군·구 코드
 //  - 시·도별 최저가 10곳(lowTop10) → 좌표(KATEC)를 위경도로 바꿔 지도 점으로
-// 호출 수: 1 + 17개 시·도 × (평균 2 + 최저가 2) = 69회. 3시간마다 → 하루 약 550회.
+// 호출 수: 1 + 17개 시·도 × (평균 1(품목 생략=모든 제품) + 최저가 2) = 52회. 3시간마다 → 하루 약 420회.
+// 실패 시 재시도가 더해진다. 2026-10-21 저녁: 키가 모든 요청에 빈 OIL을 돌려줌(한도 초과/정지 추정) → 수집 실패 후 3시간 쉰다(collect.mjs).
 import { resolvePlace, regionIndex } from '../lib/regions.mjs';
 import { katecToWgs84 } from '../lib/katec.mjs';
 import { sggAt } from './festivals.mjs';
@@ -118,12 +119,16 @@ export async function fetchFuel({ key }) {
 
   const sgg = {}, areas = {}, stations = new Map(), unmatched = new Set(), failed = [];
   for (const sido of SIDO_ORDER) {
+    // 시군구 평균: 품목을 생략해 한 번에 받고 PRODCD로 나눈다. 받은 행에 그 유종이 없으면 그 유종만 실패로 본다.
+    let rows = null;
+    try { rows = await get('avgSigunPrice.do', key, { sido }); } catch (e) { for (const prod of Object.keys(PRODUCTS)) failed.push({ what: 'avg', sido, prod, kind: e.kind }); }
+    if (rows) for (const prod of Object.keys(PRODUCTS)) {
+      const avg = sigunToSgg(rows.filter((r) => r.PRODCD === prod));
+      avg.unmatched.forEach((n) => unmatched.add(n));
+      if (!Object.keys(avg.prices).length) { failed.push({ what: 'avg', sido, prod, kind: 'no-product' }); continue; }
+      for (const [c, p] of Object.entries(avg.prices)) { (sgg[c] ??= {})[prod] = p; areas[c] = sido; }
+    }
     for (const prod of Object.keys(PRODUCTS)) {
-      try {
-        const avg = sigunToSgg(await get('avgSigunPrice.do', key, { sido, prodcd: prod }));
-        avg.unmatched.forEach((n) => unmatched.add(n));
-        for (const [c, p] of Object.entries(avg.prices)) { (sgg[c] ??= {})[prod] = p; areas[c] = sido; }
-      } catch (e) { failed.push({ what: 'avg', sido, prod, kind: e.kind }); }
       try {
         for (const r of await get('lowTop10.do', key, { area: sido, prodcd: prod, cnt: 10 })) {
           const s = toStation(r, prod);

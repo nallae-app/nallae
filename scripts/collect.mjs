@@ -135,7 +135,9 @@ const FUEL_OUT = 'web/data/fuel.json';
 {
   const prevFuel = await prevJson('fuel.json');
   try {
-    if (fresh(prevFuel, 3)) {
+    // 직전 시도가 실패였다면 그 시도 시각부터 3시간 쉰다
+    const lastTry = prevFuel?.lastFailure?.at && new Date(prevFuel.lastFailure.at) > new Date(prevFuel.updated) ? { updated: prevFuel.lastFailure.at } : prevFuel;
+    if (fresh(lastTry, 3)) {
       fs.writeFileSync(FUEL_OUT, JSON.stringify(prevFuel));
       console.log(`- 기름값: 직전 파일 유지 (${prevFuel.updated})`);
     } else {
@@ -156,7 +158,8 @@ const FUEL_OUT = 'web/data/fuel.json';
     }
   } catch (e) {
     console.log(`- 기름값: 실패 — ${e.message || e}${e.cause ? ` (${e.cause.code || ''})` : ''}`);
-    if (prevFuel) { fs.writeFileSync(FUEL_OUT, JSON.stringify(prevFuel)); console.log('  직전 fuel.json 유지'); }
+    // 직전 자료는 그대로(시각도 그대로) 두고, 이번 실패만 기록한다
+    if (prevFuel) { fs.writeFileSync(FUEL_OUT, JSON.stringify({ ...prevFuel, lastFailure: { at: now.toISOString(), error: String(e.message || e).slice(0, 80) } })); console.log('  직전 fuel.json 유지 (실패 기록)'); }
   }
 }
 
