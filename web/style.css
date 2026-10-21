@@ -125,6 +125,19 @@ path.region.flash { transition:none; }
 .collection-status::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:middle; background:var(--brand); }
 .collection-status.stale::before { background:var(--signal-urgent); }
 .collection-status.failed::before { background:var(--signal-critical); }
+/* 모바일 시트의 제스처는 지도와 독립적으로 처리해요. */
+@media(max-width:759px) {
+  .panel { overflow:hidden; transition:height 280ms cubic-bezier(.2,0,0,1); }
+  .panel-handle,.panel-head { touch-action:none; user-select:none; }
+  .panel-handle { cursor:ns-resize; }
+  .panel.sheet-dragging { transition:none; user-select:none; }
+  .feed { touch-action:pan-y; overscroll-behavior-y:contain; }
+  .feed.sheet-pull { touch-action:pan-up; }
+  .panel[data-sheet-stage="collapsed"] > :is(.collection-alert,.chips,#new-items,.feed) { display:none; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .panel { transition:none; }
+}
 .chips { padding:0 16px 4px; gap:4px; }
 .chips button { background:var(--surface-muted); padding:6px 10px; }
 .chips .category-icon { width:20px; height:20px; }
