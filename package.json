@@ -10,6 +10,7 @@
   "devDependencies": {
     "mapshaper": "^0.6.102",
     "polylabel": "^2.0.1",
+    "puppeteer-core": "^23.11.1",
     "sharp": "^0.33.5",
     "topojson-client": "^3.1.0"
   }
