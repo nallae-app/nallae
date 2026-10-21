@@ -1,44 +1,48 @@
-// 스토어용 휴대전화 스크린샷(1080×1920)과 그래픽 이미지(1024×500)를 만든다.
-// 먼저 로컬 서버를 띄운다: powershell -ExecutionPolicy Bypass -File tools\serve.ps1
-// 사용: node scripts/screenshots.mjs [http://localhost:5173]
-import { execFileSync } from 'node:child_process';
+// Play 스토어 휴대전화 스크린샷(1080×1920, 9:16). 기본은 실제 배포 사이트의 실데이터.
+// 사용: node scripts/screenshots.mjs [base-url] [--demo]
+//   base-url 기본값: https://nallae-app.github.io/nallae/
+// 데모 데이터로 찍으면 화면에 '데모' 표시가 남는다 — 스토어에는 실데이터 화면을 올린다.
 import fs from 'node:fs';
 import path from 'node:path';
-import sharp from 'sharp';
+import puppeteer from 'puppeteer-core';
 
-const BASE = process.argv[2] || 'http://localhost:5173';
-const CHROME = [
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-].find((p) => fs.existsSync(p));
-if (!CHROME) throw new Error('Chrome/Edge를 찾지 못했습니다');
+const args = process.argv.slice(2);
+const DEMO = args.includes('--demo');
+const BASE = (args.find((a) => !a.startsWith('--')) || 'https://nallae-app.github.io/nallae/').replace(/\/?$/, '/');
+const CHROME = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find((p) => fs.existsSync(p));
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// 관심 지역을 미리 넣어 '시작 지역' 화면을 재현한다 (앱 저장 형식: nallae-favorites-v1)
+const favorites = (startCode) => ({ version: 1, regions: [{ code: '11440', name: '집' }, { code: '11680', name: '직장' }, { code: '26350', name: '부모님 동네' }], startCode });
 const shots = [
-  ['screenshot-1-home.png', '?demo', 5200],
-  ['screenshot-2-near.png', '?demo&near=11440', 4500],
-  ['screenshot-3-detail.png', '?demo&near=11440&open', 4500],
-  ['screenshot-4-gangneung.png', '?demo&near=51150&open', 4500],
+  { file: 'screenshot-1-national.png', theme: 'light', fav: favorites(null), wait: 6000 },
+  { file: 'screenshot-2-region.png', theme: 'light', fav: favorites('11440'), wait: 4500 },
+  { file: 'screenshot-3-detail.png', theme: 'light', fav: favorites(null), wait: 5000, open: true, sheet: 'full' },
+  { file: 'screenshot-4-dark.png', theme: 'dark', fav: favorites(null), wait: 6000 },
 ];
 
 fs.mkdirSync('store', { recursive: true });
-const profile = fs.mkdtempSync(path.join(process.env.TEMP || '.', 'nallae-shot-'));
-for (const [file, query, wait] of shots) {
-  const out = path.resolve('store', file);
-  execFileSync(CHROME, [
-    '--headless=new', '--disable-gpu', '--hide-scrollbars', `--user-data-dir=${profile}`,
-    '--window-size=540,960', '--force-device-scale-factor=2',
-    `--virtual-time-budget=${wait}`, `--screenshot=${out}`, `${BASE}/${query}`,
-  ], { stdio: 'ignore' });
-  console.log(`store/${file}`);
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--hide-scrollbars'] });
+for (const s of shots) {
+  const page = await browser.newPage();
+  await page.setViewport({ width: 360, height: 640, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: s.theme }]);
+  await page.evaluateOnNewDocument((fav, sheet) => {
+    try {
+      localStorage.setItem('nallae-favorites-v1', JSON.stringify(fav));
+      localStorage.setItem('nallae-sheet-stage', sheet || 'middle');
+    } catch (_) {}
+  }, s.fav, s.sheet);
+  await page.goto(`${BASE}?theme=${s.theme}${DEMO ? '&demo' : ''}`, { waitUntil: 'networkidle0' });
+  await wait(s.wait);
+  if (s.open) {
+    // 첫 소식의 상세를 펼친다
+    await page.evaluate(() => document.querySelector('#feed li button, #feed li')?.click());
+    await wait(1500);
+  }
+  const out = path.join('store', s.file);
+  await page.screenshot({ path: out });
+  console.log(out);
+  await page.close();
 }
-
-// 그래픽 이미지 1024×500
-const icon = fs.readFileSync('web/icons/icon.svg', 'utf8').replace(/<\/?svg[^>]*>/g, '').replace('<rect width="512" height="512" rx="112" fill="#0b1220"/>', '');
-const feature = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
-  <rect width="1024" height="500" fill="#0b1220"/>
-  <g transform="translate(90,90) scale(0.62)">${icon}</g>
-  <text x="440" y="250" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="120" font-weight="900" fill="#e8eefc">날래</text>
-  <text x="446" y="322" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="40" fill="#8a9bbd">나와 동네를 잇다</text>
-</svg>`;
-await sharp(Buffer.from(feature)).png().toFile('store/feature-1024x500.png');
-console.log('store/feature-1024x500.png');
+await browser.close();
