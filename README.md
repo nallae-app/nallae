@@ -3,6 +3,7 @@
 긴급재난문자, 기상특보, 정책·보도자료가 들어오면 지도에서 그 시·군·구가 "위잉" 반짝이는 지역 소식 지도.
 웹앱(PWA)을 GitHub Pages에 올리고, Android는 TWA로 감싸 Google Play에 낸다.
 
+- **AI 에이전트 인수인계: [AGENTS.md](AGENTS.md)**
 - **출시 체크리스트: [docs/LAUNCH.md](docs/LAUNCH.md)**
 - 스토어 문구·그림: [store/](store/)
 

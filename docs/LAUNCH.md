@@ -9,10 +9,10 @@
 ## 1단계 — 저장소와 배포 (무료)
 
 - [x] ✋ 개인 GitHub 계정 + 조직 `nallae-app` (공개 주소에 개인 아이디가 드러나지 않게)
-- [ ] ✋ 새 저장소 만들기: 이름 `nallae`, **Public** (Private이면 10분 주기 Actions 무료 시간이 부족)
-- [ ] 🤖 로컬 git 초기화 + 개인 계정 이름/이메일로 커밋 + 푸시 (푸시 권한은 로그인 필요)
-- [ ] ✋ 저장소 Settings → Pages → Source: **GitHub Actions**
-- [ ] 🤖 첫 배포 확인: `https://<사용자명>.github.io/nallae/`
+- [x] ✋ 새 저장소 만들기: 이름 `nallae`, **Public** (Private이면 10분 주기 Actions 무료 시간이 부족)
+- [x] 🤖 로컬 git 초기화 + 개인 계정 이름/이메일로 커밋 + 푸시 (푸시 권한은 로그인 필요)
+- [x] ✋ 저장소 Settings → Pages → Source: **GitHub Actions**
+- [x] 🤖 첫 배포 확인: https://nallae-app.github.io/nallae/
 
 > 참고: 공개 저장소의 예약(cron) 실행은 저장소에 60일간 활동이 없으면 GitHub가 멈춘다. 두 달에 한 번은 커밋하거나 Actions 화면에서 다시 켠다.
 
@@ -24,9 +24,9 @@
 | `KMA_APIHUB_KEY` | [기상청 API허브](https://apihub.kma.go.kr/apiList.do?seqApi=10&seqApiSub=288) | 특보현황 (wrn_now_data) |
 | `DATA_GO_KR_KEY` | [공공데이터포털](https://www.data.go.kr/data/15095335/openapi.do) | 정책브리핑 정책뉴스 (자동승인) |
 
-- [ ] ✋ 위 3개 키 발급
-- [ ] ✋ 저장소 Settings → Secrets and variables → Actions → New repository secret 으로 등록 (키를 채팅에 붙여넣지 말 것)
-- [ ] 🤖 실제 응답으로 파서 점검 (응답 형식이 문서와 다르면 `scripts/sources/*`와 테스트 수정)
+- [x] ✋ 위 3개 키 발급
+- [x] ✋ 저장소 Settings → Secrets and variables → Actions → New repository secret 으로 등록 (키를 채팅에 붙여넣지 말 것)
+- [x] 🤖 실제 응답으로 파서 점검 (응답 형식이 문서와 다르면 `scripts/sources/*`와 테스트 수정)
 
 **이용 조건 확인 필요**
 - 긴급재난문자: safetydata.go.kr에는 공공누리 3유형(상업 이용 가능·변경 금지), data.go.kr 목록에는 4유형(상업 이용 금지)으로 서로 다르게 적혀 있다. 무료·광고 없는 지금은 두 조건 모두 맞지만, **유료화 전에 행정안전부 재난정보통신과(044-205-8461)에 확인**한다. 본문은 바꾸지 않고 그대로 보여준다.
@@ -49,6 +49,7 @@
 ## 5단계 — Google Play Console
 
 - [x] ✋ [Play Console](https://play.google.com/console) 개발자 계정 등록 (2026-10-20, 개인 계정, 개발자 이름 비실명) — 본인 인증 진행
+- [x] Android 기기 확인 완료 / [ ] 신원 확인(Google 심사 중, 주소 증빙 서류 필요) / [ ] 전화번호 인증(신원 확인 후)
 - [ ] ✋ 앱 만들기 → 무료 앱 / 앱(게임 아님)
 - [ ] ✋ 스토어 등록정보 입력 — 문구와 그림은 `store/` 폴더 (`store/listing.md`)
   - 스크린샷은 지금 데모 데이터 화면이다. **실제 데이터가 들어온 뒤 다시 찍어 교체**한다 (`node scripts/screenshots.mjs`를 실데이터 주소로).
