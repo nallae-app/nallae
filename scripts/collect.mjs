@@ -17,6 +17,7 @@ import { fetchFestivals } from './sources/festivals.mjs';
 import { fetchFuel, PRODUCTS } from './sources/fuel.mjs';
 import { fetchFood } from './sources/food-safety.mjs';
 import { fetchTemperature, latestBase } from './sources/temperature.mjs';
+import { fetchForecast, forecastBase } from './sources/forecast.mjs';
 
 // 일시적인 네트워크 오류('fetch failed')는 3초 뒤 한 번 더 시도한다
 const rawFetch = globalThis.fetch;
@@ -166,6 +167,29 @@ const WEATHER_OUT = 'web/data/weather.json';
   } catch (e) {
     console.log(`- 기온: 실패 — ${e.message || e}`);
     if (prevW) { fs.writeFileSync(WEATHER_OUT, JSON.stringify(prevW)); console.log('  직전 weather.json 유지'); }
+  }
+}
+
+// 오늘·내일 예보 (기상청 단기예보) — 05·17시 발표가 바뀔 때만
+const FORECAST_OUT = 'web/data/forecast.json';
+{
+  const prevF = await prevJson('forecast.json');
+  const base = forecastBase(now);
+  try {
+    if (!process.env.FORCE_REFRESH && prevF?.base === base.iso) {
+      fs.writeFileSync(FORECAST_OUT, JSON.stringify(prevF));
+      console.log(`- 예보: 직전 파일 유지 (${prevF.base} 발표)`);
+    } else {
+      const r = await fetchForecast({ key: process.env.DATA_GO_KR_KEY, base });
+      if (r.skipped) console.log(`- 예보: 건너뜀 (${r.skipped})`);
+      else {
+        fs.writeFileSync(FORECAST_OUT, JSON.stringify({ updated: now.toISOString(), base: r.base, source: '기상청 단기예보 (공공데이터포털)', sgg: r.sgg }));
+        console.log(`- 예보: 시·군·구 ${Object.keys(r.sgg).length}곳 → ${FORECAST_OUT}`);
+      }
+    }
+  } catch (e) {
+    console.log(`- 예보: 실패 — ${e.message || e}`);
+    if (prevF) { fs.writeFileSync(FORECAST_OUT, JSON.stringify(prevF)); console.log('  직전 forecast.json 유지'); }
   }
 }
 

@@ -5,6 +5,7 @@ import { katecToWgs84 } from '../lib/katec.mjs';
 import { sigunToSgg, toStation } from '../sources/fuel.mjs';
 import { toFoodBySgg, parseCsv } from '../sources/food-safety.mjs';
 import { toGrid, latestBase, toObs, sggGrids } from '../sources/temperature.mjs';
+import { forecastBase, toDays } from '../sources/forecast.mjs';
 
 test('기상청 격자·발표 시각·실황 값', () => {
   assert.deepEqual(toGrid(37.5665, 126.978), { nx: 60, ny: 127 }); // 서울시청 (기상청 문서 예시)
@@ -15,6 +16,20 @@ test('기상청 격자·발표 시각·실황 값', () => {
   assert.deepEqual(toObs([{ category: 'T1H', obsrValue: '18.3' }, { category: 'RN1', obsrValue: '0' }, { category: 'REH', obsrValue: '-999' }]), { t: 18.3, rn: 0, reh: undefined, wsd: undefined, pty: undefined });
   assert.equal(toObs([{ category: 'T1H', obsrValue: '-999' }]), null);
   assert.equal(new Set(sggGrids().map((g) => `${g.nx},${g.ny}`)).size > 200, true);
+});
+
+test('단기예보 발표 시각·하루 요약', () => {
+  assert.equal(forecastBase(new Date('2026-10-21T05:00:00Z')).iso, '2026-10-21T05:00:00+09:00'); // 14시 → 05시 발표
+  assert.equal(forecastBase(new Date('2026-10-21T08:20:00Z')).iso, '2026-10-21T17:00:00+09:00'); // 17:20
+  assert.equal(forecastBase(new Date('2026-10-20T19:00:00Z')).iso, '2026-10-20T17:00:00+09:00'); // 04시 → 전날 17시
+  const it = (category, fcstDate, fcstTime, fcstValue) => ({ category, fcstDate, fcstTime, fcstValue });
+  const days = toDays([
+    it('TMN', '20261022', '0600', '4.0'), it('TMX', '20261022', '1500', '16.0'),
+    it('POP', '20261022', '0900', '20'), it('POP', '20261022', '1500', '60'),
+    it('PTY', '20261022', '1500', '1'), it('SKY', '20261022', '1200', '4'),
+    it('TMX', '20261024', '1500', '18.0'), // 모레 이후는 뺀다
+  ], '2026-10-21');
+  assert.deepEqual(days, { '2026-10-22': { tmn: 4, tmx: 16, pop: 60, pty: 1, sky: 4 } });
 });
 
 test('CSV 읽기', () => {
