@@ -55,9 +55,10 @@ function findInSido(sidoCode, word, filter) {
 
 /**
  * "서울특별시 마포구", "경기도 수원시 장안구", "부산광역시 전체", "강원도" 같은 지역 표현 하나를 코드로 바꾼다.
+ * strict면 시·군·구를 못 찾았을 때 시·도 전체로 넓히지 않는다(가격·업소처럼 한 곳에 붙어야 하는 자료용).
  * @returns {{ sgg: string[], sido: string[] }}
  */
-export function resolvePlace(text) {
+export function resolvePlace(text, { strict = false } = {}) {
   const t = String(text || '').trim();
   const out = { sgg: [], sido: [] };
   const key = SIDO_KEYS.find((k) => t === k || t.startsWith(k + ' ') || t.startsWith(k));
@@ -74,6 +75,7 @@ export function resolvePlace(text) {
   let found = findInSido(code, words.slice(0, 2).join(''), filter);
   if (!found.length) found = findInSido(code, words[0], filter);
   if (found.length) out.sgg.push(...found.map((r) => r.code));
+  else if (strict) return out; // strict: 시·군·구를 못 찾으면 넓히지 않고 빈 결과
   else if (filter) out.sgg.push(...SGG_BY_SIDO.get(code).filter(filter).map((r) => r.code));
   else out.sido.push(code); // 시·군·구를 못 찾으면 (예: 폐지된 구 이름) 시·도 단위로
   return out;
