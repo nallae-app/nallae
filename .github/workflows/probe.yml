@@ -17,3 +17,7 @@ jobs:
         env:
           ITS_KEY: ${{ secrets.ITS_KEY }}
         run: node scripts/probe-its.mjs
+      - name: data.go.kr
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: node scripts/probe-datago.mjs
