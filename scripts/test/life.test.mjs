@@ -15,8 +15,9 @@ test('시·군·구 평균 이름 → 코드', () => {
     { SIGUNNM: '서울 종로구', PRICE: 2102.57 },
     { SIGUNNM: '광주 없는구', PRICE: 1900 },
     { SIGUNNM: '서울 성북구', PRICE: 0 },
+    { SIGUNNM: '세종시', PRICE: 1850 },
   ]);
-  assert.deepEqual(prices, { 11110: 2102.57 });
+  assert.deepEqual(prices, { 11110: 2102.57, 36110: 1850 });
   assert.deepEqual(unmatched, ['광주 없는구']); // 광주 구 전체로 번지지 않는다
 });
 

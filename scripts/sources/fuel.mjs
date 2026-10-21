@@ -4,7 +4,7 @@
 //  - 시·군·구 평균(avgSigunPrice, 시·도별) → 앱 시·군·구 코드
 //  - 시·도별 최저가 10곳(lowTop10) → 좌표(KATEC)를 위경도로 바꿔 지도 점으로
 // 호출 수: 1 + 17개 시·도 × (평균 2 + 최저가 2) = 69회. 3시간마다 → 하루 약 550회.
-import { resolvePlace } from '../lib/regions.mjs';
+import { resolvePlace, regionIndex } from '../lib/regions.mjs';
 import { katecToWgs84 } from '../lib/katec.mjs';
 import { sggAt } from './festivals.mjs';
 
@@ -22,7 +22,10 @@ export function sigunToSgg(rows) {
   for (const r of rows) {
     const price = num(r.PRICE);
     if (!price) continue;
-    const { sgg } = resolvePlace(r.SIGUNNM, { strict: true });
+    const res = resolvePlace(r.SIGUNNM, { strict: true });
+    // '세종시'처럼 시·군·구가 하나뿐인 시·도는 시·도 이름으로 온다
+    const only = res.sido.length === 1 ? regionIndex.sgg.filter((s) => s.sido === res.sido[0]) : [];
+    const sgg = res.sgg.length ? res.sgg : only.length === 1 ? [only[0].code] : [];
     if (!sgg.length) { unmatched.push(r.SIGUNNM); continue; }
     for (const c of sgg) out[c] ??= price; // 같은 구가 두 번 나오면 먼저 온 값
   }

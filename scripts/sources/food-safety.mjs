@@ -44,13 +44,15 @@ export function toFoodBySgg(rows, today) {
   return { by, dropped };
 }
 
-export async function fetchFood({ key }) {
+export async function fetchFood({ key, budgetMs = 4 * 60e3 }) {
   if (!key) return { skipped: 'FOODSAFETY_KEY 없음' };
   const rows = [];
   let total = Infinity;
+  const deadline = Date.now() + budgetMs; // 배포 작업 10분 제한 안에서 끝내도록
   for (let start = 1; start <= total && start < 200000; start += PAGE) {
+    if (Date.now() > deadline) throw new Error(`식품안심업소 시간 초과 ${rows.length}/${total}건에서 멈춤`);
     const url = `http://openapi.foodsafetykorea.go.kr/api/${encodeURIComponent(key)}/C004/json/${start}/${start + PAGE - 1}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(60000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(Math.max(5000, Math.min(60000, deadline - Date.now()))) });
     if (!res.ok) throw new Error(`식품안심업소 HTTP ${res.status}`);
     const j = (await res.json()).C004 || {};
     const code = j.RESULT?.CODE;
