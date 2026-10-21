@@ -138,3 +138,36 @@ path.region.flash { transition:none; }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } .pulse .ring { display:none; } .bubble { animation:none; opacity:1; } }
 
 .feed li.critical { box-shadow:inset 3px 0 var(--signal-critical); background:var(--surface-muted); }
+
+/* Claude 4?: A?B ?? ??, ??? ???? ??? ????. */
+.brand h1 { font-weight:600; }
+.brand p { font-size:12px; line-height:18px; }
+.logo { position:relative; width:28px; height:28px; border:1px solid var(--signature); border-radius:50%; }
+.logo::before { content:''; position:absolute; inset:5px; border:1px solid var(--signature); border-radius:50%; }
+.logo i { width:5px; height:5px; }
+.top-right { gap:4px; }
+.info,#btn-theme { width:44px; height:44px; padding:4px; background:none; box-shadow:none; position:relative; }
+.info::before,#btn-theme::before { content:''; position:absolute; inset:3px; background:var(--surface); border-radius:12px; z-index:-1; }
+.info svg,#btn-theme svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
+.badge-sample { background:none; padding:0 2px; font-size:12px; border-radius:0; }
+.panel-head { padding:16px 16px 8px; padding-right:110px; }
+.panel-head h2 { font-size:20px; line-height:28px; }
+.panel-head p { margin:4px 0 0; font-size:12px; line-height:18px; }
+.collection-status { position:absolute; right:16px; top:20px; max-width:96px; padding:0; font-size:12px; line-height:18px; text-align:right; }
+.collection-status::before { content:'?'; margin-right:4px; }
+.chips { padding:0 16px 4px; gap:4px; }
+.chips button { background:var(--surface-muted); padding:6px 10px; }
+.chips .category-icon { width:20px; height:20px; }
+.feed { padding:0 16px 16px; }
+.feed li { padding:10px 8px; }
+.title { margin-top:4px; font-size:16px; line-height:24px; }
+.meta { gap:4px 6px; font-size:12px; line-height:18px; }
+.place-label { color:var(--text); font-weight:600; }
+.meta time { font-weight:400; }
+.meta .category-icon { width:16px; height:16px; }
+.meta .urgency { font-size:12px; line-height:18px; }
+.bubble.priority { animation-delay:0s; animation-duration:5.5s; z-index:2; }
+@media(prefers-reduced-motion:reduce) { .bubble.priority { animation:none; opacity:1; } }
+.replay-toast { position:fixed; z-index:900; top:144px; left:16px; margin:0; padding:4px 8px; border-radius:12px; background:var(--surface); color:var(--text-muted); font-size:12px; line-height:18px; pointer-events:none; }
+@media(min-width:760px) { .replay-toast { left:372px; top:96px; } }
+@media(max-width:759px) { .panel-head { padding-top:0; } .collection-status { top:48px; } .panel-head p { max-width:240px; } }

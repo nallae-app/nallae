@@ -38,8 +38,8 @@
     </div>
     <div class="top-right">
       <button id="btn-theme" type="button" aria-label="화면 테마 전환">시스템</button>
-      <span class="badge-sample" id="badge-demo" hidden>데모 데이터</span>
-      <a class="info" href="about.html" aria-label="앱 정보">i</a>
+      <span class="badge-sample" id="badge-demo" hidden>데모</span>
+      <a class="info" href="about.html" aria-label="앱 정보"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg></a>
     </div>
   </header>
 
@@ -62,14 +62,14 @@
         <p id="panel-sub">소식을 불러오는 중…</p>
       </div>
     </div>
-    <div class="chips" id="chips"></div>
     <p id="collection-status" class="collection-status" role="status"></p>
-    <p id="replay-status" class="collection-status" role="status" hidden>최근 1시간 소식 재생 중</p>
+    <div class="chips" id="chips"></div>
+
     <button id="new-items" type="button" hidden></button>
     <ul class="feed" id="feed"></ul>
-    <p class="privacy">위치는 기기 안에서만 쓰고 서버로 보내지 않아요. <a href="privacy.html">개인정보처리방침</a></p>
   </aside>
 
+  <p id="replay-status" class="replay-toast" role="status" hidden>최근 1시간 소식 재생 중</p>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="vendor/leaflet.min.js"></script>

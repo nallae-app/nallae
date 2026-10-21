@@ -35,8 +35,10 @@
   function applyTheme() {
     const mode = root.dataset.themeMode;
     root.dataset.theme = mode === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : mode;
-    themeButton.textContent = {light:'라이트',dark:'다크',system:'시스템'}[mode];
-    themeButton.setAttribute('aria-label', '화면 테마: ' + themeButton.textContent + '. 누르면 다음 설정');
+    const name = {light:'라이트',dark:'다크',system:'시스템'}[mode];
+    const shape = {light:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',dark:'<path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/>',system:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4M12 7v7m0-7a3.5 3.5 0 0 1 0 7"/>'}[mode];
+    themeButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + shape + '</svg>';
+    themeButton.setAttribute('aria-label', '화면 테마: ' + name + '. 누르면 다음 설정');
   }
   themeButton.addEventListener('click', () => {
     const modes = ['system','light','dark'];
@@ -215,14 +217,15 @@
     const edge = x > w - 150 ? ' to-left' : x < 150 ? ' to-right' : '';
     const html = `<div class="pulse" style="${signalStyle(item)}">
       ${reducedMotion.matches ? '' : '<span class="ring"></span>'}<span class="dot"></span>
-      ${withBubble ? `<div class="bubble${edge}"><b>${escapeHtml(where)}</b>${urgencyBadge(item)}<span class="bubble-title">${escapeHtml(item.title)}</span></div>` : ''}
+      ${withBubble ? `<div class="bubble${edge}${['critical','urgent'].includes(item.urgency) ? ' priority' : ''}"><b>${escapeHtml(where)}</b>${urgencyBadge(item)}<span class="bubble-title">${escapeHtml(item.title)}</span></div>` : ''}
     </div>`;
     const marker = L.marker(at, {
       pane: 'pulses', interactive: false, keyboard: false,
       icon: L.divIcon({ className: '', html, iconSize: [0, 0] }),
     }).addTo(map);
     if (withBubble) {
-      if (bubbleMarker) map.removeLayer(bubbleMarker);
+      if (bubbleMarker && !bubbleMarker.priority) map.removeLayer(bubbleMarker);
+      marker.priority = ['critical','urgent'].includes(item.urgency);
       bubbleMarker = marker;
     }
     setTimeout(() => { map.removeLayer(marker); if (bubbleMarker === marker) bubbleMarker = null; }, 5600);
@@ -281,10 +284,13 @@
       // 첫 진입: 최근 1시간 소식을 오래된 것부터 빠르게 재생
       const cutoff = Date.now() - REPLAY_WINDOW_MIN * 60000;
       const replay = incoming.filter((it) => onMap(it) && new Date(it.time) >= cutoff).slice(0, 20).reverse();
+      // Prioritize explicit urgency; preserve chronology within each group.
+      const priority = it => ({critical:0,urgent:1}[it.urgency] ?? 2);
+      replay.sort((a,b) => priority(a) - priority(b));
       const replayStatus = document.getElementById('replay-status');
       replayStatus.hidden = !replay.length;
       setTimeout(() => { replayStatus.hidden = true; }, 500 + replay.length * REPLAY_STEP_MS + 5600);
-      replay.forEach((it, k) => setTimeout(() => pulse(it, k === replay.length - 1 || k % 3 === 0), 500 + k * REPLAY_STEP_MS));
+      replay.forEach((it, k) => setTimeout(() => pulse(it, ['critical','urgent'].includes(it.urgency) || k === replay.length - 1 || k % 3 === 0), 500 + k * REPLAY_STEP_MS));
       return;
     }
     const holding = feedEl.scrollTop > 8 || feedEl.contains(document.activeElement);
@@ -314,7 +320,7 @@
     const failed = Object.entries(sources).filter(([,v]) => v.ok === false);
     const stale = updatedAt && Date.now() - updatedAt > 60 * 60 * 1000;
     status.classList.toggle('failed', loadFailed || !!failed.length);
-    status.textContent = (loadFailed ? '소식을 새로 불러오지 못했어요 · ' : failed.length ? '일부 출처 수집 실패 · ' : stale ? '갱신이 지연되고 있어요 · ' : '') + (updatedAt ? ago(updatedAt) + ' 갱신' : '갱신 시각 미제공');
+    status.textContent = (loadFailed ? '소식을 새로 불러오지 못했어요 · ' : failed.length ? '일부 출처 수집 실패 · ' : stale ? '갱신이 지연되고 있어요 · ' : '') + (updatedAt ? ago(updatedAt) : '갱신 시각 미제공');
   }
   function sourceStatus() {
     const names = {sms:'긴급재난문자',wrn:'기상특보',brief:'정책브리핑'};
@@ -323,14 +329,9 @@
       return '<p class="source-status">' + names[key] + ': ' + (!v ? '확인 정보 없음' : (v.ok === false ? '수집 실패' : '확인') + ' · ' + (v.at ? escapeHtml(new Date(v.at).toLocaleString('ko-KR')) : '시각 미제공')) + '</p>';
     }).join('');
   }
-  function duplicateTitle(it) {
-    const clean = v => String(v || '').replace(/[\s\p{P}]/gu,'');
-    const a = clean(it.title), b = clean(it.body);
-    return b && (a === b || (Math.min(a.length,b.length) / Math.max(a.length,b.length) > .8 && (a.includes(b) || b.includes(a))));
-  }
   function card(it) {
     const open = it.id === openId;
-    return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta"><span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span>' + urgencyBadge(it) + '<span>' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '">' + ago(new Date(it.time)) + '</time></span><span class="title">' + (open && duplicateTitle(it) ? '상세 소식' : escapeHtml(it.title)) + '</span></button>' + (open ? detail(it) : '');
+    return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span><span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '">' + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(it.title) + '</span></button>' + (open ? detail(it) : '');
   }
   function renderFeed(newIds, preserve = false) {
     if (!preserve) pending.clear();
