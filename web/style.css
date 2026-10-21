@@ -472,3 +472,6 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .fuel-summary > div:first-child { min-width:0; flex:1; }
 .fuel-summary .explore-toggle { flex:none; }
 .fuel-summary .explore-toggle button { white-space:nowrap; }
+/* 소개된 식당(서울, 손으로 확인한 목록) */
+.place-source { color:var(--text-muted); }
+.place-checked { color:var(--text-muted); font-size:13px!important; }
