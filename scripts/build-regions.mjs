@@ -4,6 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import mapshaper from 'mapshaper';
+import * as topojson from 'topojson-client';
+import polylabel from 'polylabel';
 
 const SRC_DIR = 'build-src/admdong';
 const src = fs.readdirSync(SRC_DIR).filter((f) => /^HangJeongDong_ver\d+\.geojson$/.test(f)).sort().pop();
@@ -46,6 +48,25 @@ for (const g of topo.objects.sido.geometries) {
   p.short = p.name === '전남광주통합특별시' ? '전남광주' : SIDO_SHORT[p.name] || p.name;
 }
 if (!topo.objects.sgg.geometries.some((g) => g.properties.name === '울릉군')) throw new Error('울릉군 누락');
+
+// 라벨 위치: 가장 큰 폴리곤 안쪽 깊은 점(pole of inaccessibility). lx=경도, ly=위도, la=라벨 우선순위용 면적(대략, 도² 단위).
+// 화면에서는 선택 지역 → 시·도 → 시·군·구 순, 같은 순위에서는 la가 큰 것부터 놓고 겹치면 생략한다.
+const ringArea = (r) => Math.abs(r.reduce((s, [x1, y1], i) => { const [x2, y2] = r[(i + 1) % r.length]; return s + x1 * y2 - x2 * y1; }, 0) / 2);
+for (const [objName, obj] of Object.entries(topo.objects)) {
+  const fc = topojson.feature(topo, obj);
+  fc.features.forEach((f, i) => {
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    const biggest = polys.reduce((a, p) => (ringArea(p[0]) > ringArea(a[0]) ? p : a));
+    // 경도·위도 그대로 쓰면 동서로 늘어나므로 위도 보정(cos)한 좌표에서 찾는다
+    const k = Math.cos((biggest[0][0][1] * Math.PI) / 180);
+    const pt = polylabel(biggest.map((ring) => ring.map(([x, y]) => [x * k, y])), 0.0005);
+    const p = obj.geometries[i].properties;
+    p.lx = +(pt[0] / k).toFixed(4);
+    p.ly = +pt[1].toFixed(4);
+    p.la = +polys.reduce((s, poly) => s + ringArea(poly[0]) * k, 0).toFixed(5);
+  });
+  console.log(`${objName}: 라벨 위치 ${obj.geometries.length}개`);
+}
 
 topo.meta = { source: 'admdongkor (CC BY 4.0) / 통계청 SGIS (공공누리 1유형)', version };
 fs.writeFileSync('web/data/regions.json', JSON.stringify(topo));
