@@ -40,7 +40,7 @@
 
 ## 4단계 — Android 패키지 만들기 (TWA)
 
-- [x] 패키지 이름: **`com.rehyyn.nallae`** (출시 후 변경 불가)
+- [ ] 패키지 이름 최종 확정: 기존 AAB·루트 `assetlinks.json`은 이전 식별자 사용 중. 브랜드 전용 후보 `app.nallae`는 아직 적용하지 않음. Play 등록·업로드 상태 확인 → Android 재빌드 → TWA 연결 갱신을 함께 진행해야 함. 등록된 패키지 이름은 변경·재사용할 수 없으므로 [계정 정리 현황](BRAND_ACCOUNTS.md)을 먼저 확인.
 - [x] PWABuilder로 패키지 생성 (2026-10-20). 결과물은 `android/`(git 제외): `.aab`(Play 업로드용), `.apk`(휴대폰 직접 설치 시험용), `signing.keystore` + `signing-key-info.txt`
   - **서명 키와 비밀번호 파일은 개인 클라우드·USB에 따로 백업.** 잃으면 업데이트 불가
 - [x] `assetlinks.json`을 조직 루트 저장소 [nallae-app/nallae-app.github.io](https://github.com/nallae-app/nallae-app.github.io)의 `.well-known/`에 배포 (TWA는 도메인 맨 위에서만 찾는다)

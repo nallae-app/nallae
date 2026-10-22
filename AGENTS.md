@@ -15,7 +15,7 @@
 | 웹앱 | https://nallae-app.github.io/nallae/ |
 | 저장소 | https://github.com/nallae-app/nallae (공개, 조직 `nallae-app`) |
 | 루트 사이트 | https://github.com/nallae-app/nallae-app.github.io — `.well-known/assetlinks.json`(TWA 연결)과 `/nallae/`로 이동 페이지만 |
-| Android 패키지 | `com.rehyyn.nallae` (변경 불가) |
+| Android 패키지 | 기존 AAB 및 루트 `assetlinks.json` 값 유지 중. 브랜드 전용 식별자로 변경 검토 중이며, `docs/BRAND_ACCOUNTS.md` 참고. 빌드·연결·Play 등록을 함께 확인하기 전 임의 변경 금지 |
 | 공개 연락처 | nallae.app@gmail.com, 공개 운영자명 "날래 개발자" |
 
 ## 3. 절대 규칙
@@ -104,6 +104,7 @@ tools/serve.ps1          로컬 정적 서버 (http://localhost:5173/?demo)
 - ITS 이벤트는 좌표 한 점이라 지도에 **점 마커** 기능이 새로 필요하다(지금은 시·군·구 면만 반짝임).
 
 ## 7. 출시(Google Play) 진행 상황
+- 공개 브랜드와 계정 소유자는 별개다. 공개 표기는 "날래 개발자" / nallae.app@gmail.com을 유지한다. Play의 개인 계정 법적 이름 공개 요건은 별도이며 완전 익명을 보장하지 않는다. 계정·패키지 정리 현황은 `docs/BRAND_ACCOUNTS.md` 참고.
 - 개발자 계정(개인, 개발자명 비실명) 생성·등록비 결제 완료. Android 기기 확인 완료.
 - **신원 확인 Google 심사 중**(주소 증빙: 90일 내 공과금·카드·은행 명세서·임대계약서만 허용, 주민등록등본 불가). 전화번호 인증은 그 뒤.
 - 남은 일: 앱 만들기 → 비공개 테스트에 `android/pkg/*.aab` 업로드(Play 앱 서명 사용) → **Play 앱 서명 키 SHA-256을 루트 저장소 assetlinks.json에 추가** → 안드로이드 테스터 12명 × 14일 → 프로덕션 신청.
