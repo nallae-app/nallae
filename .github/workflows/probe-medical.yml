@@ -1,0 +1,21 @@
+# 약국·응급실 API 권한 확인용 수동 작업 (Actions 탭 → probe-medical → Run workflow)
+# 국립중앙의료원 두 서비스만 최대 3번 부른다. 다른 출처(오피넷·식품·주차 등)는 부르지 않는다.
+# 키는 출력하지 않는다(scripts/probe-medical.mjs가 가린다).
+name: probe-medical
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 약국·응급실 (data.go.kr 15000576, 15000563)
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: node scripts/probe-medical.mjs
