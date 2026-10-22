@@ -74,10 +74,10 @@ map.createPane('decor').style.zIndex = 440;
 map.getPane('decor').style.pointerEvents = 'none';
 
 // 부캉이: 2026-09 부산 동구 북항 친수공원 수로에서 발견된 상어에 붙은 애칭(부산시설공단 작명)을 기념하는 장식.
-// 현재 위치·실제 이동 경로가 아니다. 좌표는 OpenStreetMap '북항친수공원'(way 1562454530) 중심. 부산 북항을 확대(13 이상)했을 때만 보인다.
-const BUKANGI = L.latLng(35.1100862, 129.0458678), BUKANGI_MIN_ZOOM = 13; // 12 이하에서는 항만이 작아 육지에 걸친다(실측)
+// 현재 위치·실제 이동 경로가 아니다. 좌표는 OpenStreetMap '북항친수공원'(way 1562454530) 중심. 부산 전체를 보는 배율부터 보인다.
+const BUKANGI = L.latLng(35.1100862, 129.0458678), BUKANGI_MIN_ZOOM = 8; // 부산 전체를 보는 배율부터 기념 캐릭터 표시
 const bukangi = L.marker(BUKANGI, { pane: 'decor', interactive: false, keyboard: false, icon: L.divIcon({ className: 'bukangi-marker', iconSize: [64, 40], iconAnchor: [4, 20], // 좌표는 그대로, 그림은 점의 바다 쪽(동쪽)에서만 오간다
-  html: '<span class="bukangi" role="img" aria-label="부캉이 기념 캐릭터. 부산 북항 친수공원 수로에서 발견된 상어의 애칭을 기리는 장식이며 현재 위치나 이동 경로가 아니에요.">'
+  html: '<span class="bukangi-name" aria-hidden="true">부캉이</span><span class="bukangi" role="img" aria-label="부캉이 기념 캐릭터. 부산 북항 친수공원 수로에서 발견된 상어의 애칭을 기리는 장식이며 현재 위치나 이동 경로가 아니에요.">'
     + '<span class="bukangi-swim"><svg viewBox="0 0 64 40" aria-hidden="true">'
     + '<g class="bukangi-tail"><path d="M50 20 L62 10 Q59 20 62 30 Z"/></g>'
     + '<path class="bukangi-fin" d="M27 10 Q31 2 36 9 Z"/>'
