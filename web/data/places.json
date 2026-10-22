@@ -574,6 +574,176 @@
    "addressEvidence": "운영자가 제공한 식당명·지점·도로명주소. 현재 영업 여부는 별도 확인하지 않음.",
    "addressEvidenceUrl": null,
    "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-H78NvlNeSGk-태화장",
+   "name": "태화장",
+   "branch": null,
+   "address": "대전 동구 중앙로203번길 78",
+   "district": "대전 동구",
+   "sgg": "30110",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=H78NvlNeSGk"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 태화장 / 대전 동구 중앙로203번길 78",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=H78NvlNeSGk",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-KEeGBUHnJsc-군위식당",
+   "name": "군위식당",
+   "branch": null,
+   "address": "대구 중구 경상감영길 101 중앙상가",
+   "district": "대구 중구",
+   "sgg": "27110",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=KEeGBUHnJsc"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 군위식당 / 대구 중구 경상감영길 101 중앙상가",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=KEeGBUHnJsc",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-sGeuize0CAA-막동이회관",
+   "name": "막동이회관",
+   "branch": null,
+   "address": "광주 동구 남문로 614",
+   "district": "광주 동구",
+   "sgg": "12210",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=sGeuize0CAA"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 막동이회관 / 광주 동구 남문로 614",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=sGeuize0CAA",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-Wj_7fiFawMQ-만리향",
+   "name": "만리향",
+   "branch": null,
+   "address": "부산 중구 충장대로9번길 9-1 1층",
+   "district": "부산 중구",
+   "sgg": "26110",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=Wj_7fiFawMQ"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 만리향 / 부산 중구 충장대로9번길 9-1 1층",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=Wj_7fiFawMQ",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-9M30E6sf90g-나진국밥",
+   "name": "나진국밥",
+   "branch": null,
+   "address": "전남 여수시 화양면 화양로 1391",
+   "district": "전남 여수시",
+   "sgg": "12130",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=9M30E6sf90g"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 나진국밥 / 전남 여수시 화양면 화양로 1391",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=9M30E6sf90g",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-8KZrrZWoRDc-참조은 생고기",
+   "name": "참조은 생고기",
+   "branch": null,
+   "address": "대구 북구 복현로 78",
+   "district": "대구 북구",
+   "sgg": "27230",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=8KZrrZWoRDc"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 참조은 생고기 / 대구 북구 복현로 78",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=8KZrrZWoRDc",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-zA-F9EtsRJc-만우장",
+   "name": "만우장",
+   "branch": null,
+   "address": "부산 수영구 수영로594번길 28-2",
+   "district": "부산 수영구",
+   "sgg": "26500",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=zA-F9EtsRJc"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 만우장 / 부산 수영구 수영로594번길 28-2",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=zA-F9EtsRJc",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-oGlOUzsCa4k-당케올레국수",
+   "name": "당케올레국수",
+   "branch": null,
+   "address": "제주 서귀포시 표선면 표선당포로 4",
+   "district": "제주 서귀포시",
+   "sgg": "50130",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=oGlOUzsCa4k"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 당케올레국수 / 제주 서귀포시 표선면 표선당포로 4",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=oGlOUzsCa4k",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-UHembfdHJn8-청화집",
+   "name": "청화집",
+   "branch": null,
+   "address": "충남 천안시 동남구 병천면 충절로 1749",
+   "district": "충남 천안시 동남구",
+   "sgg": "44131",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=UHembfdHJn8"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 청화집 / 충남 천안시 동남구 병천면 충절로 1749",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=UHembfdHJn8",
+   "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "v-Mlh01V0vxeI-윤밀원",
+   "name": "윤밀원",
+   "branch": null,
+   "address": "경기 성남시 분당구 백현로 154 1층",
+   "district": "경기 성남시 분당구",
+   "sgg": "41135",
+   "food": null,
+   "source": {
+    "type": "video",
+    "channel": "성시경 SUNG SI KYUNG",
+    "url": "https://www.youtube.com/watch?v=Mlh01V0vxeI"
+   },
+   "addressEvidence": "공식 영상 설명란 상호·주소 확인: 윤밀원 / 경기 성남시 분당구 백현로 154 1층",
+   "addressEvidenceUrl": "https://www.youtube.com/watch?v=Mlh01V0vxeI",
+   "checkedAt": "2026-10-22"
   }
  ]
 }
