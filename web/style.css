@@ -481,7 +481,7 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .bukangi-marker:focus-visible { outline:2px solid var(--brand); outline-offset:4px; border-radius:12px; }
 .bukangi-popup p { margin:8px 0; line-height:1.6; }
 .bukangi-popup small { color:var(--text-muted); }
-.bukangi-name { position:absolute; z-index:1; left:12px; top:-22px; padding:2px 7px; border-radius:10px; background:var(--surface); color:var(--text); box-shadow:0 1px 4px #0002; font-size:12px; line-height:16px; font-weight:700; white-space:nowrap; }
+.bukangi-name { position:absolute; z-index:1; left:12px; top:42px; padding:2px 7px; border-radius:10px; background:var(--surface); color:var(--text); box-shadow:0 1px 4px #0002; font-size:12px; line-height:16px; font-weight:700; white-space:nowrap; }
 .bukangi { display:block; width:64px; height:40px; animation:bukangi-roam 14s ease-in-out infinite; }
 .bukangi-swim { display:block; width:64px; height:40px; animation:bukangi-bob 2.6s ease-in-out infinite; }
 .bukangi svg { width:64px; height:40px; overflow:visible; filter:drop-shadow(0 2px 2px #0002); }
