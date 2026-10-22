@@ -4,7 +4,7 @@ const params = new URLSearchParams(location.search);
 const DEMO = params.has('demo');
 let mode = 'news';
 try { if (localStorage.getItem('nallae-mode') === 'explore') mode = 'explore'; } catch (_) {}
-if (DEMO && params.has('rain')) mode = 'explore';
+if (DEMO && (params.has('rain') || params.has('snow'))) mode = 'explore';
 rootMode();
 function rootMode() { document.documentElement.dataset.mode = mode; }
 const NEWS_URL = DEMO ? 'data/demo-news.json' : 'data/news.json';
@@ -1091,7 +1091,7 @@ new MutationObserver(() => {
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
 ﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, placesData=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null;
 try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'festival'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
-const preferredExploreLayer=DEMO && params.has('rain') ? 'weather' : exploreLayer;
+const preferredExploreLayer=DEMO && (params.has('rain') || params.has('snow')) ? 'weather' : exploreLayer;
 const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
 let foodQuery='', foodKind='', foodLimit=50, foodCode=null;
 const fuelMarkers=L.layerGroup().addTo(map);
@@ -1236,14 +1236,20 @@ const rainScene = L.layerGroup().addTo(map);
 function updateRainScene() {
   rainScene.clearLayers();
   if (document.hidden || mode !== 'explore' || exploreLayer !== 'weather' || !selection) return;
-  const region = selection.center, preview = DEMO && params.has('rain');
+  const region = selection.center, preview = DEMO && (params.has('rain') || params.has('snow'));
   const age = Date.now() - new Date(forecastData?.base).getTime();
   const day = forecastData?.sgg?.[region.code]?.[koreaDate(new Date())];
-  if (!preview && (!(age >= 0 && age <= 36*3600000) || ![1,2,4].includes(day?.pty))) return;
+  if (!preview && (!(age >= 0 && age <= 36*3600000) || ![1,2,3,4].includes(day?.pty))) return;
   if (!map.getBounds().contains(region.center)) return;
-  const caption = preview ? '비 연출 미리보기' : day.pty === 2 ? '오늘 비·눈 예보' : '오늘 비 예보';
-  const text = preview ? '비 연출 미리보기. 실제 날씨가 아니에요.' : '오늘 비 예보 연출. 현재 강수나 정확한 범위가 아니에요.';
-  L.marker(region.center, { pane:'decor', interactive:false, keyboard:false, icon:L.divIcon({className:'rain-scene-marker',iconSize:[108,80],iconAnchor:[54,65],html:'<span class="rain-scene" role="img" aria-label="'+text+'"><svg viewBox="0 0 108 60" aria-hidden="true"><path class="rain-cloud" d="M29 25a12 12 0 0 1 5-23 19 19 0 0 1 33 4 13 13 0 0 1 9 19Z"/>'+[29,41,53,65,77].map((x,i)=>'<path class="rain-drop" style="animation-delay:-'+(i*.29)+'s" d="M'+x+' 32l-4 11"/>').join('')+'</svg><span class="rain-scene-caption">'+caption+'</span></span>'}) }).addTo(rainScene);
+  const kind = preview ? (params.has('snow') ? 3 : 1) : day.pty;
+  const name = kind === 3 ? '눈' : kind === 2 ? '비·눈' : '비';
+  const caption = name + (preview ? ' 연출 미리보기' : ' 예보');
+  const text = preview ? name+' 연출 미리보기. 실제 날씨가 아니에요.' : '오늘 '+name+' 예보 연출. 현재 강수나 정확한 범위가 아니에요.';
+  const umbrella = kind !== 3 ? '<g class="rain-umbrella"><path class="umbrella-handle" d="M53 7v40q0 10 9 4"/><path d="M28 28a25 25 0 0 1 50 0Q72 22 65 28Q53 21 41 28Q34 22 28 28Z"/><circle class="weather-eye" cx="47" cy="17" r="1.4"/><circle class="weather-eye" cx="59" cy="17" r="1.4"/><ellipse class="weather-cheek" cx="43" cy="20" rx="2.4" ry="1.4"/><ellipse class="weather-cheek" cx="63" cy="20" rx="2.4" ry="1.4"/><path class="umbrella-smile" d="M50 20q3 3 6 0"/></g>' : '';
+  const drops = kind !== 3 ? [22,36,73,87].map((x,i)=>'<path class="rain-drop" style="animation-delay:-'+(i*.29)+'s" d="M'+x+' 2q-6 7 0 8q6-1 0-8Z"/>').join('') : '';
+  const flakes = kind !== 1 && kind !== 4 ? [24,44,65,83].map((x,i)=>'<g class="snow-flake" style="animation-delay:-'+i*.8+'s"><path d="M'+x+' 10v12m-5-9 10 6m-10 0 10-6"/></g>').join('') : '';
+  const snowman = kind === 3 ? '<g class="snowman"><path class="snowman-arm" d="M39 39 29 33m40 6 10-6"/><ellipse class="snowman-body" cx="54" cy="43" rx="15" ry="13"/><circle class="snowman-body" cx="54" cy="22" r="10"/><path class="snowman-scarf" d="M44 30q10 5 20 0v5q-10 4-20 0Zm14 4 6 1-1 10-6-2Z"/><circle class="snowman-eye" cx="50" cy="21" r="1.3"/><circle class="snowman-eye" cx="58" cy="21" r="1.3"/><path class="snowman-nose" d="m53 24 8 2-8 1Z"/><circle class="snowman-eye" cx="54" cy="41" r="1.3"/><circle class="snowman-eye" cx="54" cy="47" r="1.3"/></g>' : '';
+  L.marker(region.center, { pane:'decor', interactive:false, keyboard:false, icon:L.divIcon({className:'rain-scene-marker',iconSize:[108,80],iconAnchor:[54,65],html:'<span class="rain-scene" role="img" aria-label="'+text+'"><svg viewBox="0 0 108 60" aria-hidden="true">'+umbrella+drops+snowman+flakes+'</svg><span class="rain-scene-caption">'+(preview?'':'오늘 ')+caption+'</span></span>'}) }).addTo(rainScene);
 }
 map.on('moveend zoomend', updateRainScene);
 document.addEventListener('visibilitychange', updateRainScene);
@@ -1274,7 +1280,7 @@ function renderWeather() {
   const code=selection?.center.code, region=muniByCode.get(code), w=weatherData.sgg[code];
   const hour=validDate(new Date(weatherData.base))?kstHour(new Date(weatherData.base))+' 발표':'발표 시각 미제공';
   exploreTools.innerHTML=sourceDisclosure('실황 '+hour+(forecastData?' · '+forecastHour():'')+' · 기상청','기상청 초단기실황 · '+hour+(forecastData?' · '+forecastHour():'')+' · 시·군·구 대표 지점 격자(5km) 값이라 동네 안에서도 다를 수 있어요 · 시각은 한국 시간이에요','<span class="weather-legend" role="img" aria-label="지도 색: 기온이 낮을수록 파랑, 높을수록 주황">차가움 <i></i> 따뜻함</span>');
-  exploreTools.querySelector('.source-disclosure p').textContent += ' · 지도 빗방울은 선택 지역의 오늘 비 예보 연출이며 현재 비가 오는 위치나 강도를 뜻하지 않아요. 지역을 선택하면 확인할 수 있어요.';
+  exploreTools.querySelector('.source-disclosure p').textContent += ' · 지도 우산·눈사람은 선택 지역의 오늘 비·눈 예보 연출이며 현재 강수 위치나 강도를 뜻하지 않아요. 지역을 선택하면 확인할 수 있어요.';
   const rows=Object.entries(weatherData.sgg).filter(([c,v])=>muniByCode.has(c)&&Number.isFinite(v.t)).sort((a,b)=>a[1].t-b[1].t);
   const line=([c,v])=>'<p>'+escapeHtml(label(muniByCode.get(c)))+' <strong>'+v.t+'°</strong>'+(v.pty>0?' '+precipSymbol(v.pty):'')+'</p>';
   if(code) {

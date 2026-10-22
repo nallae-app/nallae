@@ -500,8 +500,24 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .rain-scene-marker { pointer-events:none!important; border:0; background:none; }
 .rain-scene { display:block; width:108px; text-align:center; }
 .rain-scene svg { display:block; width:108px; height:60px; overflow:hidden; }
-.rain-cloud { fill:var(--surface); stroke:#7CABB9; stroke-width:1.5; opacity:.92; }
-.rain-drop { fill:none; stroke:#4C9DBB; stroke-width:2.5; stroke-linecap:round; animation:rain-fall 1.6s linear infinite; }
+.snowman { transform-origin:54px 55px; animation:umbrella-sway 4s ease-in-out infinite; }
+.snowman-body { fill:#F5FBFF; stroke:#91B8C8; stroke-width:1.2; }
+.snowman-arm { fill:none; stroke:#8D6C4B; stroke-width:2; stroke-linecap:round; }
+.snowman-scarf { fill:#E59D62; }
+.snowman-eye { fill:#243C46; }
+.snowman-nose { fill:#DE843F; }
+.rain-umbrella { transform-origin:53px 50px; animation:umbrella-sway 4s ease-in-out infinite; }
+.rain-umbrella path { fill:#E3B655; stroke:#77602F; stroke-width:1.5; }
+.rain-umbrella .umbrella-handle { fill:none; stroke:var(--text); stroke-width:2.5; stroke-linecap:round; }
+.weather-eye { fill:#4D4431; }
+.weather-cheek { fill:#ECA073; opacity:.75; }
+.rain-umbrella .umbrella-smile { fill:none; stroke:#77602F; stroke-width:1.2; stroke-linecap:round; }
+.snow-flake { fill:none; stroke:#5495AD; stroke-width:1.8; stroke-linecap:round; animation:snow-fall 4s ease-in-out infinite; }
+:root[data-theme="dark"] .snow-flake { stroke:#C4E7F3; }
+@keyframes umbrella-sway { 0%,100% { transform:rotate(-5deg); } 50% { transform:rotate(5deg); } }
+@keyframes snow-fall { 0% { transform:translate(-3px,-9px); opacity:0; } 20% { opacity:.9; } 80% { opacity:.8; } 100% { transform:translate(4px,36px); opacity:0; } }
+@media (prefers-reduced-motion:reduce) { .snow-flake,.rain-umbrella,.snowman { animation:none; opacity:.9; } }
+.rain-drop { fill:#8EC7D8; stroke:#5E9DB5; stroke-width:.7; animation:rain-fall 1.8s linear infinite; }
 .rain-scene-caption { display:inline-block; padding:2px 6px; border-radius:8px; background:var(--surface); color:var(--text); font-size:11px; white-space:nowrap; }
 @keyframes rain-fall { 0% { transform:translateY(-7px); opacity:0; } 20% { opacity:.8; } 80% { opacity:.65; } 100% { transform:translateY(15px); opacity:0; } }
 @media (prefers-reduced-motion:reduce) { .rain-drop { animation:none; opacity:.65; } }
