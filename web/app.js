@@ -69,6 +69,32 @@ map.createPane('labels').style.zIndex = 420;
 map.getPane('labels').style.pointerEvents = 'none';
 map.createPane('selection').style.zIndex = 430;
 map.getPane('selection').style.pointerEvents = 'none';
+// 장식(지도 조작·마커를 가리지 않게 마커층 아래, 터치·끌기는 지도로 통과)
+map.createPane('decor').style.zIndex = 440;
+map.getPane('decor').style.pointerEvents = 'none';
+
+// 부캉이: 2026-09 부산 동구 북항 친수공원 수로에서 발견된 상어에 붙은 애칭(부산시설공단 작명)을 기념하는 장식.
+// 현재 위치·실제 이동 경로가 아니다. 좌표는 OpenStreetMap '북항친수공원'(way 1562454530) 중심. 부산 북항을 확대(13 이상)했을 때만 보인다.
+const BUKANGI = L.latLng(35.1100862, 129.0458678), BUKANGI_MIN_ZOOM = 13; // 12 이하에서는 항만이 작아 육지에 걸친다(실측)
+const bukangi = L.marker(BUKANGI, { pane: 'decor', interactive: false, keyboard: false, icon: L.divIcon({ className: 'bukangi-marker', iconSize: [64, 40], iconAnchor: [4, 20], // 좌표는 그대로, 그림은 점의 바다 쪽(동쪽)에서만 오간다
+  html: '<span class="bukangi" role="img" aria-label="부캉이 기념 캐릭터. 부산 북항 친수공원 수로에서 발견된 상어의 애칭을 기리는 장식이며 현재 위치나 이동 경로가 아니에요.">'
+    + '<span class="bukangi-swim"><svg viewBox="0 0 64 40" aria-hidden="true">'
+    + '<g class="bukangi-tail"><path d="M50 20 L62 10 Q59 20 62 30 Z"/></g>'
+    + '<path class="bukangi-fin" d="M27 10 Q31 2 36 9 Z"/>'
+    + '<ellipse class="bukangi-body" cx="30" cy="21" rx="22" ry="11"/>'
+    + '<path class="bukangi-belly" d="M12 24 Q28 33 46 24 Q30 29 12 24 Z"/>'
+    + '<circle class="bukangi-eye" cx="17" cy="18" r="2.2"/><circle class="bukangi-shine" cx="16.3" cy="17.3" r="0.7"/>'
+    + '<path class="bukangi-smile" d="M11 23 Q14 26 18 24" fill="none"/>'
+    + '<path class="bukangi-gill" d="M24 17 v6 M27 16.5 v7" fill="none"/>'
+    + '</svg></span></span>' }) });
+// 부산을 확대했고 화면 안에 있고 앱이 보이는 동안만 지도에 둔다(밖·백그라운드에서는 빼서 움직이지 않게)
+function updateBukangi() {
+  const show = !document.hidden && map.getZoom() >= BUKANGI_MIN_ZOOM && map.getBounds().pad(0.1).contains(BUKANGI);
+  if (show && !map.hasLayer(bukangi)) bukangi.addTo(map);
+  else if (!show && map.hasLayer(bukangi)) map.removeLayer(bukangi);
+}
+map.on('moveend zoomend', updateBukangi);
+document.addEventListener('visibilitychange', updateBukangi);
 map.createPane('pulses').style.zIndex = 650;
 
 const baseStyle = { color: token('border-sgg'), weight: 0.6, fillColor: token('land'), fillOpacity: 1 };

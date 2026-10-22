@@ -475,3 +475,21 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 /* 소개된 식당(서울, 손으로 확인한 목록) */
 .place-source { color:var(--text-muted); }
 .place-checked { color:var(--text-muted); font-size:13px!important; }
+
+/* 부캉이(부산 북항 친수공원 기념 장식): 자체 SVG + CSS, 누를 수 없음 */
+.bukangi-marker { pointer-events:none!important; background:none; border:0; }
+.bukangi { display:block; width:64px; height:40px; animation:bukangi-roam 14s ease-in-out infinite; }
+.bukangi-swim { display:block; width:64px; height:40px; animation:bukangi-bob 2.6s ease-in-out infinite; }
+.bukangi svg { width:64px; height:40px; overflow:visible; filter:drop-shadow(0 2px 2px #0002); }
+.bukangi-body, .bukangi-fin, .bukangi-tail path { fill:#7FA6B8; }
+.bukangi-belly { fill:#F2F6F7; }
+.bukangi-eye { fill:#1E2B30; } .bukangi-shine { fill:#fff; }
+.bukangi-smile, .bukangi-gill { stroke:#1E2B30; stroke-width:1.2; stroke-linecap:round; opacity:.7; }
+.bukangi-tail { transform-box:fill-box; transform-origin:0% 50%; animation:bukangi-tail .7s ease-in-out infinite alternate; }
+:root[data-theme="dark"] .bukangi-body, :root[data-theme="dark"] .bukangi-fin, :root[data-theme="dark"] .bukangi-tail path { fill:#9CC3D4; }
+:root[data-theme="dark"] .bukangi svg { filter:drop-shadow(0 2px 3px #0006); }
+/* 느린 좌우 왕복: 끝에서 돌아서 헤엄친다(머리가 왼쪽인 그림 → 오른쪽으로 갈 때 뒤집음) */
+@keyframes bukangi-roam { 0% { transform:translateX(0) scaleX(-1); } 45% { transform:translateX(18px) scaleX(-1); } 50% { transform:translateX(18px) scaleX(1); } 95% { transform:translateX(0) scaleX(1); } 100% { transform:translateX(0) scaleX(-1); } }
+@keyframes bukangi-bob { 0%,100% { transform:translateY(-2px); } 50% { transform:translateY(3px); } }
+@keyframes bukangi-tail { from { transform:rotate(-14deg); } to { transform:rotate(14deg); } }
+@media (prefers-reduced-motion: reduce) { .bukangi, .bukangi-swim, .bukangi-tail { animation:none!important; } }
