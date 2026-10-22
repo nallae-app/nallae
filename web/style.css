@@ -475,6 +475,10 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 /* 소개된 식당(서울, 손으로 확인한 목록) */
 .place-source { color:var(--text-muted); }
 .place-checked { color:var(--text-muted); font-size:13px!important; }
+.place-map-marker { display:grid; place-items:center; background:none; border:0; }
+.place-map-marker>span { display:grid; place-items:center; width:28px; height:28px; background:var(--brand); color:var(--surface); border:2px solid var(--surface); border-radius:50%; box-shadow:0 2px 5px #0004; font-size:15px; font-weight:700; }
+.place-map-marker:focus-visible { outline:2px solid var(--brand); border-radius:50%; }
+[data-place-map],[data-place-card] { min-height:44px; padding:8px 12px; border:1px solid var(--border); border-radius:10px; background:var(--surface-muted); color:var(--text); cursor:pointer; }
 
 /* 부캉이(부산 북항 친수공원 기념 캐릭터): 누르면 소개 */
 .bukangi-marker { pointer-events:auto!important; cursor:pointer; background:none; border:0; }

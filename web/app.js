@@ -1113,12 +1113,18 @@ new MutationObserver(() => {
   });
   scheduleLabels();
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
-﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, placesData=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null;
+﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, placesData=null, placeLocations=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null;
 try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'festival'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
 const preferredExploreLayer=DEMO && (params.has('rain') || params.has('snow')) ? 'weather' : exploreLayer;
 const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
 let foodQuery='', foodKind='', foodLimit=50, foodCode=null;
 const fuelMarkers=L.layerGroup().addTo(map);
+const placeMarkers=L.layerGroup().addTo(map), placeMarkerById=new Map();
+const placeAttribution='식당 위치 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL)';
+fetch('data/place-locations.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{
+  if(data?.items && typeof data.items==='object') placeLocations=data;
+  if(mode==='explore'&&exploreLayer==='places'&&placesData)renderExplore();
+}).catch(()=>{}); // 좌표 자료 실패에도 식당 주소 목록은 계속 제공한다.
 const exploreTools=document.createElement('div'); exploreTools.className='explore-tools';
 feedEl.before(exploreTools); sheetContentObserver.observe(exploreTools);
 const exploreFailed=new Set(); let exploreReady=false;
@@ -1225,7 +1231,7 @@ function updateExploreStatus() {
 function renderExplore() {
   const available=availableLayers();
   if(!available.some(x=>x[0]===exploreLayer)) exploreLayer=available[0]?.[0] || 'festival';
-  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers();
+  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers(); placeMarkers.clearLayers(); map.attributionControl.removeAttribution(placeAttribution);
   munis.forEach(restyle); scheduleLabels();
   updateRainScene();
   if(mode!=='explore') return;
@@ -1389,6 +1395,7 @@ function renderPlaces() {
   const day=String(placesData.listCheckedAt||'').slice(5).replace('-','.');
   exploreTools.innerHTML=sourceDisclosure('전국 수록 '+all.length+'곳 · 목록 확인 '+day+' · 지역별 순차 제공','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 날래 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 수록 지역부터 순차 제공하며 전국 모든 식당 목록은 아니에요. 정렬: 지역·이름 순.')
     +'<div class="food-controls"><label class="food-search"><input aria-label="식당 이름 검색" type="search" data-places-search placeholder="식당 이름 검색" value="'+escapeHtml(placesQuery)+'"></label><div class="explore-toggle">'+['','video','operator'].map(k=>'<button type="button" data-places-source="'+k+'" aria-pressed="'+(placesSource===k)+'">'+(k?PLACE_SOURCE[k]:'전체')+'</button>').join('')+'</div></div>';
+  exploreTools.querySelector('.source-disclosure p').textContent += ' · 지도 위치 확인 '+all.filter(x=>placeLocation(x)).length+'/'+all.length+'곳. 포인트는 장소 또는 주소 건물 위치이며 입구를 뜻하지 않아요. 좌표를 확인하지 못한 곳도 주소 목록에서 볼 수 있어요.';
   renderPlaceCards();
 }
 function renderPlaceCards() {
@@ -1403,13 +1410,37 @@ function renderPlaceCards() {
   const empty=!list.length&&code ? '<li class="empty">이 지역에는 아직 수록한 식당이 없어요(자료 없음이지 식당이 없다는 뜻은 아니에요).<div class="empty-actions"><button type="button" data-places-all>전국 수록 목록 보기</button></div></li>'
     : '<li class="empty">조건에 맞는 식당이 없어요.</li>';
   feedEl.innerHTML=head+(shown.map(placeCard).join('')||empty);
+  renderPlaceMarkers(shown);
 }
+function placeLocation(x) {
+  const p=placeLocations?.items?.[x.id];
+  return p&&Number.isFinite(p.lat)&&Number.isFinite(p.lon)&&p.lat>=33&&p.lat<=39&&p.lon>=124&&p.lon<=132?p:null;
+}
+function renderPlaceMarkers(shown) {
+  placeMarkers.clearLayers();placeMarkerById.clear();map.attributionControl.removeAttribution(placeAttribution);
+  if(mode!=='explore'||exploreLayer!=='places')return;
+  const list=shown || [...feedEl.querySelectorAll('[data-place-id]')].map(el=>placesData.items.find(x=>x.id===el.dataset.placeId)).filter(Boolean);
+  const groups=[];
+  for(const x of list){const loc=placeLocation(x);if(!loc)continue;const pt=map.latLngToContainerPoint([loc.lat,loc.lon]);let g=groups.find(g=>g.pt.distanceTo(pt)<40);if(!g){g={pt,items:[]};groups.push(g);}g.items.push(x);}
+  if(groups.length)map.attributionControl.addAttribution(placeAttribution);
+  for(const g of groups){
+    const bounds=L.latLngBounds(g.items.map(x=>{const p=placeLocation(x);return[p.lat,p.lon];}));
+    const count=g.items.length;
+    const marker=L.marker(bounds.getCenter(),{title:count>1?'식당 '+count+'곳':g.items[0].name,icon:L.divIcon({className:'place-map-marker',iconSize:[44,44],iconAnchor:[22,22],html:'<span>'+(count>1?count:'🍴')+'</span>'})}).addTo(placeMarkers);
+    if(count>1 && map.getZoom()<13){marker.on('click',()=>{atHome=false;map.fitBounds(bounds,{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:13,animate:!reducedMotion.matches});});}
+    else marker.bindPopup(g.items.map(x=>'<strong>'+escapeHtml(x.name+(x.branch?' '+x.branch:''))+'</strong><p>'+escapeHtml(x.address)+'</p><button type="button" data-place-card="'+escapeHtml(x.id)+'">목록에서 보기</button>'+addressLink(x.address)).join('<hr>')+'<p class="place-checked">장소·건물 위치 · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap · ODbL</a></p>',{maxWidth:260});
+    g.items.forEach(x=>placeMarkerById.set(x.id,marker));
+  }
+}
+map.on('zoomend',()=>renderPlaceMarkers());
+map.getContainer().addEventListener('click',e=>{const b=e.target.closest('[data-place-card]');if(!b)return;const el=[...feedEl.querySelectorAll('[data-place-id]')].find(el=>el.dataset.placeId===b.dataset.placeCard);if(el){setSheetStage(2);el.scrollIntoView({block:'nearest',behavior:'instant'});el.querySelector('[data-place-map]')?.focus({preventScroll:true});}});
 function placeCard(x) {
   const src=x.source.type==='video'
     ? escapeHtml(x.source.channel||'영상')+' 영상 소개'+(x.source.url&&/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(x.source.url)?' · <a class="food-map" href="'+escapeAttr(x.source.url)+'" target="_blank" rel="noopener noreferrer">공식 영상 보기 ↗</a>':'')
     : '운영자 추천 · 주관적 의견';
-  return '<li class="festival-card place-card"><h3>'+escapeHtml(x.name+(x.branch?' '+x.branch:''))+'</h3><p>'+escapeHtml(x.food||'음식 분류 미확인')+' · '+escapeHtml(x.district)+'</p><p class="card-address">'+escapeHtml(x.address)+'</p><p class="place-source">'+src+'</p>'+addressLink(x.address)+'<p class="place-checked">정보 확인 '+escapeHtml(x.checkedAt)+'</p></li>';
+  return '<li class="festival-card place-card" data-place-id="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name+(x.branch?' '+x.branch:''))+'</h3><p>'+escapeHtml(x.food||'음식 분류 미확인')+' · '+escapeHtml(x.district)+'</p><p class="card-address">'+escapeHtml(x.address)+'</p><p class="place-source">'+src+'</p>'+(placeLocation(x)?'<button type="button" data-place-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<p class="place-checked">지도 위치 미확인 · 주소로 찾아보세요</p>')+addressLink(x.address)+'<p class="place-checked">정보 확인 '+escapeHtml(x.checkedAt)+'</p></li>';
 }
+feedEl.addEventListener('click',e=>{const b=e.target.closest('[data-place-map]');if(!b)return;const x=placesData?.items.find(x=>x.id===b.dataset.placeMap),p=x&&placeLocation(x);if(!p)return;atHome=false;selectionAutoFit=false;setSheetStage(0);clearTimeout(sheetFitTimer);map.setView([p.lat,p.lon],13,{animate:false});renderPlaceMarkers();placeMarkerById.get(x.id)?.openPopup();});
 exploreTools.addEventListener('input',e=>{ if(e.target.matches('[data-places-search]')) { placesQuery=e.target.value; renderPlaceCards(); } });
 exploreTools.addEventListener('click',e=>{ const b=e.target.closest('[data-places-source]'); if(!b) return; placesSource=b.dataset.placesSource; renderExplore(); });
 feedEl.addEventListener('click',e=>{ if(mode==='explore'&&exploreLayer==='places'&&e.target.closest('[data-places-all]')) { placesShowAll=true; renderPlaceCards(); } });
@@ -1549,6 +1580,7 @@ function renderFestivalMarkers() {
 }
 function applyMode() {
   rootMode();
+  placeMarkers.clearLayers();map.attributionControl.removeAttribution(placeAttribution);
   updateRainScene();
   exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); parkingMarkers.clearLayers(); earthquakeMarkers.clearLayers();
   document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode)));

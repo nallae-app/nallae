@@ -1,0 +1,198 @@
+{
+ "source": "OpenStreetMap contributors",
+ "license": "ODbL-1.0",
+ "licenseUrl": "https://www.openstreetmap.org/copyright",
+ "checkedAt": "2026-10-22",
+ "note": "상호·도로·등록 번지·행정구역을 대조한 OSM 장소 좌표. 입구·현재 영업 보증 아님.",
+ "items": {
+  "v-DpGJEDKsf1o-화목순대국": {
+   "lat": 37.5193443,
+   "lon": 126.9315061,
+   "sourceUrl": "https://www.openstreetmap.org/node/13805237757",
+   "checkedAt": "2026-10-22",
+   "basis": "도로명주소·번지·행정구역 일치(건물 위치)"
+  },
+  "v-EnMwZlMLPWY-필동면옥": {
+   "lat": 37.5603894,
+   "lon": 126.9969309,
+   "sourceUrl": "https://www.openstreetmap.org/node/5486785947",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-28pXe1a9yrA-어머니대성집": {
+   "lat": 37.5773714,
+   "lon": 127.0286486,
+   "sourceUrl": "https://www.openstreetmap.org/node/5480219557",
+   "checkedAt": "2026-10-22",
+   "basis": "도로명주소·번지·행정구역 일치(건물 위치)"
+  },
+  "v-iPVLZhuog-g-부영각": {
+   "lat": 37.5425187,
+   "lon": 126.9395073,
+   "sourceUrl": "https://www.openstreetmap.org/node/13946954160",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-fR2z8JyBb44-영동설렁탕": {
+   "lat": 37.5161785,
+   "lon": 127.0174995,
+   "sourceUrl": "https://www.openstreetmap.org/node/12058661263",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-a4IFiQUf3D4-신미식당": {
+   "lat": 37.5279255,
+   "lon": 127.0308921,
+   "sourceUrl": "https://www.openstreetmap.org/node/12060492885",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-07szvHJocI4-행복한식당": {
+   "lat": 37.5466324,
+   "lon": 127.0591206,
+   "sourceUrl": "https://www.openstreetmap.org/node/13946956971",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-JGF3dJytPRk-즐거운술상": {
+   "lat": 37.651422,
+   "lon": 127.045939,
+   "sourceUrl": "https://www.openstreetmap.org/node/13947203276",
+   "checkedAt": "2026-10-22",
+   "basis": "도로명주소·번지·행정구역 일치(건물 위치)"
+  },
+  "v-YfEY2fPIw8s-서린낙지": {
+   "lat": 37.5709466,
+   "lon": 126.9801174,
+   "sourceUrl": "https://www.openstreetmap.org/node/5612743221",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-P6sEVRj87gQ-맛좋은순대국": {
+   "lat": 37.5308787,
+   "lon": 127.0737058,
+   "sourceUrl": "https://www.openstreetmap.org/node/13851763452",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-0b2vSvwVra8-남영돈": {
+   "lat": 37.5427148,
+   "lon": 126.9737963,
+   "sourceUrl": "https://www.openstreetmap.org/node/11629934574",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-oCVgwsJbFpk-옛날칼국수": {
+   "lat": 37.655069,
+   "lon": 127.05998,
+   "sourceUrl": "https://www.openstreetmap.org/node/13911612637",
+   "checkedAt": "2026-10-22",
+   "basis": "도로명주소·번지·행정구역 일치(건물 위치)"
+  },
+  "v-H_Aw-akvQPQ-진미평양냉면": {
+   "lat": 37.5161149,
+   "lon": 127.0359218,
+   "sourceUrl": "https://www.openstreetmap.org/node/12074423570",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-C3E86BioldA-이품": {
+   "lat": 37.5675193,
+   "lon": 126.9300813,
+   "sourceUrl": "https://www.openstreetmap.org/node/12189479830",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-fk_BFKQ3UI8-편의방": {
+   "lat": 37.5618279,
+   "lon": 126.927504,
+   "sourceUrl": "https://www.openstreetmap.org/node/13851203329",
+   "checkedAt": "2026-10-22",
+   "basis": "도로명주소·번지·행정구역 일치(건물 위치)"
+  },
+  "v-Pdq4VoNf7tI-가담": {
+   "lat": 37.5263661,
+   "lon": 127.0302582,
+   "sourceUrl": "https://www.openstreetmap.org/node/13946799039",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-zCYgokuaenY-홍명": {
+   "lat": 37.5145274,
+   "lon": 127.0294541,
+   "sourceUrl": "https://www.openstreetmap.org/node/13946797055",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-kHpd-p6y1x0-춘향미엔": {
+   "lat": 37.5605554,
+   "lon": 127.0320135,
+   "sourceUrl": "https://www.openstreetmap.org/node/13946958836",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-6T7fWf5EA0s-안동집": {
+   "lat": 37.5790596,
+   "lon": 127.0390571,
+   "sourceUrl": "https://www.openstreetmap.org/node/12074655166",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-6T7fWf5EA0s-김제식당": {
+   "lat": 37.5793512,
+   "lon": 127.0394311,
+   "sourceUrl": "https://www.openstreetmap.org/node/12074660636",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-vvGnYVFWrMc-영미오리탕": {
+   "lat": 37.5579657,
+   "lon": 127.0758005,
+   "sourceUrl": "https://www.openstreetmap.org/node/13851765297",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "op-baegam-chungmuro": {
+   "lat": 37.5606741,
+   "lon": 126.9920919,
+   "sourceUrl": "https://www.openstreetmap.org/way/1015449286",
+   "checkedAt": "2026-10-22",
+   "basis": "도로명주소·번지·행정구역 일치(건물 위치)"
+  },
+  "op-cheongchosu-sokcho": {
+   "lat": 38.1921576,
+   "lon": 128.5904695,
+   "sourceUrl": "https://www.openstreetmap.org/node/6765680495",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "op-sambo-seogwipo": {
+   "lat": 33.2476846,
+   "lon": 126.559189,
+   "sourceUrl": "https://www.openstreetmap.org/node/8441492355",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  },
+  "v-H78NvlNeSGk-태화장": {
+   "lat": 36.333874,
+   "lon": 127.4292055,
+   "sourceUrl": "https://www.openstreetmap.org/node/10676453742",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·행정구역 일치(번지 미등록)"
+  },
+  "v-UHembfdHJn8-청화집": {
+   "lat": 36.7624008,
+   "lon": 127.2991135,
+   "sourceUrl": "https://www.openstreetmap.org/node/5272980622",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·행정구역 일치(번지 미등록)"
+  },
+  "v-Mlh01V0vxeI-윤밀원": {
+   "lat": 37.372728,
+   "lon": 127.1150062,
+   "sourceUrl": "https://www.openstreetmap.org/node/12072720665",
+   "checkedAt": "2026-10-22",
+   "basis": "식당명·도로·번지·행정구역 일치"
+  }
+ }
+}
