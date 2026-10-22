@@ -1178,17 +1178,17 @@ function fuelColor(code) {
   const d=price-avg; return fuelColors[d < -50?0:d < -10?1:d <= 10?2:d <= 50?3:4];
 }
 // 탐험 자료: 응답이 200이어도 필수 구조가 없으면 실패로 본다. 재시도에 성공하면 실패 표시를 지운다.
-const EXPLORE_NAMES={fuel:'주유소',weather:'날씨','parking/index':'주차장','food/index':'식품안심업소','seoul-places':'소개된 식당'};
-const exploreValid={fuel:d=>d.sgg&&Array.isArray(d.stations)&&d.national,'food/index':d=>d.counts,weather:d=>d.sgg,forecast:d=>d.sgg,'parking/index':d=>d.counts,'parking-live':d=>Array.isArray(d.items),'seoul-places':d=>Array.isArray(d.items)};
+const EXPLORE_NAMES={fuel:'주유소',weather:'날씨','parking/index':'주차장','food/index':'식품안심업소','places':'소개된 식당'};
+const exploreValid={fuel:d=>d.sgg&&Array.isArray(d.stations)&&d.national,'food/index':d=>d.counts,weather:d=>d.sgg,forecast:d=>d.sgg,'parking/index':d=>d.counts,'parking-live':d=>Array.isArray(d.items),'places':d=>Array.isArray(d.items)};
 const exploreMissing=()=>Object.entries(EXPLORE_NAMES).filter(([k])=>exploreFailed.has(k)).map(x=>x[1]);
 async function loadExploreData(keys=Object.keys(exploreValid)) {
   await Promise.all(keys.map(async key=>{
     try {
-      const r=await fetch('data/'+(DEMO&&key!=='seoul-places'?(key==='food/index'?'demo-food/index':'demo-'+key):key)+'.json',{cache:'no-store'});
+      const r=await fetch('data/'+(DEMO&&key!=='places'?(key==='food/index'?'demo-food/index':'demo-'+key):key)+'.json',{cache:'no-store'});
       if (!r.ok) throw Error(); const data=await r.json();
       if (!data || !exploreValid[key](data)) throw Error('invalid');
       if(key==='fuel') fuelData=data; else if(key==='weather') weatherData=data; else if(key==='forecast') forecastData=data;
-      else if(key==='food/index') foodIndex=data; else if(key==='parking/index') parkingIndex=data; else if(key==='seoul-places') placesData=data; else parkingLive=data;
+      else if(key==='food/index') foodIndex=data; else if(key==='parking/index') parkingIndex=data; else if(key==='places') placesData=data; else parkingLive=data;
       exploreFailed.delete(key);
     } catch (_) { exploreFailed.add(key); }
   }));
@@ -1232,7 +1232,7 @@ function renderExplore() {
   if(exploreLayer==='festival') return renderFestivals();
   syncCategories(); newButton.hidden=true; updateExploreStatus();
   titleEl.textContent=selection?regionTitle(selection.center):'동네 탐험';
-  subEl.textContent=exploreLayer==='weather'?'동네 날씨 실황(최근 관측)':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':exploreLayer==='parking'?'동네 주차장':exploreLayer==='places'?'영상에 소개된 식당·운영자 추천 (서울)':'동네 식품안심업소';
+  subEl.textContent=exploreLayer==='weather'?'동네 날씨 실황(최근 관측)':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':exploreLayer==='parking'?'동네 주차장':exploreLayer==='places'?'영상에 소개된 식당·운영자 추천 (지역별 순차 제공)':'동네 식품안심업소';
   if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else if(exploreLayer==='places') renderPlaces(); else renderFood();
 }
 // extra: 요약 줄 오른쪽에 붙는 보기 전용 범례(색 띠) — 따로 한 줄을 쓰지 않아 지도 자리를 아낀다
@@ -1380,28 +1380,27 @@ async function loadFood(code) {
   foodPending.delete(code);
   if(mode==='explore'&&exploreLayer==='food'&&selection?.center.code===code) renderExplore();
 }
-// 소개된 식당(서울, 손으로 확인한 정적 목록). 식품안심업소(위생등급)와 다른 자료다. 좌표가 없어 지도 핀은 찍지 않는다.
+// 소개된 식당(전국 일부 지역, 손으로 확인한 정적 목록). 식품안심업소와 다른 자료이며 좌표 없이 목록으로 제공한다.
 let placesQuery='', placesSource='', placesShowAll=false, placesForCode;
 const PLACE_SOURCE={video:'영상 소개',operator:'운영자 추천'};
 function renderPlaces() {
-  const all=placesData.items, code=selection?.center.code, inSeoul=!code||String(code).startsWith('11');
-  if(placesForCode!==code) { placesForCode=code; placesShowAll=false; } // 지역을 바꾸면 '서울 목록 보기'를 풀고 그 구로 다시 거른다
+  const all=placesData.items, code=selection?.center.code;
+  if(placesForCode!==code) { placesForCode=code; placesShowAll=false; } // 지역을 바꾸면 선택 지역으로 다시 거른다
   const day=String(placesData.listCheckedAt||'').slice(5).replace('-','.');
-  exploreTools.innerHTML=sourceDisclosure('서울 '+all.length+'곳 · 목록 확인 '+day+' · 맛·위생·영업 보증 아님','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 날래 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 정렬: 구·이름 순.')
+  exploreTools.innerHTML=sourceDisclosure('전국 수록 '+all.length+'곳 · 목록 확인 '+day+' · 지역별 순차 제공','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 날래 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 수록 지역부터 순차 제공하며 전국 모든 식당 목록은 아니에요. 정렬: 지역·이름 순.')
     +'<div class="food-controls"><label class="food-search"><input aria-label="식당 이름 검색" type="search" data-places-search placeholder="식당 이름 검색" value="'+escapeHtml(placesQuery)+'"></label><div class="explore-toggle">'+['','video','operator'].map(k=>'<button type="button" data-places-source="'+k+'" aria-pressed="'+(placesSource===k)+'">'+(k?PLACE_SOURCE[k]:'전체')+'</button>').join('')+'</div></div>';
   renderPlaceCards();
 }
 function renderPlaceCards() {
-  const all=placesData.items, code=selection?.center.code, inSeoul=!code||String(code).startsWith('11');
+  const all=placesData.items, code=selection?.center.code;
   let head='';
   let list=all;
-  if(code&&inSeoul&&!placesShowAll) { list=all.filter(x=>x.sgg===code); head='<li class="explore-source">'+escapeHtml(label(selection.center))+' · 서울 '+all.length+'곳 중 '+list.length+'곳</li>'; }
-  else if(code&&!inSeoul&&!placesShowAll) { feedEl.innerHTML='<li class="empty">소개된 식당은 서울부터 제공해요. 이 지역 목록은 아직 없어요.<div class="empty-actions"><button type="button" data-places-all>서울 목록 보기</button></div></li>'; return; }
-  else head='<li class="explore-source">서울 목록 '+all.length+'곳 · 구·이름 순</li>';
+  if(code&&!placesShowAll) { list=all.filter(x=>x.sgg===code); head='<li class="explore-source">'+escapeHtml(label(selection.center))+' · 전체 '+all.length+'곳 중 '+list.length+'곳</li>'; }
+  else head='<li class="explore-source">전국 수록 목록 '+all.length+'곳 · 지역·이름 순</li>';
   const q=placesQuery.trim().toLocaleLowerCase();
   const shown=list.filter(x=>(!placesSource||x.source.type===placesSource)&&(!q||(x.name+' '+(x.branch||'')).toLocaleLowerCase().includes(q)))
     .sort((a,b)=>a.district.localeCompare(b.district,'ko')||a.name.localeCompare(b.name,'ko'));
-  const empty=!list.length&&code ? '<li class="empty">이 구에는 아직 수록한 식당이 없어요(자료 없음이지 식당이 없다는 뜻은 아니에요).<div class="empty-actions"><button type="button" data-places-all>서울 목록 보기</button></div></li>'
+  const empty=!list.length&&code ? '<li class="empty">이 지역에는 아직 수록한 식당이 없어요(자료 없음이지 식당이 없다는 뜻은 아니에요).<div class="empty-actions"><button type="button" data-places-all>전국 수록 목록 보기</button></div></li>'
     : '<li class="empty">조건에 맞는 식당이 없어요.</li>';
   feedEl.innerHTML=head+(shown.map(placeCard).join('')||empty);
 }

@@ -4,14 +4,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const data = JSON.parse(fs.readFileSync(new URL('../../web/data/seoul-places.json', import.meta.url), 'utf8'));
+const data = JSON.parse(fs.readFileSync(new URL('../../web/data/places.json', import.meta.url), 'utf8'));
 const index = JSON.parse(fs.readFileSync(new URL('../data/regions-index.json', import.meta.url), 'utf8'));
 const sggName = new Map(index.sgg.map((r) => [r.code, `${r.short} ${r.name}`]));
 const httpOk = (u) => { try { return ['http:', 'https:'].includes(new URL(u).protocol); } catch { return false; } };
 const PLACEHOLDER = /미정|TODO|TBD|xxx|예시|placeholder|\?\?/i;
 
 test('목록 머리: 범위·확인일', () => {
-  assert.equal(data.scope, '서울');
+  assert.equal(data.scope, '전국 일부 지역');
   assert.match(data.listCheckedAt, /^\d{4}-\d{2}-\d{2}$/);
   assert.ok(Array.isArray(data.items) && data.items.length > 0);
 });
@@ -22,9 +22,9 @@ test('항목: 서울 시·군·구 코드·주소·근거·확인일, 중복 없
     assert.ok(x.id && !ids.has(x.id), 'id 중복: ' + x.id); ids.add(x.id);
     const key = x.name + '|' + (x.branch || '') + '|' + x.address;
     assert.ok(!places.has(key), '지점 중복: ' + key); places.add(key);
-    assert.ok(String(x.sgg).startsWith('11') && sggName.has(x.sgg), '서울 시·군·구 코드 아님: ' + x.sgg);
+    assert.ok(sggName.has(x.sgg), '시·군·구 코드 없음: ' + x.sgg);
     assert.equal(x.district, sggName.get(x.sgg), '구 이름이 코드와 다름: ' + x.name);
-    assert.ok(x.address.startsWith('서울') && x.address.includes(x.district.split(' ')[1]), '주소가 구와 맞지 않음: ' + x.name);
+    assert.ok(x.address.startsWith(x.district.split(' ')[0]) && x.address.includes(x.district.split(' ')[1]), '주소가 지역과 맞지 않음: ' + x.name);
     for (const k of ['name', 'address', 'checkedAt']) assert.ok(x[k] && !PLACEHOLDER.test(x[k]), k + ' 비었거나 임의 값: ' + x.name);
     assert.ok(x.food === null || (x.food && !PLACEHOLDER.test(x.food)), '음식 분류는 확인한 값 또는 null: ' + x.name); // 미확인은 null
     assert.match(x.checkedAt, /^\d{4}-\d{2}-\d{2}$/);
