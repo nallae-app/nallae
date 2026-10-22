@@ -103,7 +103,7 @@ map.getContainer().addEventListener('click', (event) => {
 });
 // 배율에 관계없이 화면 안에 있고 앱이 보이는 동안만 지도에 둔다.
 function updateBukangi() {
-  const show = !document.hidden && map.getBounds().pad(0.1).contains(BUKANGI);
+  const show = !document.hidden && !decorationsPaused() && map.getBounds().pad(0.1).contains(BUKANGI);
   if (show && !map.hasLayer(bukangi)) bukangi.addTo(map);
   else if (!show && map.hasLayer(bukangi)) map.removeLayer(bukangi);
 }
@@ -449,6 +449,7 @@ async function load() {
     if (!Array.isArray(data.items)) throw new Error('invalid data');
   } catch (e) {
     loadFailed = true;
+    updateDecorations();
     renderFeed(null, true);
     if (firstLoad) {
       if (mode === 'news') subEl.textContent = '소식을 불러오지 못했어요. 잠시 후 다시 시도할게요.';
@@ -465,6 +466,7 @@ async function load() {
   const fresh = incoming.filter((it) => !seen.has(it.id));
   incoming.forEach((it) => seen.add(it.id));
   items = incoming;
+  updateDecorations();
   updatedAt = data.updated ? new Date(data.updated) : null;
   syncCategories();
   munis.forEach(m => { m.warning = null; });
@@ -522,6 +524,22 @@ function visible(item) {
 }
 
 let sources = {}, loadFailed = false, lastChecked = null;
+// 장식만 중단한다. 공식 소식·경고 신호·지도 조작은 유지한다.
+// 수집 목록에서 해당 안내가 빠질 때까지 보수적으로 숨긴다(사고 종료를 추정하지 않음).
+function decorationsPaused() {
+  if (DEMO) return false; // 명시된 가상 자료 미리보기이며 실제 상황 판단에 사용하지 않는다.
+  if (!lastChecked || loadFailed || ['sms','wrn','eqk'].some(src => sources[src]?.ok === false)) return true;
+  return items.some(it => ['sms','wrn','eqk'].includes(it.src) && (
+    ['critical','urgent'].includes(it.urgency) ||
+    (it.src === 'wrn' && ['주의보','경보'].includes(it.level)) ||
+    (it.src === 'sms' && ['화재','산불','붕괴','폭발','지진','해일','대설','호우','태풍','홍수','산사태','교통사고'].includes(it.kind))
+  ));
+}
+function updateDecorations() {
+  updateBukangi();
+  updateRainScene();
+  if (decorationsPaused()) document.querySelectorAll('.festival-confetti').forEach(el => el.remove());
+}
 const pending = new Set();
 const newButton = document.getElementById('new-items');
 newButton.addEventListener('click', () => { pending.clear(); renderFeed(); feedEl.scrollTop = 0; });
@@ -1235,7 +1253,7 @@ const koreaDate=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,1
 const rainScene = L.layerGroup().addTo(map);
 function updateRainScene() {
   rainScene.clearLayers();
-  if (document.hidden || mode !== 'explore' || exploreLayer !== 'weather' || !selection) return;
+  if (document.hidden || decorationsPaused() || mode !== 'explore' || exploreLayer !== 'weather' || !selection) return;
   const region = selection.center, preview = DEMO && (params.has('rain') || params.has('snow'));
   const age = Date.now() - new Date(forecastData?.base).getTime();
   const day = forecastData?.sgg?.[region.code]?.[koreaDate(new Date())];
@@ -1490,7 +1508,7 @@ function renderFestivals() {
   if (!celebrated && festivalLoaded) {
     celebrated = true;
     try { sessionStorage.setItem('nallae-celebrated','1'); } catch (_) {}
-    if (!quiet && !reducedMotion.matches && list.length) {
+    if (!quiet && !decorationsPaused() && !reducedMotion.matches && list.length) {
       const confetti = document.createElement('div'); confetti.className = 'festival-confetti'; confetti.setAttribute('aria-hidden','true');
       confetti.innerHTML = Array.from({length:12},(_,i) => '<i style="--i:' + i + '"></i>').join('');
       panel.append(confetti); setTimeout(() => confetti.remove(),950);
