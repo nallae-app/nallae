@@ -1,0 +1,66 @@
+PASS 촬영 pharmacy 375x812 light
+PASS 촬영 er 375x812 light
+PASS 촬영 pharmacy 375x812 dark
+PASS 촬영 er 375x812 dark
+PASS 촬영 pharmacy 768x1024 light
+PASS 촬영 er 768x1024 light
+PASS 촬영 pharmacy 768x1024 dark
+PASS 촬영 er 768x1024 dark
+PASS 촬영 pharmacy 1280x800 light
+PASS 촬영 er 1280x800 light
+PASS 촬영 pharmacy 1280x800 dark
+PASS 촬영 er 1280x800 dark
+PASS 약국 마포 카드 4곳 — 4
+PASS 방문 전 전화 확인 문구
+PASS 영업 중 단정 표현 없음
+PASS 전화 tel 링크
+PASS 전화 미제공 표시
+PASS 길찾기는 시설 좌표만 — https://map.kakao.com/link/to/(%EC%8B%9C%ED%97%98)%20%EB%A7%9D%EC%9B%90%20%ED%95%98%EB%8A%98%EC%95%BD%EA%B5%AD,37.5563,126.905
+PASS 좌표 없는 곳은 주소 검색
+PASS 긴 이름 2줄 이내
+PASS 요일별 8칸(공휴일 포함) — 월 09:00~21:00 / 화 09:00~21:00 / 수 09:00~21:00 / 목 09:00~21:00 / 금 09:00~21:00 / 토 09:00~18:00 / 일 10:00~17:00 / 공휴일 10:00~15:00
+PASS 오늘 칸 강조 1개
+PASS 밤 표기 원문 그대로
+PASS 공휴일 시간 등록 필터
+PASS 지도 점 표시
+PASS 목록→지도 이동·팝업 — {"z":13,"c":{"lat":37.5563,"lng":126.905},"popup":"(시험) 망원 하늘약국\n\n서울특별시 마포구 망원로 1 (망원동)\n\n목록에서 보기전화 02-000-0001길찾기 ↗"}
+PASS 지도→목록 이동·포커스
+PASS 자료상 0곳은 기준일과 함께 — 10. 22. 13:41 수집한 공식 자료에 서울 종로구의 약국이 없어요. 이웃 지역을 함께 확인하고, 위급하면 119에 전화하세요.
+PASS 지역 파일 실패는 0곳이 아니라 다시 받기 — 지역 약국 자료를 받지 못했어요(약국이 없다는 뜻은 아니에요). 다시 받기
+PASS 소식 모드에서 점 숨김
+PASS 탐험 복귀 시 점 복원
+PASS 다른 분류로 바꾸면 점 숨김
+PASS 약국 오류 0
+PASS 119 안내와 tel:119 링크(누르지 않음)
+PASS 수용 가능 여부 모름 안내
+PASS 응급실 3곳·이름순
+PASS 금지 표현 없음
+PASS 응급실 전화 미제공 표시
+PASS 응급실 전화 링크
+PASS 키보드 Enter로 지도 이동
+PASS 응급실 오류 0
+PASS 지역 미선택 안내
+PASS 위치 거부 뒤 지역 선택으로 목록
+PASS 위치 거부 오류 0
+PASS 오프라인 지역 파일 실패 안내
+PASS 다시 받기로 복구
+PASS 오프라인 오류 0
+PASS pharmacy 전체 실패에도 분류 진입
+PASS pharmacy 실패를 시설 없음으로 표시 안 함 — 약국 정보는 공공데이터 이용 승인을 기다리는 중이라 아직 보여드릴 수 없어요 (마지막 시도 10. 22. 13:48).
+다시 시도
+PASS pharmacy 다시 시도 버튼
+PASS pharmacy 상태 '받지 못함'
+PASS pharmacy 실패 화면 오류 0
+PASS er 전체 실패에도 분류 진입
+PASS er 실패를 시설 없음으로 표시 안 함 — 응급실 운영 기관 자료를 받지 못했어요 (마지막 시도 10. 22. 13:48). 자료가 없다는 뜻이지 응급실 운영 기관이 없다는 뜻은 아니에요.
+다시 시도
+PASS er 다시 시도 버튼
+PASS er 실패에도 119
+PASS er 상태 '받지 못함'
+PASS er 실패 화면 오류 0
+PASS 최근 갱신 실패 상단 노출
+PASS 상태 줄 경고
+PASS 직전 자료는 그대로
+PASS 직전 자료 화면 오류 0
+PASS 다른 세대 지역 파일은 실패 처리
+PASS 세대 검사 오류 0

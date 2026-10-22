@@ -25,3 +25,9 @@ web/data/parking-live.json
 web/data/press-pilot.json
 web/data/press-pilot-fixture.json
 .cache/
+
+# 약국·응급실 수집 산출물과 로컬 시험 fixture (배포·커밋 금지)
+web/data/pharmacy/
+web/data/er.json
+web/data/demo-pharmacy/
+web/data/demo-er.json

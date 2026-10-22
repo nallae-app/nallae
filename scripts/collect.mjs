@@ -9,6 +9,7 @@
 //   FOODSAFETY_KEY   식품안심업소 (foodsafetykorea.go.kr) → web/data/food/, 하루 한 번
 //   SEOUL_KEY        서울 시영주차장 실시간 (data.seoul.go.kr) → web/data/parking-live.json, 매번
 //                    (주차장 표준데이터는 DATA_GO_KR_KEY → web/data/parking/, 하루 한 번)
+//                    (약국·응급실도 DATA_GO_KR_KEY → web/data/pharmacy/, web/data/er.json, 하루 한 번·전국 완전할 때만)
 //   FORCE_REFRESH   1이면 간격과 상관없이 기름값·식품안심업소를 새로 받는다
 //   PREV_URL         직전에 배포된 news.json 주소 (없으면 로컬 파일을 이어 쓴다)
 import fs from 'node:fs';
@@ -22,6 +23,7 @@ import { fetchFood } from './sources/food-safety.mjs';
 import { fetchTemperature, latestBase } from './sources/temperature.mjs';
 import { fetchForecast, forecastBase } from './sources/forecast.mjs';
 import { fetchParking, fetchSeoulLive } from './sources/parking.mjs';
+import { fetchPharmacies, fetchEmergency, updatePharmacy, updateEmergency } from './sources/medical.mjs';
 
 // 일시적인 네트워크 오류('fetch failed')는 3초 뒤 한 번 더 시도한다
 const rawFetch = globalThis.fetch;
@@ -277,3 +279,9 @@ try {
   // 실시간은 오래된 값을 이어 쓰지 않는다(틀린 빈자리 안내보다 없는 게 낫다)
   console.log(`- 서울 주차 실시간: 실패 — ${e.message || e}`);
 }
+
+// ---------- 약국·응급실 (국립중앙의료원): 전국이 빠짐없이 받아졌을 때만 갱신 ----------
+// perSggDaily(95% 재사용 허용)와 달리 일부 실패·0건·급감·중복은 이번 결과를 버리고 직전 정상 자료를 통째로 둔다.
+// 갱신·유지·실패 기록 규칙은 scripts/sources/medical.mjs의 updatePharmacy / updateEmergency (시험: medical.test.mjs)
+await updatePharmacy({ dir: 'web/data/pharmacy', prevJson, now, force: !!process.env.FORCE_REFRESH, fetcher: (prevTotal) => fetchPharmacies({ key: process.env.DATA_GO_KR_KEY, prevTotal }) });
+await updateEmergency({ out: 'web/data/er.json', prevJson, now, force: !!process.env.FORCE_REFRESH, fetcher: (prevTotal) => fetchEmergency({ key: process.env.DATA_GO_KR_KEY, prevTotal }) });

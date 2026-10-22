@@ -525,3 +525,29 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .rain-scene-caption { display:inline-block; padding:2px 6px; border-radius:8px; background:var(--surface); color:var(--text); font-size:11px; white-space:nowrap; }
 @keyframes rain-fall { 0% { transform:translateY(-7px); opacity:0; } 20% { opacity:.8; } 80% { opacity:.65; } 100% { transform:translateY(15px); opacity:0; } }
 @media (prefers-reduced-motion:reduce) { .rain-drop { animation:none; opacity:.65; } }
+/* 약국·응급실 */
+.care-note { color:var(--text-muted); }
+.care-urgent { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 4px; padding:6px 10px; border:1px solid #c0504d; border-radius:10px; background:#fdf0ef; color:#7d2422; }
+.care-urgent p { margin:0!important; }
+.care-119 { flex:none; display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; background:#b3302d; color:#fff; font-weight:700; text-decoration:none; }
+:root[data-theme="dark"] .care-urgent { background:#3a1f1f; border-color:#e07a77; color:#ffd2d0; }
+:root[data-theme="dark"] .care-119 { background:#e0625f; color:#1b0c0c; }
+.care-card h3 { -webkit-line-clamp:2!important; }
+.care-today strong { font-weight:700; }
+.care-hours summary { display:flex; align-items:center; min-height:44px; color:var(--brand); font-size:14px; }
+.care-hours table { border-collapse:collapse; font-size:14px; margin:2px 0 4px; }
+.care-hours th, .care-hours td { padding:2px 12px 2px 0; text-align:left; font-weight:400; }
+.care-hours tr.today { font-weight:700; }
+.care-actions { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
+.care-actions .food-map { float:none; }
+.care-tel { display:inline-flex; align-items:center; min-height:44px; color:var(--brand); font-size:14px; font-weight:600; }
+[data-care-map],[data-care-card],[data-care-retry] { min-height:44px; padding:8px 12px; border:1px solid var(--border); border-radius:10px; background:var(--surface-muted); color:var(--text); cursor:pointer; font:inherit; font-size:14px; }
+.care-filter { margin-top:4px; }
+.care-marker { display:grid; place-items:center; background:none; border:0; }
+.care-marker>span { display:grid; place-items:center; width:28px; height:28px; border:2px solid var(--surface); border-radius:8px; box-shadow:0 2px 5px #0004; font-size:13px; font-weight:800; color:#fff; }
+.care-marker.pharmacy>span { background:#2c7a4b; }
+.care-marker.er>span { background:#b3302d; border-radius:50%; }
+.care-marker:focus-visible { outline:2px solid var(--brand); border-radius:50%; }
+.care-stale { color:#8a5a00!important; font-weight:600; }
+:root[data-theme="dark"] .care-stale { color:#E8C46A!important; }
+[data-care-reload] { min-height:44px; }

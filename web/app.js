@@ -244,7 +244,7 @@ const isSelected = (m) => !!selection && selection.codes.has(m.code);
 function restyle(m) {
   if (!m.layer) return;
   const fuelFill = mode === 'explore' && exploreLayer === 'fuel' ? fuelColor(m.code) : mode === 'explore' && exploreLayer === 'weather' ? weatherColor(m.code) : null;
-  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && ['food','parking'].includes(exploreLayer) ? selection?.center === m : isSelected(m)) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
+  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && ['food','parking','pharmacy','er'].includes(exploreLayer) ? selection?.center === m : isSelected(m)) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
   if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 2.5 });
   else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 1.3 });
   else m.layer.setStyle({...baseStyle,...fill});
@@ -1113,7 +1113,7 @@ new MutationObserver(() => {
   });
   scheduleLabels();
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
-﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, placesData=null, placeLocations=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null;
+﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, placesData=null, placeLocations=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null, pharmacyIndex=null, erData=null, careRaw={};
 try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'festival'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
 const preferredExploreLayer=DEMO && (params.has('rain') || params.has('snow')) ? 'weather' : exploreLayer;
 const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
@@ -1131,7 +1131,7 @@ const exploreFailed=new Set(); let exploreReady=false;
 const fuelColors=['#b5d9d1','#c7ded5','#e0e4da','#d7dce6','#d9cee5'];
 const productName=()=>fuelProduct==='B027'?'휘발유':'경유';
 const money=v=>Number.isFinite(v)?v.toLocaleString('ko-KR',{maximumFractionDigits:0})+'원':'미제공';
-const availableLayers=()=>[['festival','축제',festivals.length],['weather','날씨',weatherData],['fuel','주유소',fuelData],['parking','주차장',parkingIndex],['food','식품안심업소',foodIndex],['places','소개된 식당',placesData]].filter(x=>x[2]);
+const availableLayers=()=>[['festival','축제',festivals.length],['weather','날씨',weatherData],['fuel','주유소',fuelData],['parking','주차장',parkingIndex],['pharmacy','약국',exploreReady],['er','응급실',exploreReady],['food','식품안심업소',foodIndex],['places','소개된 식당',placesData]].filter(x=>x[2]);
 
 const parkingCache=new Map(), parkingPending=new Set(), parkingErrors=new Set();
 const parkingMarkers=L.layerGroup().addTo(map);
@@ -1177,6 +1177,118 @@ map.on('moveend zoomend',renderParkingMarkers);
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-parking-filter]');if(b){parkingFilter=b.dataset.parkingFilter;renderExplore();}});
 feedEl.addEventListener('click',e=>{if(mode!=='explore'||exploreLayer!=='parking')return;const b=e.target.closest('button');if(!b)return;if(b.dataset.parkingRegion){const m=muniByCode.get(b.dataset.parkingRegion);if(m)select(m,false);}if(b.hasAttribute('data-parking-retry')){loadParking(parkingCode);renderExplore();}});
 setInterval(async()=>{try{const r=await fetch('data/'+(DEMO?'demo-parking-live':'parking-live')+'.json',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(Array.isArray(d.items))parkingLive=d;if(mode==='explore'&&exploreLayer==='parking')renderExplore();}catch(_){}},10*60*1000);
+// ---------- 약국·응급실 (국립중앙의료원 공공데이터, 하루 한 번 수집한 정적 파일) ----------
+// 약국은 공식 등록 운영시간만 그대로 보여주고 '지금 영업 중'이라고 판정하지 않는다(임시휴무를 알 수 없다).
+// 응급실은 dutyEryn(응급실운영여부)=1 기관만 수집된다. 수용 가능 여부·치료 우선순위·거리 추천은 하지 않는다.
+// 사용자 위치는 쓰지 않는다(지역 선택 기준). 전화는 누를 때만 전화 앱이 열린다.
+let careFilter='', careCode=null, careShown=[];
+const pharmacyCache=new Map(), pharmacyPending=new Set(), pharmacyErrors=new Set();
+const careMarkers=L.layerGroup().addTo(map), careMarkerById=new Map();
+const CARE_DAYS=['월','화','수','목','금','토','일','공휴일'];
+const hm=t=>t.slice(0,2)+':'+t.slice(2);
+// 한국 시간 기준 요일 칸(0=월 … 6=일). 공휴일은 달력이 없어 따로 판정하지 않는다.
+const kstDayIndex=(d=new Date())=>(new Date(d.getTime()+9*3600e3).getUTCDay()+6)%7;
+const careHours=h=>h?hm(h[0])+'~'+hm(h[1]):'등록된 시간 없음';
+const careDate=d=>{const t=new Date(d);return validDate(t)?t.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'}):'미제공';};
+const careHas=x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)&&x.lat>=33&&x.lat<=39&&x.lon>=124&&x.lon<=132;
+function telLink(num,text){const d=String(num||'').replace(/[^0-9]/g,'');if(d.length<7||d.length>12)return '';return '<a class="care-tel" href="tel:'+d+'">'+escapeHtml(text)+' '+escapeHtml(num)+'</a>';}
+async function loadPharmacy(code) {
+  pharmacyPending.add(code); pharmacyErrors.delete(code);
+  try { const r=await fetch('data/'+(DEMO?'demo-pharmacy/':'pharmacy/')+encodeURIComponent(code)+'.json',{cache:'no-store'}); if(!r.ok) throw Error(); const d=await r.json(); if(!Array.isArray(d.items)) throw Error();
+    // 배포 도중·오프라인 캐시로 목차와 다른 세대 파일을 받으면 쓰지 않는다(0곳·완료로 판정하지 않음)
+    if(d.updated!==pharmacyIndex?.updated||d.items.length!==pharmacyIndex?.counts?.[code]) throw Error('generation'); pharmacyCache.set(code,d); } catch(_) { pharmacyErrors.add(code); }
+  pharmacyPending.delete(code); if(mode==='explore'&&exploreLayer==='pharmacy'&&selection?.center.code===code) renderExplore();
+}
+function pharmacyCard(x) {
+  const today=kstDayIndex();
+  const rows=CARE_DAYS.map((d,i)=>'<tr'+(i===today?' class="today"':'')+'><th scope="row">'+d+'</th><td>'+escapeHtml(careHours(x.hours?.[i]))+'</td></tr>').join('');
+  return '<li class="festival-card care-card" data-care-id="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name)+'</h3><p class="care-today">오늘('+CARE_DAYS[today]+') 등록 운영시간 <strong>'+escapeHtml(careHours(x.hours?.[today]))+'</strong></p>'
+    +'<details class="care-hours"><summary>요일별·공휴일 운영시간</summary><table>'+rows+'</table><p class="place-checked">공휴일에는 \'공휴일\' 시간을 확인하세요. 시간 없음은 휴무라는 뜻이 아니라 자료에 등록되지 않았다는 뜻이에요.</p></details>'
+    +'<p class="card-address">'+escapeHtml(x.address)+'</p><div class="care-actions">'+(telLink(x.phone,'전화')||'<span class="place-checked">전화번호 미제공 · 방문 전 다른 방법으로 확인하세요</span>')+(careHas(x)?'<button type="button" data-care-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<span class="place-checked">지도 위치 없음 · 주소로 찾아보세요</span>')+routeLink(careHas(x)?x:{address:x.address})+'</div></li>';
+}
+function erCard(x) {
+  return '<li class="festival-card care-card" data-care-id="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name)+'</h3>'+(x.cls?'<p>'+escapeHtml(x.cls)+' <span class="place-checked">(공식 분류)</span></p>':'')
+    +'<p class="card-address">'+escapeHtml(x.address)+'</p><div class="care-actions">'+(telLink(x.erPhone,'응급실 전화')||'<span class="place-checked">응급실 전화 미제공</span>')+(telLink(x.phone,'대표 전화')||(x.erPhone?'':'<span class="place-checked">대표 전화 미제공 · 위급하면 119</span>'))+(careHas(x)?'<button type="button" data-care-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<span class="place-checked">지도 위치 없음 · 주소로 찾아보세요</span>')+routeLink(careHas(x)?x:{address:x.address})+'</div></li>';
+}
+function careRegionPrompt(what) { return '<li class="empty">지도에서 시·군·구를 고르면 그 동네 '+what+'을 보여드려요'+(favorites.length?'<div class="explore-toggle">'+favorites.map(r=>'<button type="button" data-care-region="'+escapeHtml(r.code)+'">'+escapeHtml(r.name)+'</button>').join('')+'</div>':'')+'</li>'; }
+const CARE_URGENT='<div class="care-urgent" role="note"><p><strong>생명이 위급하면 바로 119</strong>에 전화하세요.</p><a class="care-119" href="tel:119">119 전화</a></div>';
+// 실패 기록의 고정 문구(수집기가 만든 것)만 보고 '준비 중'과 '받지 못함'을 나눈다. 원문은 화면에 그대로 보이지 않는다.
+const careWaiting=raw=>/활용신청|등록되지 않은 키|접근 거부/.test(raw?.lastFailure?.error||'');
+function renderCareUnavailable(er) {
+  const key=er?'er':'pharmacy/index', raw=careRaw[key], what=er?'응급실 운영 기관':'약국';
+  careShown=[]; renderCareMarkers();
+  exploreTools.innerHTML=(er?CARE_URGENT:'')+'<p class="care-note">'+(er?'가까운 응급실은 119에 전화해 안내받을 수 있어요.':'운영시간이 바뀔 수 있으니 방문 전 전화로 확인하세요.')+'</p>';
+  const when=raw?.lastFailure?.at?' (마지막 시도 '+careDate(raw.lastFailure.at)+')':'';
+  const msg=!exploreReady?what+' 자료를 불러오는 중이에요.'
+    : careWaiting(raw)?what+' 정보는 공공데이터 이용 승인을 기다리는 중이라 아직 보여드릴 수 없어요'+when+'.'
+    : what+' 자료를 받지 못했어요'+when+'. 자료가 없다는 뜻이지 '+what+'이 없다는 뜻은 아니에요.';
+  feedEl.innerHTML='<li class="empty">'+escapeHtml(msg)+(exploreReady?'<div class="empty-actions"><button type="button" data-care-reload>다시 시도</button></div>':'')+'</li>';
+}
+function updateCareStatus() {
+  const er=exploreLayer==='er', data=er?erData:pharmacyIndex, status=document.getElementById('collection-status'), alert=document.getElementById('collection-alert');
+  const date=new Date(data?.updated), fail=data?.lastFailure?.at&&new Date(data.lastFailure.at)>date;
+  status.classList.remove('failed','stale');
+  if(!data){ status.textContent=exploreReady?'받지 못함':'불러오는 중'; if(exploreReady) status.classList.add('failed'); }
+  else { status.textContent=validDate(date)?ago(date):'시각 미제공'; status.classList.toggle('stale',fail||!validDate(date)||Date.now()-date>48*3600000); }
+  status.setAttribute('aria-label','자료 확인 시각: '+status.textContent+'. 상세 보기');
+  alert.hidden=!(data&&fail);
+  if(data&&fail) setAlert('stale',(er?'응급실':'약국')+' 최근 갱신에 실패해 '+ago(date)+' 자료를 보여줘요','자세히');
+  document.getElementById('sources-detail').textContent=(er?'국립중앙의료원 전국 응급의료기관 정보 조회 서비스':'국립중앙의료원 전국 약국 정보 조회 서비스')+'(공공데이터포털) · 수집 '+(data?careDate(data.updated):'없음')+(fail||(!data&&careRaw[er?'er':'pharmacy/index']?.lastFailure)?' · 최근 갱신 시도 실패 '+careDate((data||careRaw[er?'er':'pharmacy/index']).lastFailure.at):'');
+}
+function renderCare() {
+  const er=exploreLayer==='er', data=er?erData:pharmacyIndex, code=muniByCode.has(selection?.center.code)?selection.center.code:null;
+  if(careCode!==code+exploreLayer){careCode=code+exploreLayer;careFilter='';}careShown=[];
+  if(!data) return renderCareUnavailable(er);
+  const day=careDate(data.updated), fail=data.lastFailure?.at&&new Date(data.lastFailure.at)>new Date(data.updated)?' · 최근 갱신 시도 실패('+careDate(data.lastFailure.at)+'), 직전 정상 자료를 보여줘요':'';
+  const left=er?(data.excluded?.unknown||0)+(data.excluded?.unplaced||0):(data.unplaced||0);
+  exploreTools.innerHTML=(fail?'<p class="care-note care-stale" role="status">최근 갱신에 실패해 '+escapeHtml(day)+' 수집 자료를 보여줘요.</p>':'')+(er
+    ? CARE_URGENT+'<p class="care-note">응급실 수용 가능 여부와 진료 가능 과목은 이 목록으로 알 수 없어요. 가기 전에 응급실에 전화로 확인하세요.</p>'
+    : '<p class="care-note">운영시간이 바뀔 수 있으니 방문 전 전화로 확인하세요.</p>')
+    +sourceDisclosure((data.fixture?'시험 자료(가상) · ':'')+(er?'응급실 운영 기관':'약국 등록 운영시간')+' · 국립중앙의료원 · '+day+' 수집',
+      (er?'국립중앙의료원 전국 응급의료기관 정보(공공데이터포털)에서 응급실운영여부가 \'운영\'인 기관만 보여줘요. 실시간 병상·수용 정보가 아니며, 순서는 이름순이고 추천 순서가 아니에요.'
+        :'국립중앙의료원 전국 약국 정보(공공데이터포털)에 등록된 요일별·공휴일 운영시간이에요. 지금 문을 열었는지(임시휴무 등)는 알 수 없어요.')
+      +' · 수집 '+day+(left?' · 주소·좌표로 지역을 정하지 못했거나 운영 여부가 확인되지 않은 '+left+'곳은 목록에 없어요':'')+fail+' · 지도 점은 등록 좌표이며 입구를 뜻하지 않아요');
+  if(!code){feedEl.innerHTML=careRegionPrompt(er?'응급실 운영 기관':'약국');renderCareMarkers();return;}
+  const counts=data.counts||{}, name=escapeHtml(label(selection.center));
+  let items;
+  if(er) items=data.items.filter(x=>x.sgg===code);
+  else {
+    if(!(code in counts)){feedEl.innerHTML='<li class="empty">이 지역의 약국 자료가 없어요(자료가 없다는 뜻이지 약국이 없다는 뜻은 아니에요).</li>';renderCareMarkers();return;}
+    const c=pharmacyCache.get(code), d=c&&c.updated===data.updated?c:null;
+    if(!d&&counts[code]>0){feedEl.innerHTML='<li class="empty">'+(pharmacyErrors.has(code)?'지역 약국 자료를 받지 못했어요(약국이 없다는 뜻은 아니에요). <button type="button" data-care-retry>다시 받기</button>':'지역 약국 자료를 불러오는 중이에요.')+'</li>';if(!pharmacyPending.has(code)&&!pharmacyErrors.has(code)) loadPharmacy(code);renderCareMarkers();return;}
+    items=d?.items||[];
+  }
+  if(!items.length){feedEl.innerHTML='<li class="empty">'+day+' 수집한 공식 자료에 '+name+'의 '+(er?'응급실 운영 기관':'약국')+'이 없어요. 이웃 지역을 함께 확인하고, 위급하면 119에 전화하세요.</li>';renderCareMarkers();return;}
+  const holiday=!er&&items.some(x=>x.hours?.[7]);
+  if(holiday) exploreTools.insertAdjacentHTML('beforeend','<div class="explore-toggle care-filter">'+[['','전체'],['holiday','공휴일 시간 등록']].map(([k,n])=>'<button type="button" data-care-filter="'+k+'" aria-pressed="'+(careFilter===k)+'">'+n+'</button>').join('')+'</div>');
+  careShown=items.filter(x=>careFilter!=='holiday'||x.hours?.[7]);
+  feedEl.innerHTML='<li class="explore-source">'+name+' · '+careShown.length+'곳 · 이름순</li>'+careShown.map(er?erCard:pharmacyCard).join('');
+  renderCareMarkers();
+}
+function renderCareMarkers(){
+  careMarkers.clearLayers();careMarkerById.clear();
+  if(mode!=='explore'||!['pharmacy','er'].includes(exploreLayer))return;
+  const er=exploreLayer==='er', groups=[];
+  for(const x of careShown){if(!careHas(x))continue;const pt=map.latLngToContainerPoint([x.lat,x.lon]);let g=groups.find(g=>g.pt.distanceTo(pt)<(map.getZoom()<MUNI_ZOOM?40:24));if(!g){g={pt,items:[]};groups.push(g);}g.items.push(x);}
+  for(const g of groups){
+    const bounds=L.latLngBounds(g.items.map(x=>[x.lat,x.lon])), count=g.items.length;
+    const marker=L.marker(bounds.getCenter(),{title:count>1?(er?'응급실 ':'약국 ')+count+'곳':g.items[0].name,icon:L.divIcon({className:'care-marker '+(er?'er':'pharmacy'),iconSize:[44,44],iconAnchor:[22,22],html:'<span>'+(count>1?count:er?'응':'약')+'</span>'})}).addTo(careMarkers);
+    if(count>1&&map.getZoom()<map.getMaxZoom())marker.on('click',()=>{atHome=false;selectionAutoFit=false;map.fitBounds(bounds,{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:map.getMaxZoom(),animate:!reducedMotion.matches});});
+    else marker.bindPopup(g.items.map(x=>'<strong>'+escapeHtml(x.name)+'</strong><p>'+escapeHtml(x.address)+'</p><button type="button" data-care-card="'+escapeHtml(x.id)+'">목록에서 보기</button>'+(er?telLink(x.erPhone,'응급실 전화'):telLink(x.phone,'전화'))+routeLink(x)).join('<hr>'),{maxWidth:260});
+    g.items.forEach(x=>careMarkerById.set(x.id,marker));
+  }
+}
+map.on('zoomend',()=>{if(mode==='explore'&&['pharmacy','er'].includes(exploreLayer))renderCareMarkers();});
+exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-care-filter]');if(b){careFilter=b.dataset.careFilter;renderExplore();}});
+feedEl.addEventListener('click',e=>{
+  if(mode!=='explore'||!['pharmacy','er'].includes(exploreLayer))return;
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.careRegion){const m=muniByCode.get(b.dataset.careRegion);if(m)select(m,false);}
+  if(b.hasAttribute('data-care-retry')){loadPharmacy(selection.center.code);renderExplore();}
+  if(b.hasAttribute('data-care-reload')){loadExploreData([exploreLayer==='er'?'er':'pharmacy/index']);}
+  if(b.dataset.careMap){const x=careShown.find(x=>x.id===b.dataset.careMap);if(!x||!careHas(x))return;atHome=false;selectionAutoFit=false;setSheetStage(0);clearTimeout(sheetFitTimer);map.setView([x.lat,x.lon],map.getMaxZoom(),{animate:false});renderCareMarkers();careMarkerById.get(x.id)?.openPopup();}
+});
+map.getContainer().addEventListener('click',e=>{const b=e.target.closest('[data-care-card]');if(!b)return;const el=[...feedEl.querySelectorAll('[data-care-id]')].find(el=>el.dataset.careId===b.dataset.careCard);if(el){setSheetStage(2);el.scrollIntoView({block:'nearest',behavior:'instant'});(el.querySelector('[data-care-map]')||el.querySelector('a'))?.focus({preventScroll:true});}});
 
 function fuelColor(code) {
   const price=fuelData?.sgg?.[code]?.[fuelProduct], avg=fuelData?.national?.[fuelProduct]?.price;
@@ -1185,21 +1297,23 @@ function fuelColor(code) {
 }
 // 탐험 자료: 응답이 200이어도 필수 구조가 없으면 실패로 본다. 재시도에 성공하면 실패 표시를 지운다.
 const EXPLORE_NAMES={fuel:'주유소',weather:'날씨','parking/index':'주차장','food/index':'식품안심업소','places':'소개된 식당'};
-const exploreValid={fuel:d=>d.sgg&&Array.isArray(d.stations)&&d.national,'food/index':d=>d.counts,weather:d=>d.sgg,forecast:d=>d.sgg,'parking/index':d=>d.counts,'parking-live':d=>Array.isArray(d.items),'places':d=>Array.isArray(d.items)};
+const exploreValid={fuel:d=>d.sgg&&Array.isArray(d.stations)&&d.national,'food/index':d=>d.counts,weather:d=>d.sgg,forecast:d=>d.sgg,'parking/index':d=>d.counts,'parking-live':d=>Array.isArray(d.items),'pharmacy/index':d=>d.complete===true&&d.counts&&typeof d.counts==='object',er:d=>d.complete===true&&Array.isArray(d.items)&&d.counts,'places':d=>Array.isArray(d.items)};
 const exploreMissing=()=>Object.entries(EXPLORE_NAMES).filter(([k])=>exploreFailed.has(k)).map(x=>x[1]);
 async function loadExploreData(keys=Object.keys(exploreValid)) {
+  const first=!exploreReady; // 다시 시도할 때는 보고 있던 분류를 바꾸지 않는다
   await Promise.all(keys.map(async key=>{
     try {
       const r=await fetch('data/'+(DEMO&&key!=='places'?(key==='food/index'?'demo-food/index':'demo-'+key):key)+'.json',{cache:'no-store'});
       if (!r.ok) throw Error(); const data=await r.json();
+      if(key==='pharmacy/index'||key==='er') careRaw[key]=data;
       if (!data || !exploreValid[key](data)) throw Error('invalid');
       if(key==='fuel') fuelData=data; else if(key==='weather') weatherData=data; else if(key==='forecast') forecastData=data;
-      else if(key==='food/index') foodIndex=data; else if(key==='parking/index') parkingIndex=data; else if(key==='places') placesData=data; else parkingLive=data;
+      else if(key==='food/index') foodIndex=data; else if(key==='parking/index') parkingIndex=data; else if(key==='pharmacy/index') pharmacyIndex=data; else if(key==='er') erData=data; else if(key==='places') placesData=data; else parkingLive=data;
       exploreFailed.delete(key);
-    } catch (_) { exploreFailed.add(key); }
+    } catch (_) { exploreFailed.add(key); if(key==='pharmacy/index') pharmacyIndex=null; if(key==='er') erData=null; }
   }));
   exploreReady=true;
-  if(availableLayers().some(x=>x[0]===preferredExploreLayer)) exploreLayer=preferredExploreLayer;
+  if(first&&availableLayers().some(x=>x[0]===preferredExploreLayer)) exploreLayer=preferredExploreLayer;
   if(mode==='explore') { syncCategories(); renderExplore(); fitSheet(); }
 }
 // 보고 있는 정보가 정상이어도 빠진 생활 정보가 있으면 한 줄로 알리고 다시 시도할 수 있게 한다
@@ -1211,6 +1325,7 @@ function noteExploreMissing() {
 }
 function updateExploreStatus() {
   if(exploreLayer==='festival') return updateFestivalStatus();
+  if(exploreLayer==='pharmacy'||exploreLayer==='er') return updateCareStatus();
   if(exploreLayer==='places') {
     const status=document.getElementById('collection-status');
     status.textContent='목록 확인 '+String(placesData.listCheckedAt||'').slice(5).replace('-','.'); status.classList.remove('failed','stale');
@@ -1219,27 +1334,27 @@ function updateExploreStatus() {
     document.getElementById('sources-detail').textContent='손으로 확인한 목록 · 목록 확인일 '+(placesData.listCheckedAt||'미제공')+' · 영상 소개는 공식 영상 설명란의 상호·주소, 운영자 추천은 날래 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않아요. 자동 수집 자료가 아니에요.';
     return;
   }
-  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:foodIndex, date=new Date(data?.updated);
+  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:exploreLayer==='pharmacy'?pharmacyIndex:exploreLayer==='er'?erData:foodIndex, date=new Date(data?.updated);
   const status=document.getElementById('collection-status'), stale=!validDate(date)||Date.now()-date>(exploreLayer==='weather'?2:exploreLayer==='fuel'?6:48)*3600000;
   status.textContent=!exploreReady?'불러오는 중':validDate(date)?ago(date):'시각 미제공'; status.classList.remove('failed'); status.classList.toggle('stale',stale);
   status.setAttribute('aria-label','자료 확인 시각: '+status.textContent+'. 상세 보기');
   const alert=document.getElementById('collection-alert'); alert.hidden=!stale;
   if(stale) setAlert('stale',validDate(date)?(availableLayers().find(x=>x[0]===exploreLayer)?.[1]||'자료')+' 자료가 '+ago(date)+' 기준이에요':'자료 확인 시각이 없어요','자세히');
   const missing=noteExploreMissing();
-  document.getElementById('sources-detail').textContent=(missing.length?'불러오지 못한 자료: '+missing.join('·')+' · ':'')+(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미제공');
+  document.getElementById('sources-detail').textContent=(missing.length?'불러오지 못한 자료: '+missing.join('·')+' · ':'')+(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':exploreLayer==='pharmacy'?'국립중앙의료원 전국 약국 정보 조회 서비스(공공데이터포털)':exploreLayer==='er'?'국립중앙의료원 전국 응급의료기관 정보 조회 서비스(공공데이터포털)':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미제공');
 }
 function renderExplore() {
   const available=availableLayers();
   if(!available.some(x=>x[0]===exploreLayer)) exploreLayer=available[0]?.[0] || 'festival';
-  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers(); placeMarkers.clearLayers(); map.attributionControl.removeAttribution(placeAttribution);
+  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers(); careMarkers.clearLayers(); placeMarkers.clearLayers(); map.attributionControl.removeAttribution(placeAttribution);
   munis.forEach(restyle); scheduleLabels();
   updateRainScene();
   if(mode!=='explore') return;
   if(exploreLayer==='festival') return renderFestivals();
   syncCategories(); newButton.hidden=true; updateExploreStatus();
   titleEl.textContent=selection?regionTitle(selection.center):'동네 탐험';
-  subEl.textContent=exploreLayer==='weather'?'동네 날씨 실황(최근 관측)':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':exploreLayer==='parking'?'동네 주차장':exploreLayer==='places'?'영상에 소개된 식당·운영자 추천 (지역별 순차 제공)':'동네 식품안심업소';
-  if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else if(exploreLayer==='places') renderPlaces(); else renderFood();
+  subEl.textContent=exploreLayer==='weather'?'동네 날씨 실황(최근 관측)':exploreLayer==='fuel'?'지역 평균과 최저가 주유소':exploreLayer==='parking'?'동네 주차장':exploreLayer==='pharmacy'?'동네 약국 · 등록 운영시간':exploreLayer==='er'?'응급실 운영 기관 · 위급하면 119':exploreLayer==='places'?'영상에 소개된 식당·운영자 추천 (지역별 순차 제공)':'동네 식품안심업소';
+  if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else if(exploreLayer==='pharmacy'||exploreLayer==='er') renderCare(); else if(exploreLayer==='places') renderPlaces(); else renderFood();
 }
 // extra: 요약 줄 오른쪽에 붙는 보기 전용 범례(색 띠) — 따로 한 줄을 쓰지 않아 지도 자리를 아낀다
 function sourceDisclosure(summary, detail = summary, extra = '') { return '<details class="source-disclosure"><summary><span class="disclosure-text">'+escapeHtml(summary)+'</span>'+extra+'</summary><p>'+escapeHtml(detail)+'</p></details>'; }
@@ -1582,7 +1697,7 @@ function applyMode() {
   rootMode();
   placeMarkers.clearLayers();map.attributionControl.removeAttribution(placeAttribution);
   updateRainScene();
-  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); parkingMarkers.clearLayers(); earthquakeMarkers.clearLayers();
+  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); parkingMarkers.clearLayers(); careMarkers.clearLayers(); earthquakeMarkers.clearLayers();
   document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode)));
   map.closePopup(); bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; replayEl.hidden = true;
   map.getPane('pulses').style.display = mode === 'explore' ? 'none' : '';
