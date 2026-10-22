@@ -1,0 +1,62 @@
+# 승인 반영 후 의료 자료만 갱신. 다른 수집 산출물은 직전 성공 배포 artifact에서 그대로 보존한다.
+name: refresh-medical
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Find last successful Pages data
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?status=success&branch=main&per_page=50" --jq '[.workflow_runs[] | select(.name == "collect-and-deploy" or .name == "refresh-medical")][0].id')
+          test -n "$previous_run" && test "$previous_run" != null
+          echo "run=$previous_run" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          run-id: ${{ steps.previous.outputs.run }}
+          github-token: ${{ github.token }}
+          path: previous-pages
+      - name: Restore previous data unchanged
+        run: |
+          mkdir restored-pages
+          tar -xf previous-pages/artifact.tar -C restored-pages
+          test -f restored-pages/data/news.json
+          cp -a restored-pages/data/. web/data/
+          test ! -e web/data/demo-er.json
+          test ! -e web/data/demo-pharmacy
+      - name: Install collector dependency
+        run: npm install --no-save --no-package-lock --ignore-scripts topojson-client@3.1.0
+      - name: Test medical parsers
+        run: node --test scripts/test/medical.test.mjs
+      - name: Refresh medical sources only
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: node scripts/collect-medical.mjs
+      - name: Verify other data is unchanged
+        run: diff -qr --exclude=pharmacy --exclude=er.json restored-pages/data web/data
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4
