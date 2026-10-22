@@ -476,8 +476,11 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .place-source { color:var(--text-muted); }
 .place-checked { color:var(--text-muted); font-size:13px!important; }
 
-/* 부캉이(부산 북항 친수공원 기념 장식): 자체 SVG + CSS, 누를 수 없음 */
-.bukangi-marker { pointer-events:none!important; background:none; border:0; }
+/* 부캉이(부산 북항 친수공원 기념 캐릭터): 누르면 소개 */
+.bukangi-marker { pointer-events:auto!important; cursor:pointer; background:none; border:0; }
+.bukangi-marker:focus-visible { outline:2px solid var(--brand); outline-offset:4px; border-radius:12px; }
+.bukangi-popup p { margin:8px 0; line-height:1.6; }
+.bukangi-popup small { color:var(--text-muted); }
 .bukangi-name { position:absolute; z-index:1; left:12px; top:-22px; padding:2px 7px; border-radius:10px; background:var(--surface); color:var(--text); box-shadow:0 1px 4px #0002; font-size:12px; line-height:16px; font-weight:700; white-space:nowrap; }
 .bukangi { display:block; width:64px; height:40px; animation:bukangi-roam 14s ease-in-out infinite; }
 .bukangi-swim { display:block; width:64px; height:40px; animation:bukangi-bob 2.6s ease-in-out infinite; }
