@@ -528,7 +528,7 @@ let sources = {}, loadFailed = false, lastChecked = null;
 // 수집 목록에서 해당 안내가 빠질 때까지 보수적으로 숨긴다(사고 종료를 추정하지 않음).
 function decorationsPaused(codes = []) {
   if (DEMO) return false; // 명시된 가상 자료 미리보기이며 실제 상황 판단에 사용하지 않는다.
-  if (!lastChecked || loadFailed || ['sms','wrn','eqk'].some(src => sources[src]?.ok === false)) return true;
+  // 조회 실패는 기존 자료 상태 안내로 알린다. 오류 자체를 위급 상황으로 해석하지 않는다.
   return items.some(it => {
     if (!['sms','wrn','eqk'].includes(it.src)) return false;
     const nationwide = sidos.size > 0 && [...sidos.values()].every(s => it.sido?.includes(s.code) || s.munis.every(m => it.sgg?.includes(m.code)));
