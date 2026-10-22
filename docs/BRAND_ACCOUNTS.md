@@ -22,6 +22,16 @@
 
 ## 재빌드가 필요한 패키지 이름
 
+### 2026-10-22 후속 완료
+- 사용자 Console에서 `app.nallae` 사용 가능 확인 후 해당 이름으로 앱 생성. 이 패키지를 최종 확정함.
+- 공식 PWABuilder로 새 AAB/APK 및 전체 소스를 생성. 새 패키지용 업로드 서명 키는 브랜드 명의 `NALLAE Developer`로 생성해 Git 제외 로컬 폴더에 저장. 기존 키를 덮어쓰거나 이전 패키지의 업데이트로 사용하지 않음.
+- 로컬 결과: `android/app-nallae-20261022/package/`. 업로드할 파일은 `날래 - 우리 동네 소식.aab`. 서명 키·비밀번호·빌드 ZIP·접근 영수증은 공개하지 않음.
+- AAB 내부 protobuf Manifest의 package app.nallae, version 1.0.0/code 1 확인. 빌드 Manifest target SDK 36 / min SDK 24 확인. 456개 서명 대상 파일의 SHA-256, 서명 Manifest 해시 및 CMS 서명 수학 검증, 인증서와 assetlinks 지문 일치 확인.
+- 루트 `assetlinks.json`에 새 패키지와 인증서 연결을 추가하고 배포 성공·공개 반영 확인. 기존 연결은 기존 설치본 보존을 위해 유지.
+- 남음: Play 업로드·Play 앱 서명 인증서 지문 추가·실제 Android 기기에서 주소창 제거 및 기능 검증. Google 계정 소유권 이전은 진행하지 않음.
+
+아래는 재빌드 전 감사 시점의 기록이다.
+
 - 루트 사이트 `.well-known/assetlinks.json`에서 기존 개인 식별자가 남은 Android 패키지 연결을 확인했다.
 - 로컬에는 android/ 및 AAB가 없어 내부 applicationId와 서명 인증서를 대조할 수 없다.
 - 후보 `app.nallae`는 예시이며 사용 가능 여부·도메인 소유권을 확인한 것이 아니다. Gmail 주소를 만들었다고 같은 도메인을 소유하는 것은 아니다.

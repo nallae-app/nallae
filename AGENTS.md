@@ -15,7 +15,7 @@
 | 웹앱 | https://nallae-app.github.io/nallae/ |
 | 저장소 | https://github.com/nallae-app/nallae (공개, 조직 `nallae-app`) |
 | 루트 사이트 | https://github.com/nallae-app/nallae-app.github.io — `.well-known/assetlinks.json`(TWA 연결)과 `/nallae/`로 이동 페이지만 |
-| Android 패키지 | 기존 AAB 및 루트 `assetlinks.json` 값 유지 중. 브랜드 전용 식별자로 변경 검토 중이며, `docs/BRAND_ACCOUNTS.md` 참고. 빌드·연결·Play 등록을 함께 확인하기 전 임의 변경 금지 |
+| Android 패키지 | `app.nallae` — 사용자 사용 가능 확인·확정(2026-10-22). 새 서명 AAB/APK 생성 및 루트 TWA 연결 추가 완료. Play 앱 서명 인증서 연결·실기기 검증은 남음. `docs/BRAND_ACCOUNTS.md` 참고 |
 | 공개 연락처 | nallae.app@gmail.com, 공개 운영자명 "날래 개발자" |
 
 ## 3. 절대 규칙

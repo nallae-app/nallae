@@ -40,7 +40,7 @@
 
 ## 4단계 — Android 패키지 만들기 (TWA)
 
-- [ ] 패키지 이름 최종 확정: 기존 AAB·루트 `assetlinks.json`은 이전 식별자 사용 중. 브랜드 전용 후보 `app.nallae`는 아직 적용하지 않음. Play 등록·업로드 상태 확인 → Android 재빌드 → TWA 연결 갱신을 함께 진행해야 함. 등록된 패키지 이름은 변경·재사용할 수 없으므로 [계정 정리 현황](BRAND_ACCOUNTS.md)을 먼저 확인.
+- [x] 패키지 이름 **app.nallae**: 사용자 사용 가능 확인 후 확정(2026-10-22). 공식 PWABuilder에서 버전 1.0.0/code 1, target SDK 36, min SDK 24 새 AAB/APK·새 서명 키·소스 생성. 로컬 `android/app-nallae-20261022/package/` 보관(Git 제외). AAB 내부 패키지·서명·파일 해시와 루트 TWA 연결 공개 반영 확인. Play 앱 서명 인증서 연결 및 실기기 검증은 별도.
 - [x] PWABuilder로 패키지 생성 (2026-10-20). 결과물은 `android/`(git 제외): `.aab`(Play 업로드용), `.apk`(휴대폰 직접 설치 시험용), `signing.keystore` + `signing-key-info.txt`
   - **서명 키와 비밀번호 파일은 개인 클라우드·USB에 따로 백업.** 잃으면 업데이트 불가
 - [x] `assetlinks.json`을 조직 루트 저장소 [nallae-app/nallae-app.github.io](https://github.com/nallae-app/nallae-app.github.io)의 `.well-known/`에 배포 (TWA는 도메인 맨 위에서만 찾는다)
