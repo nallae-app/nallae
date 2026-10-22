@@ -4,6 +4,7 @@ const params = new URLSearchParams(location.search);
 const DEMO = params.has('demo');
 let mode = 'news';
 try { if (localStorage.getItem('nallae-mode') === 'explore') mode = 'explore'; } catch (_) {}
+if (DEMO && params.has('rain')) mode = 'explore';
 rootMode();
 function rootMode() { document.documentElement.dataset.mode = mode; }
 const NEWS_URL = DEMO ? 'data/demo-news.json' : 'data/news.json';
@@ -1090,7 +1091,7 @@ new MutationObserver(() => {
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
 ﻿let exploreLayer='festival', fuelProduct='B027', fuelData=null, placesData=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null;
 try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'festival'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
-const preferredExploreLayer=exploreLayer;
+const preferredExploreLayer=DEMO && params.has('rain') ? 'weather' : exploreLayer;
 const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
 let foodQuery='', foodKind='', foodLimit=50, foodCode=null;
 const fuelMarkers=L.layerGroup().addTo(map);
@@ -1202,6 +1203,7 @@ function renderExplore() {
   if(!available.some(x=>x[0]===exploreLayer)) exploreLayer=available[0]?.[0] || 'festival';
   exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers();
   munis.forEach(restyle); scheduleLabels();
+  updateRainScene();
   if(mode!=='explore') return;
   if(exploreLayer==='festival') return renderFestivals();
   syncCategories(); newButton.hidden=true; updateExploreStatus();
@@ -1229,6 +1231,22 @@ function weatherColor(code) {
   return 'rgb('+stops[i].map((v,j)=>Math.round(v+(stops[i+1][j]-v)*f)).join(',')+')';
 }
 const koreaDate=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,10);
+// 오늘의 지역별 예보를 보여주는 장식. 실제 비구름·강수 범위·강도를 뜻하지 않는다.
+const rainScene = L.layerGroup().addTo(map);
+function updateRainScene() {
+  rainScene.clearLayers();
+  if (document.hidden || mode !== 'explore' || exploreLayer !== 'weather' || !selection) return;
+  const region = selection.center, preview = DEMO && params.has('rain');
+  const age = Date.now() - new Date(forecastData?.base).getTime();
+  const day = forecastData?.sgg?.[region.code]?.[koreaDate(new Date())];
+  if (!preview && (!(age >= 0 && age <= 36*3600000) || ![1,2,4].includes(day?.pty))) return;
+  if (!map.getBounds().contains(region.center)) return;
+  const caption = preview ? '비 연출 미리보기' : day.pty === 2 ? '오늘 비·눈 예보' : '오늘 비 예보';
+  const text = preview ? '비 연출 미리보기. 실제 날씨가 아니에요.' : '오늘 비 예보 연출. 현재 강수나 정확한 범위가 아니에요.';
+  L.marker(region.center, { pane:'decor', interactive:false, keyboard:false, icon:L.divIcon({className:'rain-scene-marker',iconSize:[108,80],iconAnchor:[54,65],html:'<span class="rain-scene" role="img" aria-label="'+text+'"><svg viewBox="0 0 108 60" aria-hidden="true"><path class="rain-cloud" d="M29 25a12 12 0 0 1 5-23 19 19 0 0 1 33 4 13 13 0 0 1 9 19Z"/>'+[29,41,53,65,77].map((x,i)=>'<path class="rain-drop" style="animation-delay:-'+(i*.29)+'s" d="M'+x+' 32l-4 11"/>').join('')+'</svg><span class="rain-scene-caption">'+caption+'</span></span>'}) }).addTo(rainScene);
+}
+map.on('moveend zoomend', updateRainScene);
+document.addEventListener('visibilitychange', updateRainScene);
 function forecastHour() {
  const date=new Date(forecastData?.base);
  return validDate(date)?'단기예보 '+kstHour(date)+' 발표':'단기예보 발표 시각 미제공';
@@ -1256,6 +1274,7 @@ function renderWeather() {
   const code=selection?.center.code, region=muniByCode.get(code), w=weatherData.sgg[code];
   const hour=validDate(new Date(weatherData.base))?kstHour(new Date(weatherData.base))+' 발표':'발표 시각 미제공';
   exploreTools.innerHTML=sourceDisclosure('실황 '+hour+(forecastData?' · '+forecastHour():'')+' · 기상청','기상청 초단기실황 · '+hour+(forecastData?' · '+forecastHour():'')+' · 시·군·구 대표 지점 격자(5km) 값이라 동네 안에서도 다를 수 있어요 · 시각은 한국 시간이에요','<span class="weather-legend" role="img" aria-label="지도 색: 기온이 낮을수록 파랑, 높을수록 주황">차가움 <i></i> 따뜻함</span>');
+  exploreTools.querySelector('.source-disclosure p').textContent += ' · 지도 빗방울은 선택 지역의 오늘 비 예보 연출이며 현재 비가 오는 위치나 강도를 뜻하지 않아요. 지역을 선택하면 확인할 수 있어요.';
   const rows=Object.entries(weatherData.sgg).filter(([c,v])=>muniByCode.has(c)&&Number.isFinite(v.t)).sort((a,b)=>a[1].t-b[1].t);
   const line=([c,v])=>'<p>'+escapeHtml(label(muniByCode.get(c)))+' <strong>'+v.t+'°</strong>'+(v.pty>0?' '+precipSymbol(v.pty):'')+'</p>';
   if(code) {
@@ -1501,6 +1520,7 @@ function renderFestivalMarkers() {
 }
 function applyMode() {
   rootMode();
+  updateRainScene();
   exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); parkingMarkers.clearLayers(); earthquakeMarkers.clearLayers();
   document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode)));
   map.closePopup(); bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; replayEl.hidden = true;

@@ -497,3 +497,11 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 @keyframes bukangi-bob { 0%,100% { transform:translateY(-2px); } 50% { transform:translateY(3px); } }
 @keyframes bukangi-tail { from { transform:rotate(-14deg); } to { transform:rotate(14deg); } }
 @media (prefers-reduced-motion: reduce) { .bukangi, .bukangi-swim, .bukangi-tail { animation:none!important; } }
+.rain-scene-marker { pointer-events:none!important; border:0; background:none; }
+.rain-scene { display:block; width:108px; text-align:center; }
+.rain-scene svg { display:block; width:108px; height:60px; overflow:hidden; }
+.rain-cloud { fill:var(--surface); stroke:#7CABB9; stroke-width:1.5; opacity:.92; }
+.rain-drop { fill:none; stroke:#4C9DBB; stroke-width:2.5; stroke-linecap:round; animation:rain-fall 1.6s linear infinite; }
+.rain-scene-caption { display:inline-block; padding:2px 6px; border-radius:8px; background:var(--surface); color:var(--text); font-size:11px; white-space:nowrap; }
+@keyframes rain-fall { 0% { transform:translateY(-7px); opacity:0; } 20% { opacity:.8; } 80% { opacity:.65; } 100% { transform:translateY(15px); opacity:0; } }
+@media (prefers-reduced-motion:reduce) { .rain-drop { animation:none; opacity:.65; } }
