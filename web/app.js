@@ -103,7 +103,7 @@ map.getContainer().addEventListener('click', (event) => {
 });
 // 배율에 관계없이 화면 안에 있고 앱이 보이는 동안만 지도에 둔다.
 function updateBukangi() {
-  const show = !document.hidden && !decorationsPaused() && map.getBounds().pad(0.1).contains(BUKANGI);
+  const show = !document.hidden && !decorationsPaused(['26110','26170']) && map.getBounds().pad(0.1).contains(BUKANGI);
   if (show && !map.hasLayer(bukangi)) bukangi.addTo(map);
   else if (!show && map.hasLayer(bukangi)) map.removeLayer(bukangi);
 }
@@ -526,14 +526,20 @@ function visible(item) {
 let sources = {}, loadFailed = false, lastChecked = null;
 // 장식만 중단한다. 공식 소식·경고 신호·지도 조작은 유지한다.
 // 수집 목록에서 해당 안내가 빠질 때까지 보수적으로 숨긴다(사고 종료를 추정하지 않음).
-function decorationsPaused() {
+function decorationsPaused(codes = []) {
   if (DEMO) return false; // 명시된 가상 자료 미리보기이며 실제 상황 판단에 사용하지 않는다.
   if (!lastChecked || loadFailed || ['sms','wrn','eqk'].some(src => sources[src]?.ok === false)) return true;
-  return items.some(it => ['sms','wrn','eqk'].includes(it.src) && (
-    ['critical','urgent'].includes(it.urgency) ||
-    (it.src === 'wrn' && ['주의보','경보'].includes(it.level)) ||
-    (it.src === 'sms' && ['화재','산불','붕괴','폭발','지진','해일','대설','호우','태풍','홍수','산사태','교통사고'].includes(it.kind))
-  ));
+  return items.some(it => {
+    if (!['sms','wrn','eqk'].includes(it.src)) return false;
+    const nationwide = sidos.size > 0 && [...sidos.values()].every(s => it.sido?.includes(s.code) || s.munis.every(m => it.sgg?.includes(m.code)));
+    if (it.urgency === 'critical' && nationwide) return true;
+    const related = codes.some(code => it.sgg?.includes(code) || it.sido?.includes(muniByCode.get(code)?.sido));
+    return related && (
+      ['critical','urgent'].includes(it.urgency) ||
+      (it.src === 'wrn' && ['주의보','경보'].includes(it.level)) ||
+      (it.src === 'sms' && ['화재','산불','붕괴','폭발','지진','해일','대설','호우','태풍','홍수','산사태','교통사고'].includes(it.kind))
+    );
+  });
 }
 function updateDecorations() {
   updateBukangi();
@@ -1253,7 +1259,7 @@ const koreaDate=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,1
 const rainScene = L.layerGroup().addTo(map);
 function updateRainScene() {
   rainScene.clearLayers();
-  if (document.hidden || decorationsPaused() || mode !== 'explore' || exploreLayer !== 'weather' || !selection) return;
+  if (document.hidden || mode !== 'explore' || exploreLayer !== 'weather' || !selection || decorationsPaused([selection.center.code])) return;
   const region = selection.center, preview = DEMO && (params.has('rain') || params.has('snow'));
   const age = Date.now() - new Date(forecastData?.base).getTime();
   const day = forecastData?.sgg?.[region.code]?.[koreaDate(new Date())];
