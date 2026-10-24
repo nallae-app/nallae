@@ -1171,6 +1171,8 @@ new MutationObserver(() => {
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
 ﻿let exploreLayer='places', fuelProduct='B027', fuelData=null, placesData=null, placeLocations=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null, pharmacyIndex=null, erData=null, careRaw={};
 try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'places'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
+let fuelRadius=5000, fuelSort='distance';
+try{const radius=Number(localStorage.getItem('nallae-fuel-radius'));if([5000,10000,15000].includes(radius))fuelRadius=radius;if(localStorage.getItem('nallae-fuel-sort')==='price')fuelSort='price';}catch(_){}
 const preferredExploreLayer=DEMO && (params.has('rain') || params.has('snow')) ? 'weather' : exploreLayer;
 let heritageData=null;
 function allPlaceItems() {
@@ -1206,12 +1208,14 @@ const parkingCache=new Map(), parkingPending=new Set(), parkingErrors=new Set();
 const parkingMarkers=L.layerGroup().addTo(map);
 let parkingFilter='', parkingCode=null, parkingShown=[];
 const liveFor=x=>parkingLive?.items.find(l=>l.matchId===x.id&&Number.isFinite(l.now)&&Number.isFinite(l.total));
+const parkingDistance=x=>selection&&NallaeDiscovery.point(x)?NallaeLocalScope.distance(selection.origin,[x.lat,x.lon]):Infinity;
 function parkingSpace(l) { const free=Math.max(0,l.total-l.now), r=l.total>0?free/l.total:0;return {free,state:r>=.3?'여유':r<.1?'혼잡':'보통',tone:r>=.3?'easy':r<.1?'busy':'normal'}; }
 function parkingText(x,only=false) {
  const l=only?(Number.isFinite(x.now)&&Number.isFinite(x.total)?x:null):liveFor(x), a=l&&parkingSpace(l);
  const fee=x.fee==='무료'?'무료':[x.fee,x.basic&&Number.isFinite(x.basic.won)&&Number.isFinite(x.basic.min)?'기본 '+x.basic.min+'분 '+money(x.basic.won):'',x.add&&Number.isFinite(x.add.won)&&Number.isFinite(x.add.min)?'추가 '+x.add.min+'분 '+money(x.add.won):'',Number.isFinite(x.dayMax)?'하루 최대 '+money(x.dayMax):''].filter(Boolean).join(' · ');
  const hours=[['평일',x.weekday],['토',x.sat],['공휴일',x.holiday]].filter(v=>v[1]).map(v=>v.join(' ')).join(' · ');
- return '<h3>'+escapeHtml(x.name)+'</h3><p>'+escapeHtml([x.kind,x.type,Number.isFinite(x.spaces)?x.spaces+'면':only?x.total+'면':''].filter(Boolean).join(' · '))+'</p><p>'+escapeHtml(fee||'요금 미제공')+'</p>'+(hours?'<p>'+escapeHtml(hours)+'</p>':'')+'<p>'+escapeHtml(x.address||'주소 미제공')+'</p>'+(a?'<p class="parking-live '+a.tone+'">지금 빈자리 '+a.free+'면 · '+a.state+' · '+escapeHtml(l.at?l.at.slice(11,16)+' 기준':'시각 미제공')+'</p>':'')+(x.ref?'<p class="src">자료 기준일 '+escapeHtml(x.ref)+'</p>':'')+(only?addressLink(x.address):locationActions(x,'parking'));
+ const distance=parkingDistance(x),distanceText=Number.isFinite(distance)?'직선 '+(distance<1000?Math.round(distance)+'m':(distance/1000).toFixed(1)+'km'):'거리 미확인';
+ return '<h3>'+escapeHtml(x.name)+'</h3><p class="place-distance">'+distanceText+'</p><p>'+escapeHtml([x.kind,x.type,Number.isFinite(x.spaces)?x.spaces+'면':only?x.total+'면':''].filter(Boolean).join(' · '))+'</p><p>'+escapeHtml(fee||'요금 미제공')+'</p>'+(hours?'<p>'+escapeHtml(hours)+'</p>':'')+'<p>'+escapeHtml(x.address||'주소 미제공')+'</p>'+(a?'<p class="parking-live '+a.tone+'">지금 빈자리 '+a.free+'면 · '+a.state+' · '+escapeHtml(l.at?l.at.slice(11,16)+' 기준':'시각 미제공')+'</p>':'')+(x.ref?'<p class="src">자료 기준일 '+escapeHtml(x.ref)+'</p>':'')+(only?addressLink(x.address):locationActions(x,'parking'));
 }
 async function loadParking(code) {
  parkingPending.add(code);parkingErrors.delete(code);
@@ -1230,9 +1234,9 @@ function renderParking() {
  if(!filters.some(x=>x[0]===parkingFilter)) parkingFilter='';
  exploreTools.innerHTML+='<div class="explore-toggle">'+filters.map(([k,n])=>'<button type="button" data-parking-filter="'+k+'" aria-pressed="'+(k===parkingFilter)+'">'+n+'</button>').join('')+'</div>';
  const accept=(x,only=false)=>!parkingFilter||parkingFilter==='free'&&x.fee==='무료'||parkingFilter==='public'&&(x.kind==='공영'||only)||parkingFilter==='live'&&(only?Number.isFinite(x.now)&&x.total>x.now:hasFree(x));
- parkingShown=items.filter(x=>accept(x)).sort((a,b)=>Number(!!liveFor(b))-Number(!!liveFor(a))||Number(b.fee==='무료')-Number(a.fee==='무료')||a.name.localeCompare(b.name,'ko'));
+ parkingShown=items.filter(x=>accept(x)).sort((a,b)=>parkingDistance(a)-parkingDistance(b)||Number(!!liveFor(b))-Number(!!liveFor(a))||Number(b.fee==='무료')-Number(a.fee==='무료')||a.name.localeCompare(b.name,'ko'));
  const rest=extra.filter(x=>accept(x,true));
- feedEl.innerHTML=parkingShown.map(x=>'<li class="festival-card">'+parkingText(x)+'</li>').join('')+(rest.length?'<li class="explore-source">위치 정보 없이 실시간만 있는 곳</li>'+rest.map(x=>'<li class="festival-card">'+parkingText(x,true)+'</li>').join(''):'')+(!parkingShown.length&&!rest.length?'<li class="empty">이 지역에 해당하는 주차장 자료가 없어요.</li>':'');renderParkingMarkers();
+ feedEl.innerHTML='<li class="explore-source">'+(selection.fromLocation?'내 위치':'선택한 동네 대표 지점')+'에서 가까운 순 · 직선거리 · 선택 동네에 수록된 주차장</li>'+parkingShown.map(x=>'<li class="festival-card">'+parkingText(x)+'</li>').join('')+(rest.length?'<li class="explore-source">위치·거리 미확인 · 실시간만 있는 곳</li>'+rest.map(x=>'<li class="festival-card">'+parkingText(x,true)+'</li>').join(''):'')+(!parkingShown.length&&!rest.length?'<li class="empty">이 지역에 해당하는 주차장 자료가 없어요.</li>':'');renderParkingMarkers();
 }
 function renderParkingMarkers(){
  parkingMarkers.clearLayers();if(mode!=='explore'||exploreLayer!=='parking')return;
@@ -1585,9 +1589,11 @@ function renderFuel() {
   const daily=!Number.isFinite(avg?.diff)?'전일 자료 미제공':Math.abs(avg.diff)<1?'어제와 비슷':'어제보다 '+money(Math.abs(avg.diff))+(avg.diff>0?' ↑':' ↓');
   exploreTools.innerHTML='<div class="fuel-summary"><div>'+regional+'<p>전국 평균 <strong>'+money(avg?.price)+'</strong> · '+daily+'</p></div><div class="explore-toggle">'+['B027','D047'].map(p=>'<button type="button" data-product="'+p+'" aria-pressed="'+(fuelProduct===p)+'">'+(p==='B027'?'휘발유':'경유')+'</button>').join('')+'</div></div>'+sourceDisclosure('오피넷 '+(fuelData.date || '날짜 미제공')+' 기준','오피넷(한국석유공사) 기준 · '+(fuelData.date || '날짜 미제공')+' · 주유소가 알린 가격이라 실제와 다를 수 있어요 · 지도 색은 '+productName()+' 전국 평균 대비: '+['50원 넘게 쌈','10~50원 쌈','비슷(±10원)','10~50원 비쌈','50원 넘게 비쌈'].join(' → '),'<span class="fuel-legend" role="img" aria-label="지도 색: 전국 평균보다 쌀수록 초록, 비쌀수록 보라"><span>쌈</span>'+fuelColors.map(c=>'<i style="background:'+c+'"></i>').join('')+'<span>비쌈</span></span>');
   const near=s=>selection?NallaeLocalScope.distance(selection.origin,[s.lat,s.lon]):0;
-  const stations=fuelData.stations.filter(s=>Number.isFinite(s.price?.[fuelProduct])&&NallaeDiscovery.point(s)&&(!selection||near(s)<=30000)).sort((a,b)=>selection?near(a)-near(b)||a.price[fuelProduct]-b.price[fuelProduct]:a.price[fuelProduct]-b.price[fuelProduct]);
+  const sort=selection?fuelSort:'price',basis=selection?.fromLocation?'내 위치':'선택한 동네 대표 지점';
+  exploreTools.innerHTML+='<div class="fuel-filters"><div class="explore-toggle" role="group" aria-label="주유소 반경">'+[5000,10000,15000].map(r=>'<button type="button" data-fuel-radius="'+r+'" aria-pressed="'+(fuelRadius===r)+'"'+(!selection?' disabled':'')+'>'+r/1000+'km 이내</button>').join('')+'</div><div class="explore-toggle" role="group" aria-label="주유소 정렬">'+[['distance','거리순'],['price','최저가순']].map(([k,n])=>'<button type="button" data-fuel-sort="'+k+'" aria-pressed="'+(sort===k)+'"'+(!selection&&k==='distance'?' disabled':'')+'>'+n+'</button>').join('')+'</div></div>';
+  const stations=fuelData.stations.filter(s=>Number.isFinite(s.price?.[fuelProduct])&&NallaeDiscovery.point(s)&&(!selection||near(s)<=fuelRadius)).sort((a,b)=>sort==='distance'?near(a)-near(b)||a.price[fuelProduct]-b.price[fuelProduct]:a.price[fuelProduct]-b.price[fuelProduct]||near(a)-near(b));
   const allSearch=selection?'<a class="food-map fuel-search-all" href="'+escapeHtml('https://map.kakao.com/link/search/'+encodeURIComponent(label(selection.center)+' 주유소'))+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(label(selection.center))+' 주유소 더 찾기 ↗</a>':'';
-  feedEl.innerHTML='<li class="explore-source">시·도별 저가 표본만 수집해요.'+(selection?' 선택 지점에서 직선거리 30km 안 · 가까운 순.':'')+' 가까운 모든 주유소가 표시되는 것은 아니에요.'+allSearch+'</li>'+stations.map(s=>'<li class="festival-card">'+(selection?'<p class="place-checked">선택 지점에서 직선 '+(near(s)/1000).toFixed(1)+'km</p>':'')+stationText(s)+'</li>').join('')+(stations.length?'':'<li class="empty">가까운 수집 표본이 없어요. 위의 ‘주유소 더 찾기’에서 다른 주유소도 확인해 주세요.</li>');
+  feedEl.innerHTML='<li class="explore-source">'+(selection?basis+'에서 직선 '+fuelRadius/1000+'km 이내 · '+(sort==='distance'?'거리순':'최저가순')+' · '+stations.length+'곳. ':'‘내 주변’ 또는 지도에서 동네를 고르면 5·10·15km 반경으로 볼 수 있어요. 전국 목록은 최저가순이에요. ')+'시·도별 저가 표본이라 모든 주유소를 포함하지 않아요.'+allSearch+'</li>'+stations.map(s=>'<li class="festival-card">'+(selection?'<p class="place-distance">'+basis+'에서 직선 '+(near(s)/1000).toFixed(1)+'km</p>':'')+stationText(s)+'</li>').join('')+(stations.length?'':'<li class="empty">선택한 반경 안에 수집한 주유소가 없어요. 반경을 직접 넓히거나 ‘주유소 더 찾기’로 확인해 주세요.</li>');
   for(const s of stations) {
     if(!Number.isFinite(s.lat)||!Number.isFinite(s.lon)||Math.abs(s.lat)>90||Math.abs(s.lon)>180) continue;
     L.marker([s.lat,s.lon],{title:s.name,icon:L.divIcon({className:'fuel-marker',html:'<span class="fuel-location-pin">주유</span>',iconSize:[44,44],iconAnchor:[22,40]})}).bindPopup(()=>nearbyStations(s,stations),{maxWidth:280}).addTo(fuelMarkers);
@@ -1599,10 +1605,10 @@ function nearbyStations(s,stations){
   const p=map.latLngToContainerPoint([s.lat,s.lon]);
   const near=stations.filter(o=>Number.isFinite(o.lat)&&Number.isFinite(o.lon)).filter(o=>{const q=map.latLngToContainerPoint([o.lat,o.lon]);return Math.abs(q.x-p.x)<44&&Math.abs(q.y-p.y)<44;});
   if(near.length<=1) return stationText(s);
-  near.sort((a,b)=>a.price[fuelProduct]-b.price[fuelProduct]);
+  // 이미 반경·정렬을 적용한 stations의 순서를 그대로 유지한다.
   nearbyZoom=near;
   // 모두 담는다(목록 안에서 스크롤). 많으면 그곳으로 확대해 따로 고를 수 있게 한다.
-  return '<p class="nearby-head">이 근처 주유소 '+near.length+'곳 · '+productName()+' 싼 순</p>'+(near.length>5?'<button type="button" class="nearby-zoom" data-nearby-zoom>이곳 확대해서 고르기</button>':'')+'<ul class="nearby-list">'+near.map(o=>'<li>'+stationText(o)+'</li>').join('')+'</ul>';
+  return '<p class="nearby-head">겹쳐 보이는 주유소 '+near.length+'곳 · '+(selection&&fuelSort==='distance'?'거리순':'최저가순')+'</p>'+(near.length>5?'<button type="button" class="nearby-zoom" data-nearby-zoom>이곳 확대해서 고르기</button>':'')+'<ul class="nearby-list">'+near.map(o=>'<li>'+stationText(o)+'</li>').join('')+'</ul>';
 }
 let nearbyZoom=null;
 // 지도 팝업(주유소·주차·축제): 열릴 때 지도 조작부 아래·시트 위의 안전 영역으로 자동 이동하고, 그 높이를 넘으면 안에서 스크롤
@@ -1827,6 +1833,8 @@ exploreTools.addEventListener('input',e=>{ if(exploreLayer==='food'&&e.target.ma
 exploreTools.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.product) { fuelProduct=b.dataset.product; try { localStorage.setItem('nallae-fuel-product',fuelProduct); } catch (_) {} renderExplore(); }
+  if(b.hasAttribute('data-fuel-radius')&&[5000,10000,15000].includes(Number(b.dataset.fuelRadius))){fuelRadius=Number(b.dataset.fuelRadius);try{localStorage.setItem('nallae-fuel-radius',String(fuelRadius));}catch(_){}renderExplore();}
+  if(b.hasAttribute('data-fuel-sort')&&['distance','price'].includes(b.dataset.fuelSort)){fuelSort=b.dataset.fuelSort;try{localStorage.setItem('nallae-fuel-sort',fuelSort);}catch(_){}renderExplore();}
   if(b.hasAttribute('data-kind')) { foodKind=b.dataset.kind; foodLimit=50; renderExplore(); }
 });
 feedEl.addEventListener('click',e=>{
