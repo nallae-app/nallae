@@ -132,25 +132,25 @@ async function prevJson(path) {
 }
 const fresh = (prevFile, hours) => !process.env.FORCE_REFRESH && prevFile?.updated && now - new Date(prevFile.updated) < hours * 3600e3 - 5 * 60e3;
 
-// 주유소 기름값 (오피넷) — 3시간마다
+// 평균 통계만 6시간마다. 주변 주유소는 서버의 반경 조회를 사용해 저가 표본 호출을 줄인다.
 const FUEL_OUT = 'web/data/fuel.json';
 {
   const prevFuel = await prevJson('fuel.json');
   try {
-    // 직전 시도가 실패였다면 그 시도 시각부터 3시간 쉰다
+    // 직전 시도가 실패였다면 그 시도 시각부터 6시간 쉰다
     const lastTry = prevFuel?.lastFailure?.at && new Date(prevFuel.lastFailure.at) > new Date(prevFuel.updated) ? { updated: prevFuel.lastFailure.at } : prevFuel;
-    if (fresh(lastTry, 3)) {
+    if (fresh(lastTry, 6)) {
       fs.writeFileSync(FUEL_OUT, JSON.stringify(prevFuel));
       console.log(`- 기름값: 직전 파일 유지 (${prevFuel.updated})`);
     } else {
-      const r = await fetchFuel({ key: process.env.OPINET_KEY });
+      const r = await fetchFuel({ key: process.env.OPINET_KEY, includeSamples:false });
       if (r.skipped) console.log(`- 기름값: 건너뜀 (${r.skipped})`);
       else {
         // 실패한 시·도×유종은 직전 값을 원래 기준 시각(asOf)과 함께 유지하고, 부분 실패를 파일에 남긴다
         const m = mergeFuel(r, prevFuel);
         const lowFailed = r.failed.filter((x) => x.what === 'low');
         const ids = new Set(r.stations.map((x) => x.id));
-        const keptStations = (prevFuel?.stations || []).filter((st) => !ids.has(st.id) && lowFailed.some((x) => prevFuel.areas?.[st.sgg] === x.sido && Number.isFinite(st.price?.[x.prod])))
+        const keptStations = (prevFuel?.stations || []).filter((st) => !ids.has(st.id) && (!r.stations.length || lowFailed.some((x) => prevFuel.areas?.[st.sgg] === x.sido && Number.isFinite(st.price?.[x.prod]))))
           .map((st) => ({ ...st, asOf: st.asOf || prevFuel.updated }));
         const partial = r.failed.length ? { failed: r.failed.map((x) => `${OPINET_SIDO[x.sido]} ${PRODUCTS[x.prod]} ${x.what === 'avg' ? '평균' : '최저가'}`), kept: m.kept.filter((x) => x.kept).map((x) => `${OPINET_SIDO[x.sido]} ${PRODUCTS[x.prod]} ${x.kept}곳`) } : undefined;
         fs.writeFileSync(FUEL_OUT, JSON.stringify({ updated: now.toISOString(), date: r.date, source: '오피넷 (한국석유공사)', products: PRODUCTS, national: r.national, sgg: m.sgg, asOf: m.asOf, areas: m.areas, stations: [...r.stations, ...keptStations], partial }));

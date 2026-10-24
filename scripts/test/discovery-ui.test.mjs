@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const app=fs.readFileSync(new URL('../../web/app.js',import.meta.url),'utf8');
 function setup(extra={}){
-  const ctx={Math,Number,Date,Set,Map,Object,String,fuelRadius:5000,fuelSort:'distance',selection:{center:{code:'11350',name:'노원구'},origin:[37.65,127.06]},escapeHtml:s=>String(s),escapeAttr:s=>String(s),validDate:d=>Number.isFinite(d?.getTime()),label:()=> '서울 노원구',productName:()=> '휘발유',money:x=>String(x)+'원',...extra};
+  const ctx={Math,Number,Date,Set,Map,Object,String,DEMO:true,fuelShown:[],fuelLookupAllowed:false,fuelSampleFallback:false,fuelRadius:5000,fuelSort:'distance',selection:{center:{code:'11350',name:'노원구'},origin:[37.65,127.06]},escapeHtml:s=>String(s),escapeAttr:s=>String(s),validDate:d=>Number.isFinite(d?.getTime()),label:()=> '서울 노원구',productName:()=> '휘발유',money:x=>String(x)+'원',...extra};
   vm.createContext(ctx);for(const name of ['local-scope','discovery'])vm.runInContext(fs.readFileSync(new URL('../../web/'+name+'.js',import.meta.url),'utf8'),ctx);
   return ctx;
 }
@@ -39,4 +39,12 @@ test('길찾기: 내 위치가 있어도 자동 전달하지 않고 출발점 �
   load(ctx,'renderRouteDialog');ctx.renderRouteDialog();assert.match(ctx.routeDialog.innerHTML,/내 위치를 출발점으로/);assert.doesNotMatch(ctx.routeDialog.innerHTML,/link\/by/);
   ctx.routeStart={name:'지도에서 고른 출발점',lat:37.64,lon:127.05};ctx.renderRouteDialog();
   for(const travel of ['walk','traffic','car','bicycle'])assert.ok(ctx.routeDialog.innerHTML.includes('/link/by/'+travel+'/'));
+});
+
+test('실제 반경 조회를 선택하면 비싼 근처 주유소가 저가 표본과 별개로 표시된다',()=>{
+  let markers=[];const stations=[{id:'near-expensive',name:'가까운 비싼 곳',lat:37.651,lon:127.06,price:{B027:2500}},{id:'far-cheap',name:'먼 싼 곳',lat:37.67,lon:127.06,price:{B027:1800}}];
+  const ctx=setup({DEMO:false,fuelProduct:'B027',nearbyFuelClient:{peek:()=>({status:'ready',data:{stations,asOf:'2026-10-25T00:00:00Z'}})},fuelData:{national:{},sgg:{},stations:[]},exploreTools:{innerHTML:''},feedEl:{innerHTML:''},sourceDisclosure:()=>'',fuelColors:[],stationText:s=>'['+s.id+']',fuelMarkers:{},L:{divIcon:()=>{},marker:xy=>({bindPopup:()=>({addTo:()=>markers.push(xy)})})}});
+  load(ctx,'renderFuel');ctx.renderFuel();assert.equal(ctx.fuelShown.length,2);assert.ok(ctx.feedEl.innerHTML.indexOf('[near-expensive]')<ctx.feedEl.innerHTML.indexOf('[far-cheap]'));assert.match(ctx.feedEl.innerHTML,/가격과 관계없이 조회/);
+  ctx.fuelSort='price';markers=[];ctx.renderFuel();assert.ok(ctx.feedEl.innerHTML.indexOf('[far-cheap]')<ctx.feedEl.innerHTML.indexOf('[near-expensive]'));assert.equal(markers.length,2);
+  ctx.selection.fromLocation=true;ctx.nearbyFuelClient.peek=()=>{throw Error('동의 전 조회하면 안 됨');};ctx.renderFuel();assert.match(ctx.feedEl.innerHTML,/내 위치로 주유소 조회/);assert.equal(ctx.fuelShown.length,0);
 });

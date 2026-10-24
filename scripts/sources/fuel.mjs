@@ -107,7 +107,7 @@ export function mergeFuel(cur, prev) {
   return { sgg, asOf, areas, kept };
 }
 
-export async function fetchFuel({ key }) {
+export async function fetchFuel({ key, includeSamples=true }) {
   if (!key) return { skipped: 'OPINET_KEY 없음' };
   const all = await get('avgAllPrice.do', key, {});
   const national = {};
@@ -129,7 +129,7 @@ export async function fetchFuel({ key }) {
       if (!Object.keys(avg.prices).length) { failed.push({ what: 'avg', sido, prod, kind: 'no-product' }); continue; }
       for (const [c, p] of Object.entries(avg.prices)) { (sgg[c] ??= {})[prod] = p; areas[c] = sido; }
     }
-    for (const prod of Object.keys(PRODUCTS)) {
+    for (const prod of includeSamples?Object.keys(PRODUCTS):[]) {
       try {
         for (const r of await get('lowTop10.do', key, { area: sido, prodcd: prod, cnt: 10 })) {
           const s = toStation(r, prod);
