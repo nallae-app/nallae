@@ -1,0 +1,23 @@
+name: discovery-refresh
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-package-lock --ignore-scripts topojson-client@3.1.0
+      - run: node scripts/refresh-discovery.mjs
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: discovery-data
+          path: output/discovery/
+          retention-days: 7
