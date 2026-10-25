@@ -616,3 +616,28 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .fuel-filters { display:grid; gap:8px; margin:10px 0; }
 .fuel-filters button:disabled { opacity:.45; cursor:default; }
 .place-distance { font-size:13px; font-weight:600; color:var(--brand); }
+
+/* 자주 쓰는 지역 선택은 시트를 올려도 보이는 헤더에 둔다. */
+.topbar .controls { position:static; flex-direction:row; gap:6px; }
+.panel-footer { flex:none; display:flex; justify-content:flex-end; padding:2px 16px; border-top:1px solid var(--border-sgg); background:var(--surface); }
+.panel-footer button { display:flex; align-items:center; gap:6px; padding:6px 10px; border:0; border-radius:12px; background:none; color:var(--text-muted); font-size:13px; }
+.panel-footer svg,#settings-dialog svg { width:20px; height:20px; stroke:currentColor; stroke-width:1.75; fill:none; stroke-linecap:round; }
+.settings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; }
+#settings-dialog #btn-theme { display:flex; align-items:center; gap:8px; width:auto; padding:8px 12px; background:var(--surface-muted); box-shadow:none; }
+#settings-dialog #btn-theme::before { display:none; }
+.settings-note { color:var(--text-muted); font-size:13px; line-height:20px; }
+.settings-link { display:flex; align-items:center; justify-content:space-between; min-height:48px; border-top:1px solid var(--border-sgg); color:var(--text); text-decoration:none; }
+#settings-dialog .map-legend { margin-top:8px; }
+#settings-dialog .map-legend summary { display:flex; width:auto; padding:8px 0; }
+#settings-dialog .map-legend summary::before { display:none; }
+#settings-dialog .legend-content { position:static; padding:12px; max-width:none; background:var(--surface-muted); box-shadow:none; }
+@media(max-width:759px) {
+  .topbar { gap:8px; }
+  .topbar .brand { min-width:0; gap:4px; }
+  .topbar .brand p { display:none; }
+  .topbar .brand h1 { font-size:22px; }
+  .topbar .controls button { padding:8px 10px; gap:4px; white-space:nowrap; }
+  .topbar .controls button span { position:static; width:auto; height:auto; overflow:visible; clip:auto; }
+  .topbar .controls svg { width:20px; height:20px; }
+  .topbar .badge-sample { display:none; }
+}

@@ -40,7 +40,7 @@ function applyTheme() {
   root.dataset.theme = mode === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : mode;
   const name = {light:'라이트',dark:'다크',system:'시스템'}[mode];
   const shape = {light:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',dark:'<path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/>',system:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4M12 7v7m0-7a3.5 3.5 0 0 1 0 7"/>'}[mode];
-  themeButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + shape + '</svg>';
+  themeButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + shape + '</svg><span>' + name + '</span>';
   themeButton.setAttribute('aria-label', '화면 테마: ' + name + '. 누르면 다음 설정');
 }
 themeButton.addEventListener('click', () => {
@@ -59,6 +59,7 @@ const titleEl = document.getElementById('panel-title');
 const subEl = document.getElementById('panel-sub');
 const chipsEl = document.getElementById('chips');
 const locateBtn = document.getElementById('btn-locate');
+document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-dialog').showModal());
 const toastEl = document.getElementById('toast');
 const map = L.map('map', { zoomControl: false, minZoom: 5, maxZoom: 18, zoomSnap: 0.25 });
 map.attributionControl.setPrefix(false)
@@ -995,7 +996,7 @@ function sheetHeights() {
   const full = Math.max(0, H - document.querySelector('.topbar').getBoundingClientRect().bottom - 8);
   const handleH = handle.offsetHeight + parseFloat(getComputedStyle(handle).marginBottom);
   const pad = parseFloat(getComputedStyle(panel).paddingBottom);
-  const folded = handleH + sheetHead.offsetHeight + favoritesRow.offsetHeight + pad;
+  const folded = handleH + sheetHead.offsetHeight + favoritesRow.offsetHeight + (document.querySelector('.panel-footer')?.offsetHeight || 0) + pad;
   const low = Math.min(folded, full);
   // 상태 안내·분류 줄·탐험 도구의 실제 높이를 더한다. 접힘에서는 숨어서 0이 되므로 마지막 측정값을 쓴다.
   const outer = el => {
