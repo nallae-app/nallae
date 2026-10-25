@@ -1783,7 +1783,7 @@ function renderOutings() {
   if(outingCode!==code){outingCode=code;outingLimit=30;}
   titleEl.textContent=selection?regionTitle(selection.center)+'에서 뭐 할까?':'오늘 어디 갈까?';
   subEl.textContent='공원·관광지 발견부터 가까운 두 곳 데이트까지';
-  exploreTools.innerHTML='<div class="outing-toolbar"><select data-outing-theme-select aria-label="놀거리 종류">'+[['','전체 장소'],['park','산책'],['attraction','관광지'],['date','두 곳 데이트'],['saved','저장한 곳 '+savedOutings.size]].map(([k,n])=>'<option value="'+k+'"'+(outingTheme===k?' selected':'')+'>'+n+'</option>').join('')+'</select><button type="button" data-outing-filters aria-haspopup="dialog">검색·필터'+(outingQuery?' · 적용 중':'')+'</button></div>'
+  exploreTools.innerHTML='<div class="outing-toolbar"><button type="button" class="outing-date" data-outing-date aria-pressed="'+(outingTheme==='date')+'">두 곳 데이트</button><select data-outing-theme-select aria-label="그 외 놀거리 종류">'+(outingTheme==='date'?'<option value="date" selected disabled>장소 보기</option>':'')+[['','전체 장소'],['park','산책'],['attraction','관광지'],['saved','저장한 곳 '+savedOutings.size]].map(([k,n])=>'<option value="'+k+'"'+(outingTheme===k?' selected':'')+'>'+n+'</option>').join('')+'</select><button type="button" data-outing-filters aria-haspopup="dialog">검색·필터'+(outingQuery?' · 적용 중':'')+'</button></div>'
     +'<dialog class="outing-filters-dialog" aria-labelledby="outing-filters-title"><div class="dialog-head"><h2 id="outing-filters-title">놀거리 검색·필터</h2><button type="button" data-outing-filters-close>완료</button></div>'
     +'<label class="outing-region">둘러볼 동네<select data-outing-region aria-label="놀거리 지역 선택"><option value="">전국 관광지</option>'+munis.map(m=>'<option value="'+m.code+'"'+(m.code===code?' selected':'')+'>'+escapeHtml(label(m))+'</option>').join('')+'</select></label>'
     +'<label class="food-search outing-search"><input type="search" data-outing-search aria-label="놀거리 이름·지역 검색" placeholder="공원·관광지 이름, 지역 검색" value="'+escapeHtml(outingQuery)+'"></label>'
@@ -1835,6 +1835,7 @@ function focusOutings(items) {
 exploreTools.addEventListener('input',e=>{if(e.target.matches('[data-outing-search]')){outingQuery=e.target.value;outingLimit=30;const b=exploreTools.querySelector('[data-outing-filters]');if(b)b.textContent='검색·필터'+(outingQuery?' · 적용 중':'');renderOutingCards();}});
 exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-region]')){const m=muniByCode.get(e.target.value);if(m)select(m,false);else {clearSelection();atHome=true;fitHome();}}});
 exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-theme-select]')){outingTheme=e.target.value;outingLimit=30;renderOutings();fitSheet();}});
+exploreTools.addEventListener('click',e=>{if(e.target.closest('[data-outing-date]')){outingTheme='date';outingLimit=30;renderOutings();fitSheet();}});
 exploreTools.addEventListener('click',e=>{const dialog=exploreTools.querySelector('.outing-filters-dialog');if(e.target.closest('[data-outing-filters]'))dialog?.showModal();if(e.target.closest('[data-outing-filters-close]'))dialog?.close();});
 feedEl.addEventListener('click',e=>{
   if(mode!=='explore'||exploreLayer!=='outing')return;const b=e.target.closest('button');if(!b)return;

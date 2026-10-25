@@ -590,6 +590,9 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .outing-toolbar select,.outing-toolbar button { min-width:0; min-height:44px; padding:8px 12px; border:0; border-radius:12px; background:var(--surface-muted); color:var(--text); font:inherit; font-size:13px; }
 .outing-toolbar select { flex:1; }
 .outing-toolbar button { flex:none; }
+.outing-toolbar .outing-date { color:var(--brand); border:1px solid var(--brand); font-weight:600; }
+.outing-toolbar .outing-date[aria-pressed="true"] { background:var(--brand); color:var(--on-brand); }
+@media(max-width:379px) { .outing-toolbar { gap:4px; } .outing-toolbar select,.outing-toolbar button { padding:8px; font-size:12px; } }
 .outing-filters-dialog .outing-region { margin:20px 0 12px; }
 .outing-filters-dialog .source-disclosure { margin-top:16px; }
 @media(max-width:759px) {
