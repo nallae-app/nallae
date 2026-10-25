@@ -37,6 +37,18 @@ test('서버 호출 예산 초과 시 후속 요청 중단',async()=>{
   await service({...origin,radius:5000,product});await assert.rejects(service({...origin,radius:10000,product}),/quota/);assert.equal(calls,1);
 });
 function mockRes(){return {headers:{},code:200,setHeader(k,v){this.headers[k]=v;},status(n){this.code=n;return this;},json(x){this.body=x;return this;},end(){return this;}};}
+test('복사한 키의 앞뒤 공백 제거, code 인증 실패 때 certkey 전환 후 성공 방식 유지',async()=>{
+  const params=[];
+  const service=createFuelService({key:'  secret\n',fetcher:async value=>{
+    const url=new URL(value),param=url.searchParams.has('code')?'code':'certkey';params.push(param);
+    assert.equal(url.searchParams.get(param),'secret');
+    return response(param==='code'?[]:[oil('주유소',37.655,127.056,2400)]);
+  }});
+  assert.equal((await service({...origin,radius:5000,product})).stations.length,1);
+  assert.deepEqual(params,['code','code','certkey']);
+  await service({...origin,radius:5000,product:'D047'});
+  assert.equal(params.at(-1),'certkey');assert.equal(params.length,4);
+});
 test('공개 상태 확인에는 키 값이 없고 미등록 서버는 503, 좌표 GET 요청 금지',async()=>{
   const prev=process.env.OPINET_KEY;delete process.env.OPINET_KEY;
   try{let res=mockRes();await handler({method:'GET',query:{health:'1'},headers:{}},res);assert.equal(res.body.configured,false);assert.equal(res.body.key,undefined);

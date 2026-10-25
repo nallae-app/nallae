@@ -22,32 +22,39 @@ export function normalizeRows(rows,product,origin,radius,asOf) {
   return out.sort((a,b)=>a.distance-b.distance||a.id.localeCompare(b.id));
 }
 export function createFuelService({key,fetcher=fetch,now=Date.now,cache=new Map(),ttl=30*60000,maxCalls=70}={}) {
-  let quotaDate='',calls=0;const pending=new Map();
-  async function tile(center,product) {
-    const id=createHmac('sha256',key).update([center.x.toFixed(3),center.y.toFixed(3),product].join('|')).digest('hex'),hit=cache.get(id);
+  key=typeof key==='string'?key.trim():'';
+  let quotaDate='',calls=0,preferredParam='code';const pending=new Map();
+  async function tile(center,product,param) {
+    const id=createHmac('sha256',key).update([param,center.x.toFixed(3),center.y.toFixed(3),product].join('|')).digest('hex'),hit=cache.get(id);
     if(hit&&hit.expires>now())return hit;
     if(pending.has(id))return pending.get(id);
     const task=(async()=>{
       const date=new Date(now()+9*3600000).toISOString().slice(0,10);if(date!==quotaDate){quotaDate=date;calls=0;}
       if(calls>=maxCalls)throw Error('quota');calls++;
-      const qs=new URLSearchParams({out:'json',code:key,x:String(center.x),y:String(center.y),radius:'5000',prodcd:product,sort:'2'});
+      const qs=new URLSearchParams({out:'json',[param]:key,x:String(center.x),y:String(center.y),radius:'5000',prodcd:product,sort:'2'});
       let r,j;try{r=await fetcher('https://www.opinet.co.kr/api/aroundAll.do?'+qs,{signal:AbortSignal.timeout(20000)});j=await r.json();}catch{throw Error('upstream');}
       if(!r.ok||!Array.isArray(j?.RESULT?.OIL))throw Error('upstream');
       const value={rows:j.RESULT.OIL,asOf:new Date(now()).toISOString(),expires:now()+ttl};
       if(cache.size>=300)cache.delete(cache.keys().next().value);cache.set(id,value);return value;
     })();pending.set(id,task);try{return await task;}finally{pending.delete(id);}
   }
-  return async({lat,lon,radius,product})=>{
+  async function query({lat,lon,radius,product},param=preferredParam) {
     if(!key)throw Error('not-configured');if(!PRODUCTS.includes(product))throw Error('invalid-product');
     const centers=queryCenters(lat,lon,radius),results=[];
-    for(let i=0;i<centers.length;i+=3)results.push(...await Promise.all(centers.slice(i,i+3).map(c=>tile(c,product))));
+    for(let i=0;i<centers.length;i+=3)results.push(...await Promise.all(centers.slice(i,i+3).map(c=>tile(c,product,param))));
     if(results.some(x=>!x.rows.length)){
       // 해역·농촌의 진짜 0곳과 인증·한도 오류를 전국 평균 정상 응답으로 구분한다.
       if(calls>=maxCalls)throw Error('quota');calls++;
-      let r,j;try{r=await fetcher('https://www.opinet.co.kr/api/avgAllPrice.do?'+new URLSearchParams({out:'json',code:key}),{signal:AbortSignal.timeout(20000)});j=await r.json();}catch{throw Error('upstream');}
-      if(!r.ok||!Array.isArray(j?.RESULT?.OIL)||!j.RESULT.OIL.some(x=>Number(x.PRICE)>0))throw Error('empty-response');
+      let r,j;try{r=await fetcher('https://www.opinet.co.kr/api/avgAllPrice.do?'+new URLSearchParams({out:'json',[param]:key}),{signal:AbortSignal.timeout(20000)});j=await r.json();}catch{throw Error('upstream');}
+      if(!r.ok||!Array.isArray(j?.RESULT?.OIL)||!j.RESULT.OIL.some(x=>Number(x.PRICE)>0)){
+        // 기존 키는 code, 공식 현재 문서는 certkey. 인증이 확인되지 않을 때만 한 번 전환한다.
+        if(param==='code')return query({lat,lon,radius,product},'certkey');
+        throw Error('empty-response');
+      }
     }
+    preferredParam=param;
     const asOf=results.map(x=>x.asOf).sort()[0];
     return {complete:true,radius,product,asOf,source:'오피넷 반경 내 주유소 조회',queryCount:centers.length,stations:normalizeRows(results.flatMap(x=>x.rows),product,{lat,lon},radius,asOf)};
-  };
+  }
+  return query;
 }
