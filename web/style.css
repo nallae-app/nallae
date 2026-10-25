@@ -586,6 +586,16 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .outing-region { display:flex; align-items:center; gap:8px; font-size:12px; margin:8px 0; }
 .outing-region select { min-width:0; flex:1; min-height:44px; border:0; border-radius:12px; padding:8px; background:var(--surface-muted); color:var(--text); font:inherit; }
 .outing-search { width:100%; margin-bottom:8px; }
+.outing-toolbar { display:flex; gap:8px; align-items:center; }
+.outing-toolbar select,.outing-toolbar button { min-width:0; min-height:44px; padding:8px 12px; border:0; border-radius:12px; background:var(--surface-muted); color:var(--text); font:inherit; font-size:13px; }
+.outing-toolbar select { flex:1; }
+.outing-toolbar button { flex:none; }
+.outing-filters-dialog .outing-region { margin:20px 0 12px; }
+.outing-filters-dialog .source-disclosure { margin-top:16px; }
+@media(max-width:759px) {
+  :root[data-mode="explore"] .panel[data-explore-layer="outing"] .panel-head p { display:none; }
+  :root[data-mode="explore"] .panel[data-explore-layer="outing"] .explore-tools { padding-bottom:4px; }
+}
 .outing-actions { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px; }
 .outing-actions button,.outing-intro button,.outing-plan button,[data-outing-more],[data-outing-retry] { border:0; border-radius:16px; min-height:44px; padding:8px 12px; font:inherit; background:var(--surface-muted); color:var(--text); cursor:pointer; }
 .outing-source { font-size:12px; margin-top:10px; color:var(--text-muted); }

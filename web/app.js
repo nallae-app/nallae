@@ -1035,7 +1035,7 @@ function applySheetHeight(heights) {
   const hint = sheetStage === 1 && !heights.fits;
   panel.classList.toggle('needs-expand', hint);
   handle.setAttribute('aria-label', '소식 목록 높이: ' + stageNames[sheetStage] + (hint ? '. 앞 소식이 다 보이지 않아요. 누르면 전체 목록' : '. 누르면 다음 높이로 바뀌어요'));
-  const scroll = sheetStage === 2 && h - heights.fixed < SCROLL_FEED;
+  const scroll = sheetStage === 2 && ((mode === 'explore' && panel.dataset.exploreLayer === 'outing') || h - heights.fixed < SCROLL_FEED);
   if (panel.classList.contains('sheet-scroll') !== scroll) { panel.classList.toggle('sheet-scroll', scroll); if (!scroll) panel.scrollTop = 0; }
   if (Math.abs(before - h) > 4) refitAfterSheet();
 }
@@ -1437,6 +1437,7 @@ function renderExplore() {
   document.querySelector('[data-open-places]').classList.toggle('active',mode==='explore'&&exploreLayer==='places');
   const available=availableLayers();
   if(!available.some(x=>x[0]===exploreLayer)) exploreLayer=available[0]?.[0] || 'festival';
+  panel.dataset.exploreLayer=exploreLayer;
   exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers(); careMarkers.clearLayers(); placeMarkers.clearLayers(); map.attributionControl.removeAttribution(placeAttribution);
   munis.forEach(restyle); scheduleLabels();
   updateRainScene();
@@ -1763,7 +1764,7 @@ feedEl.addEventListener('click',e=>{ if(mode==='explore'&&exploreLayer==='places
 async function loadOutingRegion(code) {
   if(outingPending.has(code))return;outingPending.add(code);outingErrors.delete(code);
   try{const r=await fetch('data/outings/'+encodeURIComponent(code)+'.json',{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();if(!Array.isArray(d.items)||d.items.some(x=>x.sgg!==code||!NallaeDiscovery.point(x)))throw Error();outingCache.set(code,d.items);}catch(_){outingErrors.add(code);}
-  outingPending.delete(code);if(mode==='explore'&&exploreLayer==='outing')renderOutings();
+  outingPending.delete(code);if(mode==='explore'&&exploreLayer==='outing')renderOutingCards();
 }
 function currentOutings() {
   if(outingTheme==='saved')return [...savedOutings.values()];
@@ -1782,10 +1783,11 @@ function renderOutings() {
   if(outingCode!==code){outingCode=code;outingLimit=30;}
   titleEl.textContent=selection?regionTitle(selection.center)+'에서 뭐 할까?':'오늘 어디 갈까?';
   subEl.textContent='공원·관광지 발견부터 가까운 두 곳 데이트까지';
-  exploreTools.innerHTML=sourceDisclosure('전국 놀거리 '+outingIndex.total.toLocaleString('ko-KR')+'곳 · 관광지 '+outingIndex.attractions+' · 공원 '+outingIndex.parks.toLocaleString('ko-KR')+'곳','관광지·도시공원 공식 표준자료의 실제 장소예요. 평점·인기도 순위가 아니에요. 근처 30km 안의 자료를 거리순으로 보여드려요. 전국 보기에서는 관광지만 보여주며 공원은 지역을 골라 확인할 수 있어요.')
+  exploreTools.innerHTML='<div class="outing-toolbar"><select data-outing-theme-select aria-label="놀거리 종류">'+[['','전체 장소'],['park','산책'],['attraction','관광지'],['date','두 곳 데이트'],['saved','저장한 곳 '+savedOutings.size]].map(([k,n])=>'<option value="'+k+'"'+(outingTheme===k?' selected':'')+'>'+n+'</option>').join('')+'</select><button type="button" data-outing-filters aria-haspopup="dialog">검색·필터'+(outingQuery?' · 적용 중':'')+'</button></div>'
+    +'<dialog class="outing-filters-dialog" aria-labelledby="outing-filters-title"><div class="dialog-head"><h2 id="outing-filters-title">놀거리 검색·필터</h2><button type="button" data-outing-filters-close>완료</button></div>'
     +'<label class="outing-region">둘러볼 동네<select data-outing-region aria-label="놀거리 지역 선택"><option value="">전국 관광지</option>'+munis.map(m=>'<option value="'+m.code+'"'+(m.code===code?' selected':'')+'>'+escapeHtml(label(m))+'</option>').join('')+'</select></label>'
     +'<label class="food-search outing-search"><input type="search" data-outing-search aria-label="놀거리 이름·지역 검색" placeholder="공원·관광지 이름, 지역 검색" value="'+escapeHtml(outingQuery)+'"></label>'
-    +'<div class="explore-toggle">'+[['','전체'],['park','산책'],['attraction','관광지'],['date','두 곳 데이트'],['saved','저장한 곳 '+savedOutings.size]].map(([k,n])=>'<button type="button" data-outing-theme="'+k+'" aria-pressed="'+(outingTheme===k)+'">'+n+'</button>').join('')+'</div>';
+    +sourceDisclosure('전국 놀거리 '+outingIndex.total.toLocaleString('ko-KR')+'곳 · 자료 안내','관광지 '+outingIndex.attractions+'곳 · 공원 '+outingIndex.parks.toLocaleString('ko-KR')+'곳. 관광지·도시공원 공식 표준자료예요. 평점·인기도 순위가 아니에요. 근처 30km 안의 자료를 거리순으로 보여드려요. 전국 보기에서는 관광지만 보여주며 공원은 지역을 골라 확인할 수 있어요.')+'</dialog>';
   renderOutingCards();
 }
 function renderOutingCards() {
@@ -1830,9 +1832,10 @@ function focusOutings(items) {
   atHome=false;selectionAutoFit=false;setSheetStage(0);clearTimeout(sheetFitTimer);map.closePopup();
   renderOutingMarkers(items);map.fitBounds(L.latLngBounds(items.map(x=>[x.lat,x.lon])),{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:items.length===1?17:16,animate:!reducedMotion.matches});
 }
-exploreTools.addEventListener('input',e=>{if(e.target.matches('[data-outing-search]')){outingQuery=e.target.value;outingLimit=30;renderOutingCards();}});
+exploreTools.addEventListener('input',e=>{if(e.target.matches('[data-outing-search]')){outingQuery=e.target.value;outingLimit=30;const b=exploreTools.querySelector('[data-outing-filters]');if(b)b.textContent='검색·필터'+(outingQuery?' · 적용 중':'');renderOutingCards();}});
 exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-region]')){const m=muniByCode.get(e.target.value);if(m)select(m,false);else {clearSelection();atHome=true;fitHome();}}});
-exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-outing-theme]');if(b){outingTheme=b.dataset.outingTheme;outingLimit=30;renderOutings();}});
+exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-theme-select]')){outingTheme=e.target.value;outingLimit=30;renderOutings();fitSheet();}});
+exploreTools.addEventListener('click',e=>{const dialog=exploreTools.querySelector('.outing-filters-dialog');if(e.target.closest('[data-outing-filters]'))dialog?.showModal();if(e.target.closest('[data-outing-filters-close]'))dialog?.close();});
 feedEl.addEventListener('click',e=>{
   if(mode!=='explore'||exploreLayer!=='outing')return;const b=e.target.closest('button');if(!b)return;
   if(b.hasAttribute('data-outing-more')){outingLimit+=30;renderOutingCards();}
