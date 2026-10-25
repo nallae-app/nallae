@@ -633,10 +633,12 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 #settings-dialog .legend-content { position:static; padding:12px; max-width:none; background:var(--surface-muted); box-shadow:none; }
 @media(max-width:759px) {
   .topbar { gap:8px; }
-  .topbar .brand { min-width:0; gap:4px; }
-  .topbar .brand p { display:none; }
-  .topbar .brand h1 { font-size:22px; }
-  .topbar .controls button { padding:8px 10px; gap:4px; white-space:nowrap; }
+  .topbar .brand { flex:1; min-width:0; gap:8px; }
+  .topbar .brand > div { min-width:0; }
+  .topbar .brand p { display:block; white-space:normal; }
+  .topbar .top-right { flex:none; }
+  .topbar .controls { gap:4px; }
+  .topbar .controls button { padding:8px; gap:4px; font-size:12px; white-space:nowrap; }
   .topbar .controls button span { position:static; width:auto; height:auto; overflow:visible; clip:auto; }
   .topbar .controls svg { width:20px; height:20px; }
   .topbar .badge-sample { display:none; }
