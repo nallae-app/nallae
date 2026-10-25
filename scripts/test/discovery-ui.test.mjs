@@ -48,3 +48,22 @@ test('실제 반경 조회를 선택하면 비싼 근처 주유소가 저가 표
   ctx.fuelSort='price';markers=[];ctx.renderFuel();assert.ok(ctx.feedEl.innerHTML.indexOf('[far-cheap]')<ctx.feedEl.innerHTML.indexOf('[near-expensive]'));assert.equal(markers.length,2);
   ctx.selection.fromLocation=true;ctx.nearbyFuelClient.peek=()=>{throw Error('동의 전 조회하면 안 됨');};ctx.renderFuel();assert.match(ctx.feedEl.innerHTML,/내 위치로 주유소 조회/);assert.equal(ctx.fuelShown.length,0);
 });
+test('코스 버튼은 URL 검증기가 아닌 실제 코스 ID로 저장·지도 대상 연결',()=>{
+  const stops=[{id:'식당-a',name:'식당',type:'restaurant',lat:37.65,lon:127.06},{id:'park-b',name:'공원',type:'park',kind:'근린공원',lat:37.655,lon:127.06}];
+  const ctx=setup({savedPlans:new Map(),selection:null});
+  load(ctx,'escapeHtml');load(ctx,'escapeAttr');load(ctx,'outingPlanCard');
+  const id=ctx.NallaeDiscovery.planId(stops),html=ctx.outingPlanCard({id,stops,reason:'소개된 식당 + 근린공원',meters:556,withFood:true},0);
+  assert.ok(html.includes('data-plan-map="'+id+'"'));assert.ok(html.includes('data-plan-save="'+id+'"'));
+  assert.ok(!html.includes('data-plan-save="#"'));assert.match(html,/주소·출처·방문 전 확인/);
+  ctx.selection={origin:[35.15,129.04],fromLocation:false};
+  const saved=ctx.outingPlanCard({id,stops,reason:'소개된 식당 + 근린공원',meters:556,withFood:true},0,true);
+  assert.doesNotMatch(saved,/첫 장소 직선/);assert.match(saved,/저장 당시 장소 정보/);
+});
+test('같은 조건의 코스 재표시는 계산 재사용, 지역 자료·시드가 바뀌면 재계산',()=>{
+  let calls=0;const spot={id:'park',name:'공원',type:'park',lat:37.655,lon:127.06};
+  const ctx=setup({outingTheme:'date',outingQuery:'',outingNonce:0,outingRevision:1,outingRadius:5000,outingPlanMemo:new Map(),outingPending:new Set(),outingErrors:new Set(),currentOutings:()=>[spot],allPlaceItems:()=>[],placeLocation:()=>null,koreaDate:()=> '2026-10-25',outingPlanCard:()=>'',renderOutingMarkers:()=>{},feedEl:{innerHTML:''},outingPlans:[],outingShown:[]});
+  ctx.selection.codes=new Set(['11350']);ctx.NallaeDiscovery={...ctx.NallaeDiscovery,plans:()=>{calls++;return [];}};
+  load(ctx,'renderOutingCards');ctx.renderOutingCards();ctx.renderOutingCards();assert.equal(calls,1);
+  ctx.outingRevision++;ctx.renderOutingCards();assert.equal(calls,2);
+  ctx.outingNonce++;ctx.renderOutingCards();assert.equal(calls,3);
+});

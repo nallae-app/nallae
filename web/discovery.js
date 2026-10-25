@@ -10,21 +10,42 @@
   };
   const eligible=x=>x.type!=='park'||/근린|수변|문화|역사|체육|도시자연/.test(x.kind||'');
   const hash=s=>{let h=2166136261;for(const c of s)h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;};
-  function plans(spots,foods,{origin,seed='',maxDistance=2000,limit=6}={}) {
-    const anchors=spots.filter(x=>point(x)&&eligible(x));
-    const food=foods.filter(point),used=new Set(),out=[];
-    const ranked=anchors.map(x=>({x,h:hash(seed+'|'+x.id),d:origin?NallaeLocalScope.distance(origin,[x.lat,x.lon]):0})).filter(x=>!origin||x.d<=30000)
-      .sort((a,b)=>origin?Math.floor(a.d/5000)-Math.floor(b.d/5000)||a.h-b.h:a.h-b.h);
-    for(const {x} of ranked) {
-      if(used.has(x.id))continue;
-      const candidates=[...food,...anchors].filter(y=>y.id!==x.id&&!used.has(y.id)&&y.name!==x.name).map(y=>({y,d:distance(x,y)}))
-        .filter(p=>p.d>=100&&p.d<=maxDistance).sort((a,b)=>Number(!food.includes(a.y))-Number(!food.includes(b.y))||a.d-b.d);
-      const pair=candidates[0];if(!pair)continue;
-      const stops=food.includes(pair.y)?[pair.y,x]:[x,pair.y];
-      out.push({id:stops.map(x=>x.id).join('|'),stops,meters:Math.round(pair.d),withFood:food.includes(pair.y)});
-      stops.forEach(p=>used.add(p.id));if(out.length>=limit)break;
-    }
+  const planId=stops=>stops.map(x=>x.id).sort().join('|');
+  function pairing(a,b) {
+    const food=[a,b].find(x=>x.type==='restaurant'),park=[a,b].find(x=>x.type==='park');
+    if(food)return {priority:0,reason:'소개된 식당 + '+(park?.kind||'관광지')};
+    if(park&&a.type!==b.type)return {priority:1,reason:'관광지 + '+(park.kind||'공원')};
+    if(a.type==='park'&&b.type==='park')return {priority:a.kind===b.kind?3:2,reason:'가까운 공원 두 곳'};
+    return {priority:2,reason:'서로 다른 관광지 두 곳'};
+  }
+  function plans(spots,foods,{origin,seed='',maxDistance=2000,originRadius=30000,limit=6}={}) {
+    const originDistances=new WeakMap();
+    const fromOrigin=x=>{if(!origin)return 0;if(!originDistances.has(x))originDistances.set(x,NallaeLocalScope.distance(origin,[x.lat,x.lon]));return originDistances.get(x);};
+    const inRange=x=>point(x)&&fromOrigin(x)<=originRadius;
+    const anchors=[...new Map(spots.filter(x=>inRange(x)&&eligible(x)).map(x=>[x.id,x])).values()];
+    const food=foods.filter(inRange).map(x=>({...x,type:'restaurant'})),pairs=new Map(),grid=new Map(),cell=maxDistance/80000;
+    // 한국 위도 범위에서 각 셀의 남북·동서 폭이 최대 짝 거리보다 크므로 인접 9칸이면 충분하다.
+    for(const y of [...food,...anchors]){const k=Math.floor(y.lat/cell)+','+Math.floor(y.lon/cell);if(!grid.has(k))grid.set(k,[]);grid.get(k).push(y);}
+    for(const x of anchors){const row=Math.floor(x.lat/cell),col=Math.floor(x.lon/cell),nearby=[];for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)nearby.push(...(grid.get((row+a)+','+(col+b))||[]));for(const y of nearby) {
+      if(!x.id||!y.id||x.id===y.id||x.name===y.name)continue;
+      const meters=distance(x,y);if(meters<100||meters>maxDistance)continue;
+      const id=planId([x,y]);if(pairs.has(id))continue;
+      const stops=y.type==='restaurant'?[y,x]:[x,y],match=pairing(...stops);
+      pairs.set(id,{id,stops,meters:Math.round(meters),withFood:match.priority===0,reason:match.reason,priority:match.priority,bucket:Math.floor(Math.max(fromOrigin(x),fromOrigin(y))/2500),h:hash(seed+'|'+id),approachMeters:origin?Math.round(fromOrigin(stops[0])):null});
+    }}
+    const ranked=[...pairs.values()].sort((a,b)=>a.bucket-b.bucket||a.priority-b.priority||a.h-b.h||a.meters-b.meters||a.id.localeCompare(b.id));
+    const used=new Set(),out=[];
+    for(const p of ranked){if(p.stops.some(x=>used.has(x.id)))continue;out.push(p);p.stops.forEach(x=>used.add(x.id));if(out.length>=limit)break;}
     return out;
   }
-  globalThis.NallaeDiscovery=Object.freeze({point,distance,route,plans,eligible});
+  // 공개 장소만 저장하며 사용자의 출발 좌표는 포함하지 않는다.
+  function snapshotPlan(plan,createdAt=new Date().toISOString()) {
+    if(!Array.isArray(plan?.stops)||plan.stops.length!==2||plan.stops.some(x=>!x||typeof x!=='object'))return null;
+    const stops=plan.stops.map(x=>({id:x.id,name:x.name,address:x.address,district:x.district,sgg:x.sgg,lat:x.lat,lon:x.lon,type:x.type,kind:x.kind,source:typeof x.source==='string'?x.source:x.source?.name||'소개된 식당',sourceUrl:x.sourceUrl||x.source?.url,referenceDate:x.referenceDate||x.sourceDate||x.checkedAt}));
+    if(stops.some(x=>!x.id||typeof x.id!=='string'||typeof x.name!=='string'||!x.name||!point(x))||stops[0].id===stops[1].id)return null;
+    const meters=distance(...stops);if(meters<100||meters>2000)return null;
+    const match=pairing(...stops);
+    return {id:planId(stops),stops,meters:Math.round(meters),withFood:match.priority===0,reason:match.reason,createdAt:typeof createdAt==='string'&&Number.isFinite(Date.parse(createdAt))?createdAt:new Date().toISOString()};
+  }
+  globalThis.NallaeDiscovery=Object.freeze({point,distance,route,plans,eligible,planId,snapshotPlan});
 })();

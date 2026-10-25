@@ -608,6 +608,15 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .outing-intro { padding:14px 16px; border-radius:16px; background:var(--surface-muted); }
 .outing-intro p,.outing-plan .place-checked { font-size:12px; line-height:1.6; }
 .outing-intro h3 { margin:0; font-size:17px; }
+.plan-intro-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.plan-intro-head button { flex:none; }
+.outing-welcome { background:var(--surface-muted); padding:20px!important; }
+.outing-welcome h3 { font-size:22px; margin:0 0 12px; }
+.outing-welcome [data-outing-near] { background:var(--brand); color:var(--on-brand); }
+.plan-reason { color:var(--brand); }
+.plan-details { margin-top:10px; font-size:13px; }
+.plan-details summary { min-height:44px; display:flex; align-items:center; cursor:pointer; color:var(--text-muted); }
+.outing-plan .outing-actions button[aria-pressed="true"] { background:var(--selection-fill); color:var(--brand); }
 .outing-plan ol { padding-left:22px; margin:14px 0; }
 .outing-plan li { padding-bottom:10px; }
 .outing-plan li p { margin:4px 0; font-size:12px; }
