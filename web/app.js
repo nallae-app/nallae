@@ -975,10 +975,11 @@ const mobileSheet = matchMedia('(max-width:759px)');
 const handle = document.getElementById('panel-handle');
 const sheetHead = panel.querySelector('.panel-head');
 const stages = ['collapsed', 'middle', 'full'], stageNames = ['접힘', '중간', '전체'];
-let sheetStage = 1, sheetDrag = null, suppressSheetClick = false, sheetFitTimer;
+let sheetStage = mode==='explore'?2:1, sheetDrag = null, suppressSheetClick = false, sheetFitTimer;
 try {
   const saved = stages.indexOf(localStorage.getItem('nallae-sheet-stage'));
   if (saved >= 0) sheetStage = saved;
+  else if(mode==='explore'&&localStorage.getItem('nallae-explore-layer')&&localStorage.getItem('nallae-explore-layer')!=='outing')sheetStage=1;
 } catch (_) {}
 const TWO_CARDS = 172, MAP_MIN = 140; // 두 줄 제목 소식 2건, 중간 시트에서 남길 지도 최소 높이
 // 화면 키보드처럼 visualViewport만 줄어드는 경우(Android Chrome 기본·iOS) 가려지는 높이
@@ -1062,7 +1063,7 @@ function setSheetStage(stage, remember = true) {
   sheetStage = stage;
   panel.classList.remove('sheet-dragging');
   panel.dataset.sheetStage = stages[stage];
-  handle.setAttribute('aria-label', '소식 목록 높이: ' + stageNames[stage] + '. 누르면 다음 높이로 바뀌어요');
+  handle.setAttribute('aria-label', '목록 높이: ' + stageNames[stage] + '. 누르면 다음 높이로 바뀌어요');
   handle.setAttribute('aria-controls', 'feed');
   [chipsEl, feedEl, document.getElementById('new-items')].forEach(el => { el.inert = mobileSheet.matches && stage === 0; });
   if (mobileSheet.matches) applySheetHeight(sheetHeights());
@@ -1881,7 +1882,7 @@ function saveOuting(x) {
   savedOutings.set(x.id,{id:x.id,name:x.name,address:x.address,lat:x.lat,lon:x.lon,sgg:x.sgg,district:x.district,type:x.type||'restaurant',kind:x.kind||'소개된 식당',source:typeof x.source==='string'?x.source:x.source?.name||'소개된 식당',referenceDate:x.referenceDate||x.sourceDate||x.checkedAt,sourceUrl:x.sourceUrl||x.source?.url||'about.html'});
 }
 function focusOutings(items) {
-  atHome=false;selectionAutoFit=false;setSheetStage(0);clearTimeout(sheetFitTimer);map.closePopup();
+  atHome=false;selectionAutoFit=false;setSheetStage(0,false);clearTimeout(sheetFitTimer);map.closePopup();
   renderOutingMarkers(items);map.fitBounds(L.latLngBounds(items.map(x=>[x.lat,x.lon])),{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:items.length===1?17:16,animate:!reducedMotion.matches});
 }
 exploreTools.addEventListener('input',e=>{if(e.target.matches('[data-outing-search]')){outingQuery=e.target.value;outingLimit=30;outingPlanLimit=3;clearTimeout(outingSearchTimer);outingSearchTimer=setTimeout(()=>{if(mode==='explore'&&exploreLayer==='outing')renderOutingCards();},180);}});
@@ -2098,13 +2099,14 @@ document.querySelector('[data-open-places]').addEventListener('click',()=>{
   applyMode();feedEl.scrollTop=0;if(mobileSheet.matches&&sheetStage===0)setSheetStage(1);
 });
 document.querySelector('[data-open-outings]').addEventListener('click',()=>{
+  if(mode==='explore'&&exploreLayer==='outing'&&!savedView&&outingTheme==='date'){if(mobileSheet.matches)setSheetStage(2,false);return;}
   exploreChoiceChanged=true;savedView=false;outingTheme='date';
   if(!outingIndex){toast('놀거리 자료를 불러오는 중이에요.');loadExploreData(['outings/index']);return;}
   mode='explore';exploreLayer='outing';
   try{localStorage.setItem('nallae-mode',mode);localStorage.setItem('nallae-explore-layer',exploreLayer);}catch(_){}
-  applyMode();feedEl.scrollTop=0;if(mobileSheet.matches&&sheetStage===0)setSheetStage(1);
+  applyMode();feedEl.scrollTop=0;if(mobileSheet.matches)setSheetStage(2,false);
 });
-document.querySelector('[data-open-saved]').addEventListener('click',()=>{exploreChoiceChanged=true;savedView=true;outingTheme='plans';outingQuery='';mode='explore';exploreLayer='outing';applyMode();feedEl.scrollTop=0;if(mobileSheet.matches&&sheetStage===0)setSheetStage(1);});
+document.querySelector('[data-open-saved]').addEventListener('click',()=>{if(savedView&&mode==='explore'&&exploreLayer==='outing'){if(mobileSheet.matches)setSheetStage(2,false);return;}exploreChoiceChanged=true;savedView=true;outingTheme='plans';outingQuery='';mode='explore';exploreLayer='outing';applyMode();feedEl.scrollTop=0;if(mobileSheet.matches)setSheetStage(2,false);});
 document.querySelector('[data-open-utilities]').addEventListener('click',()=>{savedView=false;exploreChoiceChanged=true;mode='explore';const layers=availableLayers().filter(x=>!['places','outing'].includes(x[0]));exploreLayer=layers.find(x=>x[0]===lastUtilityLayer)?.[0]||layers[0]?.[0]||'weather';applyMode();feedEl.scrollTop=0;});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-quick-region]');if(b){const m=muniByCode.get(b.dataset.quickRegion);if(m){exploreTools.querySelector('.outing-filters-dialog')?.close();select(m,false);}}});
 exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-stop-count]')){outingStopCount=Number(e.target.value)===3?3:2;outingTheme='date';outingPlanLimit=3;renderOutingCards();}});
