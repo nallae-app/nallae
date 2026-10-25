@@ -1,7 +1,7 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-const VERSION = 'nallae-v69';
+const VERSION = 'nallae-v70';
 const SHELL = [
-  './', 'index.html', 'style.css', 'fonts/pretendard/pretendard-subset.css', 'app.js', 'local-scope.js', 'discovery.js', 'nearby-fuel.js', 'manifest.webmanifest',
+  './', 'index.html', 'style.css', 'fonts/pretendard/pretendard-subset.css', 'app.js', 'local-scope.js', 'discovery.js', 'community.js', 'community-ui.js', 'nearby-fuel.js', 'manifest.webmanifest',
   'vendor/leaflet.min.css', 'vendor/leaflet.min.js', 'vendor/topojson-client.min.js',
   'data/regions.json', 'icons/logo-header.png', 'icons/logo-header-dark.png', 'icons/icon-192.png',
   'about.html', 'privacy.html', 'doc.css',
@@ -24,7 +24,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
 
-  if (/\/data\/(?:demo-)?(?:food|parking|pharmacy)\//.test(url.pathname) || /\/(?:parking-live|demo-parking-live|news|festivals|demo-festivals|fuel|demo-fuel|weather|demo-weather|forecast|demo-forecast|seoul-places|er|demo-er)\.json$/.test(url.pathname)) {
+  if (/\/data\/(?:demo-)?(?:food|parking|pharmacy)\//.test(url.pathname) || /\/(?:community|parking-live|demo-parking-live|news|festivals|demo-festivals|fuel|demo-fuel|weather|demo-weather|forecast|demo-forecast|seoul-places|er|demo-er)\.json$/.test(url.pathname)) {
     // 네트워크 우선, 실패하면 마지막으로 받은 소식
     e.respondWith(
       fetch(e.request).then((res) => {

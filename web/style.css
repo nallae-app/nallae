@@ -624,6 +624,48 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .outing-marker span { display:grid; place-items:center; width:40px; height:40px; border-radius:50% 50% 50% 4px; transform:rotate(-45deg); background:var(--brand); color:var(--on-brand); border:2px solid var(--surface); box-shadow:0 2px 7px #0003; font-size:11px; font-weight:700; }
 .outing-marker span.cluster { border-radius:50%; transform:none; }
 .outing-marker span:not(.cluster) { transform:none; border-radius:50% 50% 45% 45%; }
+
+/* 2026-10-25: 화면 목적은 하단 한 곳에서 고르고, 위쪽은 결과를 위한 자리로 둔다. */
+.main-navigation { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; padding:4px 8px; position:sticky; bottom:0; z-index:3; }
+.main-navigation button { min-width:0; min-height:52px; display:flex; flex-direction:column; justify-content:center; gap:0; padding:3px 2px; color:var(--text-muted); font-size:12px; white-space:nowrap; }
+.main-navigation button>span { font-size:23px; line-height:25px; }
+.main-navigation button[aria-pressed="true"] { color:var(--brand); background:var(--selection-fill); font-weight:700; }
+.utility-navigation { display:none; padding:0 16px 6px; gap:6px; flex:none; }
+:root[data-navigation="utilities"] .utility-navigation { display:flex; }
+.utility-navigation button,.saved-tabs button,.favorite-quick button,.outing-region-results button { min-height:44px; border:0; padding:8px 12px; border-radius:12px; background:var(--surface-muted); color:var(--text); font:inherit; font-size:13px; }
+.utility-navigation #btn-settings { margin-left:auto; }
+.utility-navigation [aria-pressed="true"],.saved-tabs [aria-pressed="true"] { background:var(--brand); color:var(--on-brand); }
+:root:is([data-navigation="courses"],[data-navigation="saved"],[data-navigation="places"]) .panel-head { padding:0; min-height:0; }
+:root:is([data-navigation="courses"],[data-navigation="saved"]) .panel-head>div,:root:is([data-navigation="courses"],[data-navigation="saved"]) #collection-status { display:none; }
+:root[data-navigation="saved"] .category-row { display:none; }
+.outing-toolbar .outing-condition { flex:1; text-align:left; color:var(--brand); font-weight:600; white-space:normal; line-height:1.4; }
+.saved-tabs,.favorite-quick { display:flex; gap:6px; flex-wrap:wrap; }
+.outing-region-results { display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+.outing-region-results button { text-align:left; }
+.outing-intro { padding:10px 12px!important; background:transparent; border-bottom:1px solid var(--border-sgg); border-radius:0; }
+.outing-intro p { color:var(--text-muted); }
+.outing-plan h3 { font-size:18px; line-height:1.5; margin:8px 0; }
+.outing-plan .outing-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.outing-plan .outing-actions>* { justify-content:center; text-align:center; float:none; font-size:13px; }
+.plan-details summary { min-height:44px; display:flex; align-items:center; cursor:pointer; color:var(--text-muted); font-size:12px; }
+.community-card { border-left:3px solid var(--brand); }
+.contribution-invite { margin-top:12px; padding:16px!important; background:var(--surface-muted); border-radius:16px; }
+.contribution-invite h3 { margin:0; font-size:16px; }
+.contribution-invite p { color:var(--text-muted); font-size:13px; }
+.contribution-invite button,.personal-record button,[data-plans-more] { min-height:44px; padding:8px 12px; border:1px solid var(--border-sido); border-radius:12px; background:var(--surface); color:var(--brand); font:inherit; font-size:13px; }
+[data-plans-more] { width:100%; }
+.contribution-dialog form { display:grid; gap:8px; }
+.contribution-dialog input,.contribution-dialog select,.contribution-dialog textarea { box-sizing:border-box; width:100%; max-width:100%; min-height:44px; padding:10px; border:1px solid var(--border-sido); border-radius:10px; background:var(--surface); color:var(--text); font:inherit; }
+.contribution-dialog textarea { min-height:100px; resize:vertical; }
+.contribution-dialog fieldset { min-width:0; padding:12px; margin:12px 0; border:1px solid var(--border-sido); border-radius:12px; }
+.contribution-dialog .check-row { display:flex; align-items:flex-start; gap:8px; line-height:1.6; }
+.contribution-dialog .check-row input { flex:none; width:24px; min-height:24px; margin:0; }
+.contribution-send textarea { min-height:200px; }
+.review-stars { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; }
+.review-stars label { display:flex; align-items:center; justify-content:center; flex-direction:column; min-height:58px; margin:0; background:var(--surface-muted); border-radius:10px; }
+.review-stars input { width:20px; min-height:20px; margin:0 0 4px; }
+.personal-record { padding-top:10px; border-top:1px solid var(--border-sgg); }
+@media(max-width:759px) { .panel:not(.sheet-scroll) .feed { min-height:0; overflow-y:auto; } .panel.sheet-scroll .main-navigation { position:sticky; bottom:0; } }
 .route-dialog { width:min(440px,calc(100vw - 32px)); max-height:85dvh; box-sizing:border-box; padding:22px; border:0; border-radius:24px; background:var(--surface); color:var(--text); box-shadow:0 12px 60px #0005; }
 .route-dialog::backdrop { background:#0008; }
 .route-dialog-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
@@ -646,6 +688,9 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .panel-footer { flex:none; display:flex; justify-content:flex-end; padding:2px 16px; border-top:1px solid var(--border-sgg); background:var(--surface); }
 .panel-footer button { display:flex; align-items:center; gap:6px; padding:6px 10px; border:0; border-radius:12px; background:none; color:var(--text-muted); font-size:13px; }
 .panel-footer svg,#settings-dialog svg { width:20px; height:20px; stroke:currentColor; stroke-width:1.75; fill:none; stroke-linecap:round; }
+.panel-footer.main-navigation { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); justify-content:stretch; gap:2px; padding:4px 8px; }
+.panel-footer.main-navigation button { display:flex; flex-direction:column; justify-content:center; gap:0; min-height:52px; padding:3px 2px; }
+:root[data-mode="explore"] .panel:is([data-explore-layer="outing"],[data-explore-layer="places"]) > .category-row { display:none; }
 .settings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; }
 .settings-regions h3 { margin:16px 0 8px; font-size:15px; }
 .settings-regions .favorites { display:flex; flex-wrap:wrap; overflow:visible; padding:0; }
@@ -669,3 +714,7 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
   .topbar .controls svg { width:20px; height:20px; }
   .topbar .badge-sample { display:none; }
 }
+
+@media(max-width:759px) { .keyboard-open .main-navigation { display:none; } .contribution-dialog,.outing-filters-dialog { max-height:calc(88dvh - var(--kb,0px)); } }
+
+@media(max-width:349px) { .topbar .brand p { font-size:10px; line-height:15px; } .topbar .brand p .brand-accent { display:none; } }

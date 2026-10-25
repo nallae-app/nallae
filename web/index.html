@@ -16,8 +16,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#F7F7F2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111B20" media="(prefers-color-scheme: dark)">
-  <meta name="description" content="우리 동네 소식, 날래. 재난문자·기상특보·지진이 들어오면 지도에서 그 지역이 반짝이고, 날씨·주유소·주차장·축제도 한눈에.">
-  <title>날래 — 우리 동네 소식</title>
+  <meta name="description" content="가까운 나들이 코스를 골라 저장하고, 다시 가는 장소를 제보해요. 맛집·놀거리와 동네 소식·날씨·주유소·주차장도 함께.">
+  <title>날래 — 오늘 어디 갈까</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -26,20 +26,20 @@
   <link rel="stylesheet" href="fonts/pretendard/pretendard-subset.css">
 </head>
 <body>
-  <div id="map" aria-label="대한민국 지역 소식 지도"></div>
+  <div id="map" aria-label="대한민국 동네 코스·장소 지도"></div>
 
   <header class="topbar">
     <div class="brand">
       <span class="logo" aria-hidden="true"></span>
       <div>
         <h1>날래</h1>
-        <p>동네 소식, <span class="brand-accent">날래</span> 왔다오</p>
+        <p>오늘 어디 갈까, <span class="brand-accent">날래!</span></p>
       </div>
     </div>
     <div class="top-right">
       <span class="badge-sample" id="badge-demo" hidden>데모</span>
       <div class="controls" role="group" aria-label="지도 지역 선택">
-    <button id="btn-locate" type="button" title="내 위치 근처 소식">
+    <button id="btn-locate" type="button" title="내 주변 동네 찾기">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5" fill="none"/></svg>
       <span>내 주변</span>
     </button>
@@ -52,27 +52,29 @@
   </header>
 
   <aside class="panel" id="panel">
-    <button class="panel-handle" id="panel-handle" type="button" aria-label="소식 목록 높이: 중간. 누르면 다음 높이로 바뀌어요"></button>
+    <button class="panel-handle" id="panel-handle" type="button" aria-label="목록 높이: 중간. 누르면 다음 높이로 바뀌어요"></button>
     <div class="panel-head">
-      <div class="mode-switch" role="group" aria-label="보기 모드"><button type="button" data-open-places>맛집</button><button type="button" data-open-outings>놀거리</button><button type="button" data-mode-choice="news" aria-pressed="true">소식</button><button type="button" data-mode-choice="explore" aria-pressed="false">동네 탐험</button></div>
+
       <div>
-        <h2 id="panel-title">전국 소식</h2>
-        <p id="panel-sub">소식을 불러오는 중…</p>
+        <h2 id="panel-title">오늘 어디 갈까?</h2>
+        <p id="panel-sub">가까운 코스를 준비하고 있어요…</p>
       </div>
       <button id="collection-status" class="collection-status" type="button" aria-haspopup="dialog">수집 상태 확인 중</button>
     </div>
     <button id="collection-alert" class="collection-alert" type="button" hidden></button>
+    <div class="utility-navigation"><button type="button" data-mode-choice="news">소식</button><button type="button" data-mode-choice="explore">생활정보</button><button id="btn-settings" type="button" aria-haspopup="dialog" aria-controls="settings-dialog">설정</button></div>
     <div class="filter-row category-row"><div class="chips" id="chips" role="group" aria-label="분류"></div></div>
 
     <button id="new-items" type="button" hidden></button>
     <ul class="feed" id="feed"></ul>
-    <div class="panel-footer"><button id="btn-settings" type="button" aria-haspopup="dialog" aria-controls="settings-dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg>설정</button></div>
+    <nav class="panel-footer main-navigation" aria-label="주요 화면"><button type="button" data-open-outings><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v5h12v5"/></svg>코스</button><button type="button" data-open-places><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v6a3 3 0 0 0 6 0V3M8 3v18M19 3c-4 3-4 9 0 9v9M19 3v9"/></svg>맛집</button><button type="button" data-open-saved><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>저장</button><button type="button" data-open-utilities><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>소식·생활</button></nav>
   </aside>
 
   <p id="replay-status" class="replay-toast" role="status" hidden>최근 1시간 소식 재생 중</p>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <div class="dialog-head"><h2 id="settings-title">설정</h2><button type="button" data-close>닫기</button></div>
+    <button type="button" data-contribution-open>다시 가는 곳 제보</button>
     <section class="settings-regions"><h3>관심 지역</h3><div id="favorites" class="favorites" role="group" aria-label="관심 지역 선택·관리"></div></section>
     <div class="settings-row"><span>화면 모드</span><button id="btn-theme" type="button" aria-label="화면 테마 전환">시스템</button></div>
     <p class="settings-note">화면 모드를 누르면 시스템 · 라이트 · 다크 순으로 바뀌어요.</p>
@@ -102,6 +104,8 @@
   <script src="vendor/topojson-client.min.js"></script>
   <script src="local-scope.js"></script>
   <script src="discovery.js"></script>
+  <script src="community.js"></script>
+  <script src="community-ui.js"></script>
   <script src="nearby-fuel.js"></script>
   <script src="app.js"></script>
 </body>

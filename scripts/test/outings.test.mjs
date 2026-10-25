@@ -34,12 +34,12 @@ test('같은 거리 구간에서는 식당·장소 조합 우선, 같은 시드 
   assert.deepEqual(xs.map(x=>x.id),plans(spots,[food],opts).map(x=>x.id));
   assert.ok(xs.every(x=>!x.reason.includes('무료')&&!x.reason.includes('영업')));
 });
-test('코스 저장은 순서·자료 근거 보존, 뒤집힌 같은 조합 ID 통일, 출발 좌표 저장 금지',()=>{
+test('코스 저장은 순서·자료 근거 보존, 역순은 다른 ID, 출발 좌표 저장 금지',()=>{
   const original={...plans([a,b],[food],{seed:'today'})[0],origin:[37.65,127.06],approachMeters:300};
   const snapshot=ctx.NallaeDiscovery.snapshotPlan(original,'2026-10-25T00:00:00Z');
   const loaded=ctx.NallaeDiscovery.snapshotPlan(JSON.parse(JSON.stringify(snapshot)),snapshot.createdAt);
   assert.equal(loaded.id,snapshot.id);assert.deepEqual(Array.from(loaded.stops,x=>x.id),Array.from(snapshot.stops,x=>x.id));
-  assert.equal(ctx.NallaeDiscovery.planId([...snapshot.stops].reverse()),snapshot.id);
+  assert.notEqual(ctx.NallaeDiscovery.planId([...snapshot.stops].reverse()),snapshot.id);
   assert.equal(loaded.origin,undefined);assert.equal(loaded.approachMeters,undefined);
   assert.equal(ctx.NallaeDiscovery.snapshotPlan({stops:[a,{...b,lat:null}]}),null);
   assert.equal(ctx.NallaeDiscovery.snapshotPlan({stops:[a,{...b,lat:36.3}]}),null);

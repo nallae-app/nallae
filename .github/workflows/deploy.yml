@@ -53,6 +53,9 @@ jobs:
       - name: Test parsers
         run: node --test "scripts/test/*.test.mjs"
 
+      - name: Validate approved contributions
+        run: node scripts/check-community.mjs
+
       - name: Collect news
         if: vars.COLLECTOR != 'server'
         env:

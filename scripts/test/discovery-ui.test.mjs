@@ -49,21 +49,47 @@ test('실제 반경 조회를 선택하면 비싼 근처 주유소가 저가 표
   ctx.selection.fromLocation=true;ctx.nearbyFuelClient.peek=()=>{throw Error('동의 전 조회하면 안 됨');};ctx.renderFuel();assert.match(ctx.feedEl.innerHTML,/내 위치로 주유소 조회/);assert.equal(ctx.fuelShown.length,0);
 });
 test('코스 버튼은 URL 검증기가 아닌 실제 코스 ID로 저장·지도 대상 연결',()=>{
-  const stops=[{id:'식당-a',name:'식당',type:'restaurant',lat:37.65,lon:127.06},{id:'park-b',name:'공원',type:'park',kind:'근린공원',lat:37.655,lon:127.06}];
-  const ctx=setup({savedPlans:new Map(),selection:null});
+  const stops=[{id:'식당-a"',name:'식당',type:'restaurant',lat:37.65,lon:127.06},{id:'park-&b',name:'공원',type:'park',kind:'근린공원',lat:37.655,lon:127.06}];
+  const ctx=setup({savedPlans:new Map(),selection:null,communityUI:{reviewFor:()=>null}});
   load(ctx,'escapeHtml');load(ctx,'escapeAttr');load(ctx,'outingPlanCard');
   const id=ctx.NallaeDiscovery.planId(stops),html=ctx.outingPlanCard({id,stops,reason:'소개된 식당 + 근린공원',meters:556,withFood:true},0);
-  assert.ok(html.includes('data-plan-map="'+id+'"'));assert.ok(html.includes('data-plan-save="'+id+'"'));
-  assert.ok(!html.includes('data-plan-save="#"'));assert.match(html,/주소·출처·방문 전 확인/);
+  const decode=s=>s.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+  for(const action of ['map','save'])assert.equal(decode(html.match(new RegExp('data-plan-'+action+'="([^"]*)"'))[1]),id);
+  assert.notEqual(id,ctx.NallaeDiscovery.planId([...stops].reverse()));
+  assert.ok(!html.includes('data-plan-save="#"'));assert.match(html,/장소 정보·방문 전 확인/);
   ctx.selection={origin:[35.15,129.04],fromLocation:false};
   const saved=ctx.outingPlanCard({id,stops,reason:'소개된 식당 + 근린공원',meters:556,withFood:true},0,true);
   assert.doesNotMatch(saved,/첫 장소 직선/);assert.match(saved,/저장 당시 장소 정보/);
 });
 test('같은 조건의 코스 재표시는 계산 재사용, 지역 자료·시드가 바뀌면 재계산',()=>{
   let calls=0;const spot={id:'park',name:'공원',type:'park',lat:37.655,lon:127.06};
-  const ctx=setup({outingTheme:'date',outingQuery:'',outingNonce:0,outingRevision:1,outingRadius:5000,outingPlanMemo:new Map(),outingPending:new Set(),outingErrors:new Set(),currentOutings:()=>[spot],allPlaceItems:()=>[],placeLocation:()=>null,koreaDate:()=> '2026-10-25',outingPlanCard:()=>'',renderOutingMarkers:()=>{},feedEl:{innerHTML:''},outingPlans:[],outingShown:[]});
+  const ctx=setup({outingTheme:'date',outingQuery:'',outingNonce:0,outingRevision:1,outingRadius:5000,outingStopCount:2,outingPlanLimit:3,outingPlanMemo:new Map(),outingPending:new Set(),outingErrors:new Set(),currentOutings:()=>[spot],allPlaceItems:()=>[],placeLocation:()=>null,koreaDate:()=> '2026-10-25',outingPlanCard:()=>'',nearbyContributions:()=>[],contributionCard:()=>'',contributionFooter:()=>'',communityState:'ready',renderOutingMarkers:()=>{},feedEl:{innerHTML:''},outingPlans:[],outingShown:[]});
   ctx.selection.codes=new Set(['11350']);ctx.NallaeDiscovery={...ctx.NallaeDiscovery,plans:()=>{calls++;return [];}};
   load(ctx,'renderOutingCards');ctx.renderOutingCards();ctx.renderOutingCards();assert.equal(calls,1);
   ctx.outingRevision++;ctx.renderOutingCards();assert.equal(calls,2);
   ctx.outingNonce++;ctx.renderOutingCards();assert.equal(calls,3);
+  ctx.outingStopCount=3;ctx.renderOutingCards();assert.equal(calls,4);
+});
+
+test('자동 코스는 처음 3개, 더 보기에서 계산 재호출 없이 나머지 3개와 같은 지도 대상 표시',()=>{
+  let calls=0,marked=[];
+  const spot={id:'park',name:'공원',type:'park',lat:37.655,lon:127.06};
+  const ctx=setup({outingTheme:'date',outingQuery:'',outingNonce:0,outingRevision:1,outingRadius:5000,outingStopCount:2,outingPlanLimit:3,outingPlanMemo:new Map(),outingPending:new Set(),outingErrors:new Set(),currentOutings:()=>[spot],allPlaceItems:()=>[],placeLocation:()=>null,koreaDate:()=> '2026-10-25',nearbyContributions:()=>[],contributionCard:()=>'',contributionFooter:()=>'',communityState:'ready',renderOutingMarkers:xs=>{marked=xs;},feedEl:{innerHTML:''},outingPlans:[],outingShown:[],savedPlans:new Map(),communityUI:{reviewFor:()=>null}});
+  ctx.selection.codes=new Set(['11350']);load(ctx,'escapeHtml');load(ctx,'escapeAttr');load(ctx,'outingPlanCard');load(ctx,'renderOutingCards');
+  const candidates=Array.from({length:6},(_,i)=>ctx.NallaeDiscovery.snapshotPlan({stops:[{...spot,id:'a'+i,name:'첫 장소 '+i},{...spot,id:'b'+i,name:'다음 장소 '+i,lat:37.66}]}));
+  ctx.NallaeDiscovery={...ctx.NallaeDiscovery,plans:()=>{calls++;return candidates;}};
+  ctx.renderOutingCards();assert.equal(ctx.outingPlans.length,3);assert.equal(marked.length,6);assert.equal((ctx.feedEl.innerHTML.match(/data-plan-map=/g)||[]).length,3);assert.match(ctx.feedEl.innerHTML,/data-plans-more/);
+  ctx.outingPlanLimit=6;ctx.renderOutingCards();assert.equal(calls,1);assert.equal(ctx.outingPlans.length,6);assert.equal(marked.length,12);assert.equal((ctx.feedEl.innerHTML.match(/data-plan-map=/g)||[]).length,6);assert.doesNotMatch(ctx.feedEl.innerHTML,/data-plans-more/);
+  assert.deepEqual(Array.from(ctx.outingPlans,p=>p.id),candidates.map(p=>p.id));
+});
+
+test('개인 방문 후기는 저장 코스에서만 나만 보는 별점으로 표시하고 공개 제보·자동 평점과 섞지 않음',()=>{
+  const stops=[{id:'a',name:'식당',type:'restaurant',lat:37.65,lon:127.06},{id:'b',name:'공원',type:'park',kind:'근린공원',lat:37.655,lon:127.06}];
+  const ctx=setup({savedPlans:new Map(),selection:null,communityUI:{reviewFor:()=>({rating:4,text:'내 기록 <script>실행 금지</script>'})}});
+  load(ctx,'escapeHtml');load(ctx,'escapeAttr');load(ctx,'outingPlanCard');
+  const plan=ctx.NallaeDiscovery.snapshotPlan({stops});
+  const automatic=ctx.outingPlanCard(plan,0);assert.doesNotMatch(automatic,/별점|내 기록|실행 금지/);
+  const saved=ctx.outingPlanCard(plan,0,true);assert.match(saved,/나만 보는 별점 4\/5/);assert.match(saved,/내 기록 &lt;script&gt;실행 금지&lt;\/script&gt;/);assert.doesNotMatch(saved,/<script>|평균 별점|공개 평점/);
+  const community=ctx.outingPlanCard(plan,0,false,{id:'public-1',reason:'방문 제보의 이유',recentVisit:'2026-10',caution:'방문 전 확인',relationship:'none',rating:5});
+  assert.match(community,/방문 제보 · 운영자 검토/);assert.match(community,/방문 미인증/);assert.doesNotMatch(community,/별점|내 기록|실행 금지/);
 });
