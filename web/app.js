@@ -882,7 +882,7 @@ document.getElementById('favorite-back').addEventListener('click', () => {
   else { favoriteStep('search'); searchInput.focus(); }
 });
 function renderFavorites() {
-  favoritesEl.innerHTML = '<button type="button" data-home aria-pressed="' + !selection + '">' + favoriteIcon('globe') + '전국</button>' + favorites.map(r => '<button type="button" data-code="' + r.code + '" aria-pressed="' + (selection?.center.code === r.code) + '" aria-label="' + escapeHtml(r.name + (startCode === r.code ? ', 시작 지역' : '')) + '">' + favoriteIcon(favoriteType(r.name)) + escapeHtml(r.name) + (startCode === r.code ? favoriteIcon('pin') : '') + '</button>').join('') + '<button type="button" data-new aria-label="관심 지역 추가">' + favoriteIcon('plus') + '</button><button type="button" data-manage aria-label="관심 지역 관리">' + favoriteIcon('edit') + '</button>' + (selection && !favorites.some(r => r.code === selection.center.code) ? '<button type="button" data-add>' + favoriteIcon('plus') + '저장</button>' : '');
+  favoritesEl.innerHTML = favorites.map(r => '<button type="button" data-code="' + r.code + '" aria-pressed="' + (selection?.center.code === r.code) + '" aria-label="' + escapeHtml(r.name + (startCode === r.code ? ', 시작 지역' : '')) + '">' + favoriteIcon(favoriteType(r.name)) + escapeHtml(r.name) + (startCode === r.code ? favoriteIcon('pin') : '') + '</button>').join('') + '<button type="button" data-new>' + favoriteIcon('plus') + '동네 추가</button><button type="button" data-manage>' + favoriteIcon('edit') + '관리</button>' + (selection && !favorites.some(r => r.code === selection.center.code) ? '<button type="button" data-add>' + favoriteIcon('plus') + '현재 동네 저장</button>' : '');
 }
 function chooseFavorite(code) {
   chosenCode = code;
@@ -891,6 +891,7 @@ function chooseFavorite(code) {
 }
 favoritesEl.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
+  document.getElementById('settings-dialog').close();
   if (b.hasAttribute('data-home')) { clearSelection(); atHome = true; fitHome(); }
   else if (b.dataset.code) select(muniByCode.get(b.dataset.code), false);
   else {
@@ -973,7 +974,6 @@ document.getElementById('btn-all').addEventListener('click', () => { clearSelect
 const mobileSheet = matchMedia('(max-width:759px)');
 const handle = document.getElementById('panel-handle');
 const sheetHead = panel.querySelector('.panel-head');
-const favoritesRow = document.querySelector('.filter-row');
 const stages = ['collapsed', 'middle', 'full'], stageNames = ['접힘', '중간', '전체'];
 let sheetStage = 1, sheetDrag = null, suppressSheetClick = false, sheetFitTimer;
 try {
@@ -996,7 +996,7 @@ function sheetHeights() {
   const full = Math.max(0, H - document.querySelector('.topbar').getBoundingClientRect().bottom - 8);
   const handleH = handle.offsetHeight + parseFloat(getComputedStyle(handle).marginBottom);
   const pad = parseFloat(getComputedStyle(panel).paddingBottom);
-  const folded = handleH + sheetHead.offsetHeight + favoritesRow.offsetHeight + (document.querySelector('.panel-footer')?.offsetHeight || 0) + pad;
+  const folded = handleH + sheetHead.offsetHeight + (document.querySelector('.panel-footer')?.offsetHeight || 0) + pad;
   const low = Math.min(folded, full);
   // 상태 안내·분류 줄·탐험 도구의 실제 높이를 더한다. 접힘에서는 숨어서 0이 되므로 마지막 측정값을 쓴다.
   const outer = el => {
@@ -1005,7 +1005,8 @@ function sheetHeights() {
     const cs = getComputedStyle(el);
     return el._sheetH = el.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
   };
-  const extra = outer(document.getElementById('collection-alert')) + outer(document.querySelector('.category-row')) + outer(document.querySelector('.explore-tools'));
+  const dedicated=mode==='explore'&&['places','outing'].includes(panel.dataset.exploreLayer);
+  const extra = outer(document.getElementById('collection-alert')) + (dedicated?0:outer(document.querySelector('.category-row'))) + outer(document.querySelector('.explore-tools'));
   const cards = mode === 'news' ? firstTwoHeight() : TWO_CARDS;
   const want = folded + extra + cards;
   const mapRoom = H - document.querySelector('.controls').getBoundingClientRect().bottom - MAP_MIN;
@@ -1143,7 +1144,7 @@ window.visualViewport?.addEventListener('resize', resizeSheet);
 mobileSheet.addEventListener('change', resizeSheet);
 // 시트 안 줄(상태 안내·분류·탐험 도구)의 높이가 바뀌면 현재 단계 높이만 다시 맞춘다
 const sheetContentObserver = new ResizeObserver(fitSheet);
-[sheetHead, favoritesRow, document.getElementById('collection-alert'), document.querySelector('.category-row'), document.querySelector('.topbar')].forEach(el => sheetContentObserver.observe(el));
+[sheetHead, document.getElementById('collection-alert'), document.querySelector('.category-row'), document.querySelector('.topbar')].forEach(el => sheetContentObserver.observe(el));
 setSheetStage(sheetStage, false);
 
 let toastTimer;
@@ -1177,6 +1178,7 @@ const nearbyFuelClient=NallaeNearbyFuel.createClient();
 let fuelShown=[], fuelLookupAllowed=false, fuelSampleFallback=false;
 try{const radius=Number(localStorage.getItem('nallae-fuel-radius'));if([5000,10000,15000].includes(radius))fuelRadius=radius;if(localStorage.getItem('nallae-fuel-sort')==='price')fuelSort='price';}catch(_){}
 const preferredExploreLayer=DEMO && (params.has('rain') || params.has('snow')) ? 'weather' : exploreLayer;
+let lastUtilityLayer=['places','outing'].includes(exploreLayer)?'weather':exploreLayer;
 let heritageData=null;
 function allPlaceItems() {
   const curated=placesData?.items||[], known=new Set(curated.map(x=>(x.name+'|'+x.address).replace(/\s/g,'')));
@@ -1433,10 +1435,9 @@ function updateExploreStatus() {
 function renderExplore() {
   locationFocus.clearLayers();
   outingMarkers.clearLayers();
-  document.querySelector('[data-open-outings]').classList.toggle('active',mode==='explore'&&exploreLayer==='outing');
-  document.querySelector('[data-open-places]').classList.toggle('active',mode==='explore'&&exploreLayer==='places');
   const available=availableLayers();
   if(!available.some(x=>x[0]===exploreLayer)) exploreLayer=available[0]?.[0] || 'festival';
+  syncModeNavigation();
   panel.dataset.exploreLayer=exploreLayer;
   exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers(); careMarkers.clearLayers(); placeMarkers.clearLayers(); map.attributionControl.removeAttribution(placeAttribution);
   munis.forEach(restyle); scheduleLabels();
@@ -1782,7 +1783,7 @@ function renderOutings() {
   const code=selection?.center.code||'';
   if(outingCode!==code){outingCode=code;outingLimit=30;}
   titleEl.textContent=selection?regionTitle(selection.center)+'에서 뭐 할까?':'오늘 어디 갈까?';
-  subEl.textContent='공원·관광지 발견부터 가까운 두 곳 데이트까지';
+  subEl.textContent=selection?label(selection.center)+' 주변':'전국 관광지';
   exploreTools.innerHTML='<div class="outing-toolbar"><button type="button" class="outing-date" data-outing-date aria-pressed="'+(outingTheme==='date')+'">두 곳 데이트</button><select data-outing-theme-select aria-label="그 외 놀거리 종류">'+(outingTheme==='date'?'<option value="date" selected disabled>장소 보기</option>':'')+[['','전체 장소'],['park','산책'],['attraction','관광지'],['saved','저장한 곳 '+savedOutings.size]].map(([k,n])=>'<option value="'+k+'"'+(outingTheme===k?' selected':'')+'>'+n+'</option>').join('')+'</select><button type="button" data-outing-filters aria-haspopup="dialog">검색·필터'+(outingQuery?' · 적용 중':'')+'</button></div>'
     +'<dialog class="outing-filters-dialog" aria-labelledby="outing-filters-title"><div class="dialog-head"><h2 id="outing-filters-title">놀거리 검색·필터</h2><button type="button" data-outing-filters-close>완료</button></div>'
     +'<label class="outing-region">둘러볼 동네<select data-outing-region aria-label="놀거리 지역 선택"><option value="">전국 관광지</option>'+munis.map(m=>'<option value="'+m.code+'"'+(m.code===code?' selected':'')+'>'+escapeHtml(label(m))+'</option>').join('')+'</select></label>'
@@ -1989,16 +1990,22 @@ function renderFestivalMarkers() {
     marker.bindPopup(popup);
   }
 }
+function syncModeNavigation() {
+  const places=mode==='explore'&&exploreLayer==='places',outings=mode==='explore'&&exploreLayer==='outing';
+  if(mode==='explore'&&!places&&!outings)lastUtilityLayer=exploreLayer;
+  for(const [selector,active] of [['[data-open-places]',places],['[data-open-outings]',outings]]) {
+    const button=document.querySelector(selector);button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+  }
+  document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode&&!places&&!outings)));
+}
 function applyMode() {
   rootMode();
   outingMarkers.clearLayers();
-  document.querySelector('[data-open-outings]').classList.toggle('active',mode==='explore'&&exploreLayer==='outing');
+  syncModeNavigation();
   locationFocus.clearLayers();
-  document.querySelector('[data-open-places]').classList.toggle('active',mode==='explore'&&exploreLayer==='places');
   placeMarkers.clearLayers();map.attributionControl.removeAttribution(placeAttribution);
   updateRainScene();
   exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); parkingMarkers.clearLayers(); careMarkers.clearLayers(); earthquakeMarkers.clearLayers();
-  document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode)));
   map.closePopup(); bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; replayEl.hidden = true;
   map.getPane('pulses').style.display = mode === 'explore' ? 'none' : '';
   if (mode === 'explore') festivalMarkers.addTo(map); else map.removeLayer(festivalMarkers);
@@ -2007,7 +2014,10 @@ function applyMode() {
   syncCategories(); renderFeed(); fitSheet();
 }
 document.querySelectorAll('[data-mode-choice]').forEach(b=>b.addEventListener('click',()=>{
-  if (mode === b.dataset.modeChoice) return;
+  if (mode === b.dataset.modeChoice) {
+    if(mode==='explore'&&['places','outing'].includes(exploreLayer)) { const utilities=availableLayers().filter(x=>!['places','outing'].includes(x[0]));exploreLayer=utilities.find(x=>x[0]===lastUtilityLayer)?.[0]||utilities[0]?.[0]||exploreLayer;applyMode(); }
+    return;
+  }
   if (mode === 'news') newsScroll=feedEl.scrollTop; else festivalScroll=feedEl.scrollTop;
   mode=b.dataset.modeChoice;
   try { localStorage.setItem('nallae-mode',mode); } catch (_) {}

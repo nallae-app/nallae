@@ -62,7 +62,6 @@
       <button id="collection-status" class="collection-status" type="button" aria-haspopup="dialog">수집 상태 확인 중</button>
     </div>
     <button id="collection-alert" class="collection-alert" type="button" hidden></button>
-    <div class="filter-row region-row"><div id="favorites" class="favorites" role="group" aria-label="보는 지역"></div></div>
     <div class="filter-row category-row"><div class="chips" id="chips" role="group" aria-label="분류"></div></div>
 
     <button id="new-items" type="button" hidden></button>
@@ -74,6 +73,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <div class="dialog-head"><h2 id="settings-title">설정</h2><button type="button" data-close>닫기</button></div>
+    <section class="settings-regions"><h3>관심 지역</h3><div id="favorites" class="favorites" role="group" aria-label="관심 지역 선택·관리"></div></section>
     <div class="settings-row"><span>화면 모드</span><button id="btn-theme" type="button" aria-label="화면 테마 전환">시스템</button></div>
     <p class="settings-note">화면 모드를 누르면 시스템 · 라이트 · 다크 순으로 바뀌어요.</p>
     <a class="settings-link" href="about.html">앱 정보·데이터 출처 <span aria-hidden="true">›</span></a>

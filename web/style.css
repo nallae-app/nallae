@@ -168,6 +168,7 @@ path.region.flash { transition:none; }
 .mode-switch [data-open-places].active { background:var(--selection-fill); }
 .mode-switch [data-open-outings] { color:var(--brand); font-weight:600; }
 .mode-switch [data-open-outings].active { background:var(--selection-fill); }
+.mode-switch :is([data-open-places],[data-open-outings])[aria-pressed="true"] { background:var(--brand); color:var(--on-brand); }
 .map-legend { position:fixed; z-index:1001; top:76px; right:16px; max-width:calc(100vw - 32px); padding:8px 12px; border-radius:12px; background:var(--surface); box-shadow:var(--shadow); font-size:13px; line-height:20px; }
 .map-legend summary { min-height:44px; cursor:pointer; display:flex; align-items:center; }
 .map-legend p { margin:4px 0; }
@@ -596,7 +597,8 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .outing-filters-dialog .outing-region { margin:20px 0 12px; }
 .outing-filters-dialog .source-disclosure { margin-top:16px; }
 @media(max-width:759px) {
-  :root[data-mode="explore"] .panel[data-explore-layer="outing"] .panel-head p { display:none; }
+  :root[data-mode="explore"] .panel:is([data-explore-layer="outing"],[data-explore-layer="places"]) > .category-row { display:none; }
+  :root[data-mode="explore"] .panel[data-explore-layer="outing"] .panel-head p { display:block; }
   :root[data-mode="explore"] .panel[data-explore-layer="outing"] .explore-tools { padding-bottom:4px; }
 }
 .outing-actions { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px; }
@@ -636,6 +638,8 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .panel-footer button { display:flex; align-items:center; gap:6px; padding:6px 10px; border:0; border-radius:12px; background:none; color:var(--text-muted); font-size:13px; }
 .panel-footer svg,#settings-dialog svg { width:20px; height:20px; stroke:currentColor; stroke-width:1.75; fill:none; stroke-linecap:round; }
 .settings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; }
+.settings-regions h3 { margin:16px 0 8px; font-size:15px; }
+.settings-regions .favorites { display:flex; flex-wrap:wrap; overflow:visible; padding:0; }
 #settings-dialog #btn-theme { display:flex; align-items:center; gap:8px; width:auto; padding:8px 12px; background:var(--surface-muted); box-shadow:none; }
 #settings-dialog #btn-theme::before { display:none; }
 .settings-note { color:var(--text-muted); font-size:13px; line-height:20px; }
