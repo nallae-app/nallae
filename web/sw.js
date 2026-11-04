@@ -1,9 +1,10 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-const VERSION = 'nallae-v71';
+const VERSION = 'nallae-v72';
 const SHELL = [
   './', 'index.html', 'style.css', 'fonts/pretendard/pretendard-subset.css', 'app.js', 'local-scope.js', 'discovery.js', 'community.js', 'community-ui.js', 'nearby-fuel.js', 'manifest.webmanifest',
   'vendor/leaflet.min.css', 'vendor/leaflet.min.js', 'vendor/topojson-client.min.js',
   'data/regions.json', 'icons/logo-header.png', 'icons/logo-header-dark.png', 'icons/icon-192.png',
+  'icons/favicon-light-32.png', 'icons/favicon-dark-32.png',
   'about.html', 'privacy.html', 'doc.css',
 ];
 

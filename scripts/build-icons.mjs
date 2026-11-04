@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import sharp from 'sharp';
 import './apply-logo.mjs';
-import { iconSvg, MARK_BOX } from './logo-mark.mjs';
+import { iconSvg } from './logo-mark.mjs';
 
 const icon = fs.readFileSync('web/icons/icon.svg');
 const maskable = fs.existsSync('web/icons/icon-maskable.svg') ? fs.readFileSync('web/icons/icon-maskable.svg') : icon;
@@ -27,17 +27,19 @@ fs.mkdirSync('store', { recursive: true });
 for (const [out, src, w, h] of jobs) {
   fs.mkdirSync(out.slice(0, out.lastIndexOf('/')), { recursive: true });
   let img = sharp(src, { density: 300 }).resize(w, h);
-  if (out === 'store/icon-512.png') img = img.flatten({ background: '#F7F7F2' }); // Play 아이콘만 불투명, Android 전경은 투명
+  if (out === 'store/icon-512.png') img = img.flatten({ background: '#FFF7E8' });
   await img.png().toFile(out);
   console.log(out);
 }
 
-// 상단 로고: 투명 원본에서 도형 영역만 잘라 48px 표시용 3배 PNG로 만든다 (원본을 품은 큰 SVG를 헤더에 쓰지 않는다)
-for (const [out, name] of [['web/icons/logo-header.png', 'logo-cutout.png'], ['web/icons/logo-header-dark.png', 'logo-cutout-dark.png']]) {
-  await sharp(`scripts/assets/${name}`)
-    .extract({ left: MARK_BOX.x, top: MARK_BOX.y, width: MARK_BOX.w, height: MARK_BOX.h })
+// 상단·파비콘은 작은 핀·지도 시안을 쓴다. 큰 앱 아이콘의 글자를 작게 줄이지 않는다.
+for (const [out, name] of [['web/icons/logo-header.png', 'small-light.png'], ['web/icons/logo-header-dark.png', 'small-dark.png']]) {
+  await sharp(`scripts/assets/jippi/${name}`)
     .resize({ width: 144 })
     .png({ compressionLevel: 9 })
     .toFile(out);
   console.log(out);
+}
+for (const theme of ['light','dark']) {
+  for (const size of [32,192]) await sharp(`scripts/assets/jippi/small-${theme}.png`).resize(size).png().toFile(`web/icons/favicon-${theme}-${size}.png`);
 }

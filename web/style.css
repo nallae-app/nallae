@@ -1,30 +1,30 @@
 :root[data-theme="light"] {
-  --bg: #F7F7F2;
+  --bg: #FFF7E8;
   --sea: #E3EEF0;
   --land: #F4F1E8;
   --surface: #FFFFFF;
   --surface-muted: #EEF2EF;
-  --text: #182C30;
+  --text: #0B1B33;
   --text-muted: #53666B;
   --border-sgg: #CED7D1;
   --border-sido: #879F99;
-  --brand: #176B60;
-  --selection-fill: #DFEEE7;
-  --signature: #B87418;
+  --brand: #A93C00;
+  --selection-fill: #FFF0D2;
+  --signature: #A93C00;
 }
 :root[data-theme="dark"] {
-  --bg: #111B20;
-  --sea: #15272E;
-  --land: #293A3D;
-  --surface: #1D2A2F;
-  --surface-muted: #2A3B40;
-  --text: #F0F4EF;
-  --text-muted: #AFBFBE;
-  --border-sgg: #405456;
-  --border-sido: #78918D;
-  --brand: #83D5BF;
-  --selection-fill: #304D47;
-  --signature: #E8A33D;
+  --bg: #0B1B33;
+  --sea: #10213A;
+  --land: #21344B;
+  --surface: #14253C;
+  --surface-muted: #1D314C;
+  --text: #FFF7E8;
+  --text-muted: #C4CCDA;
+  --border-sgg: #3B4D65;
+  --border-sido: #788BA5;
+  --brand: #FFB45C;
+  --selection-fill: #493521;
+  --signature: #FFC72C;
 }
 
 :root { --signal-critical:#B42332; --signal-urgent:#8A4B08; --signal-unknown:#596773; --on-brand:#FFFFFF; --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px; --radius-sm:12px; --radius-md:14px; --radius-lg:24px; --shadow:0 8px 24px #173B3614; }
@@ -277,7 +277,7 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .festival-detail { margin-top:8px; }
 .festival-detail a { display:flex; align-items:center; min-height:44px; font-size:14px; }
 .festival-day { display:inline-block; background:var(--surface-muted); color:var(--text); border-radius:12px; padding:0 8px; font-size:12px; line-height:20px; font-weight:600; }
-.festival-day.ongoing { background:#176B60; color:#fff; }
+.festival-day.ongoing { background:#A93C00; color:#fff; }
 .festival-day.ending { background:#F9DF9E; color:#533908; }
 .festival-notice { color:var(--signal-critical); font-weight:600; }
 .festival-group { padding:0!important; }
@@ -286,7 +286,7 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .festival-marker { background:none; border:0; }
 .festival-pin { width:44px; height:44px; display:grid; place-items:center; position:relative; }
 .festival-pin svg { width:30px; height:30px; padding:4px; border-radius:8px; background:#F9DF9E; color:#533908; border:2px solid #533908; fill:none; stroke:currentColor; stroke-width:1.75; }
-.festival-dot { width:12px; height:12px; border-radius:50%; background:#B87418; border:2px solid #fff; box-shadow:0 0 0 1px #533908; }
+.festival-dot { width:12px; height:12px; border-radius:50%; background:#A93C00; border:2px solid #fff; box-shadow:0 0 0 1px #533908; }
 .festival-cluster { display:grid; place-items:center; border-radius:50%; background:#F9DF9E; color:#533908; border:2px solid #fff; box-shadow:0 0 0 1px #533908; font-size:12px; }
 .festival-confetti { pointer-events:none; position:absolute; inset:0; overflow:hidden; }
 .festival-confetti i { position:absolute; left:calc(var(--i)*8% + 3%); top:20%; width:5px; height:9px; background:var(--signature); animation:festival-fall .9s ease-out both; }

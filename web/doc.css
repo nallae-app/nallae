@@ -1,7 +1,7 @@
 /* 앱 정보·개인정보처리방침: 앱과 같은 A안 색(라이트·다크). 앱에서 고른 테마(nallae-theme)를 따른다. */
-:root { --bg:#F7F7F2; --surface:#FFFFFF; --text:#182C30; --muted:#53666B; --line:#CED7D1; --brand:#176B60; --signature:#B87418; color-scheme:light; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#111B20; --surface:#1D2A2F; --text:#F0F4EF; --muted:#AFBFBE; --line:#405456; --brand:#83D5BF; --signature:#E8A33D; color-scheme:dark; } }
-:root[data-theme="dark"] { --bg:#111B20; --surface:#1D2A2F; --text:#F0F4EF; --muted:#AFBFBE; --line:#405456; --brand:#83D5BF; --signature:#E8A33D; color-scheme:dark; }
+:root { --bg:#FFF7E8; --surface:#FFFFFF; --text:#0B1B33; --muted:#53666B; --line:#CED7D1; --brand:#A93C00; --signature:#A93C00; color-scheme:light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0B1B33; --surface:#14253C; --text:#FFF7E8; --muted:#C4CCDA; --line:#3B4D65; --brand:#FFB45C; --signature:#FFC72C; color-scheme:dark; } }
+:root[data-theme="dark"] { --bg:#0B1B33; --surface:#14253C; --text:#FFF7E8; --muted:#C4CCDA; --line:#3B4D65; --brand:#FFB45C; --signature:#FFC72C; color-scheme:dark; }
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--text); line-height: 1.7;

@@ -38,6 +38,8 @@ const themeButton = document.getElementById('btn-theme');
 function applyTheme() {
   const mode = root.dataset.themeMode;
   root.dataset.theme = mode === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : mode;
+  const favicon = document.getElementById('app-favicon');
+  if (favicon) favicon.href = 'icons/favicon-' + root.dataset.theme + '-32.png';
   const name = {light:'라이트',dark:'다크',system:'시스템'}[mode];
   const shape = {light:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',dark:'<path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/>',system:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4M12 7v7m0-7a3.5 3.5 0 0 1 0 7"/>'}[mode];
   themeButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + shape + '</svg><span>' + name + '</span>';
@@ -93,7 +95,7 @@ const bukangi = L.marker(BUKANGI, { pane: 'decor', interactive: true, keyboard: 
     + '<path class="bukangi-smile" d="M10.5 24 Q13 28 17 24.5" fill="none"/>'
     + '<path class="bukangi-gill" d="M37 19 Q39 22 37 25 M40.5 18.5 Q43 22 40.5 25.5" fill="none"/>'
     + '</svg></span></span>' }) });
-bukangi.bindPopup('<strong>🦈 부캉이</strong><p>부산 북항 친수공원 수로에서 발견된 상어의 애칭이에요.<br>날래에서는 북항을 헤엄치는 기념 캐릭터로 만나요.</p><small>현재 위치나 실제 이동 경로를 나타내지 않아요.</small>', { className: 'bukangi-popup', maxWidth: 250, autoPanPaddingTopLeft: [16, 90], autoPanPaddingBottomRight: [16, 260] });
+bukangi.bindPopup('<strong>🦈 부캉이</strong><p>부산 북항 친수공원 수로에서 발견된 상어의 애칭이에요.<br>지삐에서는 북항을 헤엄치는 기념 캐릭터로 만나요.</p><small>현재 위치나 실제 이동 경로를 나타내지 않아요.</small>', { className: 'bukangi-popup', maxWidth: 250, autoPanPaddingTopLeft: [16, 90], autoPanPaddingBottomRight: [16, 260] });
 bukangi.on('add', () => {
   const el = bukangi.getElement();
   el.setAttribute('aria-label', '부캉이 소개 보기');
@@ -1618,7 +1620,7 @@ function renderFuel() {
   let sourceStations=fuelData.stations,entry=null;
   const query=selection?{lat:selection.origin[0],lon:selection.origin[1],radius:fuelRadius,product:fuelProduct}:null;
   if(selection&&!DEMO&&!fuelSampleFallback){
-    if(selection.fromLocation&&!fuelLookupAllowed){feedEl.innerHTML='<li class="empty"><h3>가까운 주유소를 가격과 관계없이 찾아요</h3><p>조회에 필요한 위치 좌표와 유종·반경을 날래 조회 서버(Vercel)와 오피넷에 전달해요. 좌표를 기기에 저장하거나 앱 로그에 남기지 않아요.</p><button type="button" data-fuel-query>내 위치로 주유소 조회</button><p>위치 전달을 원하지 않으면 지도에서 동네를 직접 골라 조회할 수 있어요.</p></li>';return;}
+    if(selection.fromLocation&&!fuelLookupAllowed){feedEl.innerHTML='<li class="empty"><h3>가까운 주유소를 가격과 관계없이 찾아요</h3><p>조회에 필요한 위치 좌표와 유종·반경을 지삐 조회 서버(Vercel)와 오피넷에 전달해요. 좌표를 기기에 저장하거나 앱 로그에 남기지 않아요.</p><button type="button" data-fuel-query>내 위치로 주유소 조회</button><p>위치 전달을 원하지 않으면 지도에서 동네를 직접 골라 조회할 수 있어요.</p></li>';return;}
     entry=nearbyFuelClient.peek(query);
     if(!entry){loadNearbyFuel(query);entry=nearbyFuelClient.peek(query);}
     if(!entry||entry.status==='loading'){feedEl.innerHTML='<li class="empty" role="status">반경 '+fuelRadius/1000+'km 안 주유소를 조회하고 있어요.'+(fuelRadius>5000?' 여러 구역의 주유소를 합치고 있어 잠시 걸릴 수 있어요.':'')+'</li>';return;}
@@ -1696,7 +1698,7 @@ function renderPlaces() {
   if(placesForCode!==code) { placesForCode=code; placesShowAll=false; } // 지역을 바꾸면 선택 지역으로 다시 거른다
   titleEl.textContent=selection?regionTitle(selection.center)+' 맛집 찾기':'전국 맛집 찾기';
   subEl.textContent='영상 소개 · 운영자 추천 · 백년가게 지정 근거로 골라보세요';
-  exploreTools.innerHTML=sourceDisclosure('전국 수록 '+all.length+'곳 · 영상 소개·추천·백년가게','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 날래 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 수록 지역부터 순차 제공하며 전국 모든 식당 목록은 아니에요. 백년가게는 2026년 지정 목록과 2022년 음식 업종 자료의 상호·지역을 대조한 곳이며 현재 메뉴·영업을 보증하지 않아요. 정렬: 지역·이름 순.')
+  exploreTools.innerHTML=sourceDisclosure('전국 수록 '+all.length+'곳 · 영상 소개·추천·백년가게','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 지삐 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 수록 지역부터 순차 제공하며 전국 모든 식당 목록은 아니에요. 백년가게는 2026년 지정 목록과 2022년 음식 업종 자료의 상호·지역을 대조한 곳이며 현재 메뉴·영업을 보증하지 않아요. 정렬: 지역·이름 순.')
     +'<div class="food-controls"><label class="food-search"><input aria-label="지역·음식·식당 이름 검색" type="search" data-places-search placeholder="지역·음식·식당명, 예: 부산, 냉면" value="'+escapeHtml(placesQuery)+'"></label><div class="explore-toggle">'+['','video','operator','heritage'].map(k=>'<button type="button" data-places-source="'+k+'" aria-pressed="'+(placesSource===k)+'">'+(k?PLACE_SOURCE[k]:'전체')+'</button>').join('')+'</div></div>';
   exploreTools.querySelector('.source-disclosure p').textContent += ' · 지도 위치 확인 '+all.filter(x=>placeLocation(x)).length+'/'+all.length+'곳. 포인트는 장소 또는 주소 건물 위치이며 입구를 뜻하지 않아요. 좌표를 확인하지 못한 곳도 주소 목록에서 볼 수 있어요.';
   if(selection&&foodIndex?.counts?.[code]>0)exploreTools.insertAdjacentHTML('beforeend','<button type="button" class="food-map" data-more-food>이 동네 식품안심업소 '+foodIndex.counts[code].toLocaleString('ko-KR')+'곳도 보기 · 맛 평가 아님</button>');
@@ -2009,7 +2011,7 @@ function renderFestivals() {
     const muted = restrained(f,codes), end = dayNumber(f.end), start = dayNumber(f.start);
     const badge = end === now ? '오늘 끝나요' : start <= now ? '진행 중' : 'D-' + Math.ceil(start-now);
     const region = festivalCodes(f).map(c => muniByCode.get(c)).filter(Boolean).map(label).join(', ');
-    return '<li class="festival-card" data-festival="' + escapeHtml(f.id) + '"><details><summary><span class="festival-day ' + (end === now ? 'ending' : start <= now ? 'ongoing' : '') + '">' + badge + '</span><h3>' + escapeHtml(f.name) + '</h3><p>' + date(f.start) + ' – ' + date(f.end) + '</p><p class="festival-place">' + escapeHtml((f.place || f.address || '장소 미제공') + (region ? ' · ' + region : '')) + '</p>' + (f.content ? '<p class="festival-content">' + escapeHtml(f.content) + '</p>' : '') + (muted ? '<p class="festival-notice">이 지역에 긴급 소식이 있어요</p>' : end === now && !quiet ? '<p>오늘이 마지막 날이에요, 날래 가세요!</p>' : '') + '</summary><div class="festival-detail"><p>주최: ' + escapeHtml(f.host || '미제공') + '</p><p>전화: ' + escapeHtml(f.phone || '미제공') + '</p>' + (/^https?:\/\//i.test(f.url || '') ? '<a href="' + escapeAttr(f.url) + '" target="_blank" rel="noopener">누리집 ↗</a>' : '') + routeLink(f) + '<p class="src">출처: 전국문화축제표준데이터</p></div></details></li>';
+    return '<li class="festival-card" data-festival="' + escapeHtml(f.id) + '"><details><summary><span class="festival-day ' + (end === now ? 'ending' : start <= now ? 'ongoing' : '') + '">' + badge + '</span><h3>' + escapeHtml(f.name) + '</h3><p>' + date(f.start) + ' – ' + date(f.end) + '</p><p class="festival-place">' + escapeHtml((f.place || f.address || '장소 미제공') + (region ? ' · ' + region : '')) + '</p>' + (f.content ? '<p class="festival-content">' + escapeHtml(f.content) + '</p>' : '') + (muted ? '<p class="festival-notice">이 지역에 긴급 소식이 있어요</p>' : end === now && !quiet ? '<p>오늘이 마지막 날이에요. 서둘러 둘러보세요!</p>' : '') + '</summary><div class="festival-detail"><p>주최: ' + escapeHtml(f.host || '미제공') + '</p><p>전화: ' + escapeHtml(f.phone || '미제공') + '</p>' + (/^https?:\/\//i.test(f.url || '') ? '<a href="' + escapeAttr(f.url) + '" target="_blank" rel="noopener">누리집 ↗</a>' : '') + routeLink(f) + '<p class="src">출처: 전국문화축제표준데이터</p></div></details></li>';
   };
   const regular = list.filter(f => dayNumber(f.end)-dayNumber(f.start)+1 < 30), long = list.filter(f => dayNumber(f.end)-dayNumber(f.start)+1 >= 30);
   feedEl.innerHTML = regular.map(card).join('') + (long.length ? '<li class="festival-group"><details><summary>상시 진행 ' + long.length + '건</summary><ul>' + long.map(card).join('') + '</ul></details></li>' : '') || '<li class="empty"><p>' + (festivalFailed ? '축제를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.' : !festivalLoaded ? '축제를 불러오는 중이에요.' : '조건에 맞는 축제 자료가 없어요. 다른 일정이나 지역도 살펴보세요.') + '</p><p>출처: 전국문화축제표준데이터 · 선택 지역과 맞닿은 지역 포함</p></li>';
