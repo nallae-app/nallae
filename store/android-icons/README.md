@@ -13,6 +13,6 @@ AndroidManifest.xml의 android:icon은 @mipmap/ic_launcher로 지정한다.
 
 공식 문서: https://developer.android.com/develop/ui/compose/system/icon_design_adaptive
 재생성: node scripts/build-icons.mjs (npm 의존성 설치 필요).
-확정 시안 원본: scripts/assets/jippi/selected-sheet.png.
+최종 확정 시안 원본: scripts/assets/jippi/final/approved-gpt.png (GPT 제작 후 사용자 승인).
 선택 영역 재추출: node scripts/build-jippi-assets.mjs.
 앱 패키지 app.nallae·서명은 유지한다. 이 리소스 파일을 준비한 것만으로 이미 설치된 Android 런처 아이콘이 바뀌지는 않는다.

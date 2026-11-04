@@ -1831,7 +1831,7 @@ function renderOutingCards() {
   }
   if(outingTheme==='date'&&!selection) {
     outingPlans=[];renderOutingMarkers([]);
-    feedEl.innerHTML='<li class="outing-welcome"><h3>오늘 어디 갈까?</h3><p>동네를 고르면 가까운 데이트 코스를 보여드려요.</p><div class="outing-actions"><button type="button" data-outing-near>내 주변에서 찾기</button><button type="button" data-outing-choose>동네 직접 고르기</button></div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div><p class="place-checked">위치는 버튼을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'</li>'+contributionFooter();return;
+    feedEl.innerHTML='<li class="outing-welcome"><h3>오늘 어디 갈지 모르겠어?</h3><p class="jippi-promise"><span class="brand-accent">지삐</span>지기와 함께라면<br>언제나 백전백승</p><p>동네를 고르면 가까운 데이트 코스를 보여드려요.</p><div class="outing-actions"><button type="button" data-outing-near>내 주변에서 찾기</button><button type="button" data-outing-choose>동네 직접 고르기</button></div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div><p class="place-checked">위치는 버튼을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'</li>'+contributionFooter();return;
   }
   const q=outingQuery.trim().toLocaleLowerCase();
   const items=currentOutings().filter(x=>(!q||(x.name+' '+x.district+' '+x.kind).toLocaleLowerCase().includes(q))&&(!['park','attraction'].includes(outingTheme)||x.type===outingTheme));

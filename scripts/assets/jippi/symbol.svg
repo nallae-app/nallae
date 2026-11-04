@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 120 120">
-  <defs><linearGradient id="pin" x2="0" y2="1"><stop stop-color="#FF9500"/><stop offset="1" stop-color="#FF6900"/></linearGradient></defs>
-  <!-- 작은 확정 시안의 핀과 접이식 지도만 벡터로 정리. 배경 타일·외곽선 없음. -->
-  <path d="m14 89 29-11 31 10 29-10 13 27-30 11-31-10-29 10z" fill="#FFF0C4" stroke="#FFC72C" stroke-width="2" stroke-linejoin="round"/>
-  <path d="m14 89 29-11 12 28-29 10z" fill="#FFC72C"/>
-  <path d="m74 88 29-10 13 27-30 11z" fill="#FFD65C"/>
-  <path fill="url(#pin)" fill-rule="evenodd" d="M65 6c-18 0-31 13-31 30 0 21 31 48 31 48s31-27 31-48C96 19 83 6 65 6zm0 16a13 13 0 1 1 0 26 13 13 0 0 1 0-26z"/>
-</svg>

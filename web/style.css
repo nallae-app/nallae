@@ -109,6 +109,7 @@ path.region.flash { transition:none; }
 .brand h1 { font-weight:600; }
 .brand p { font-size:11px; line-height:18px; white-space:nowrap; }
 .brand-accent { color:var(--signature); font-weight:600; }
+.outing-welcome .jippi-promise { color:var(--text); font-size:20px; line-height:1.6; font-weight:600; margin:12px 0; }
 .top-right { gap:4px; }
 .info,#btn-theme { width:44px; height:44px; padding:4px; background:none; box-shadow:none; position:relative; }
 .info::before,#btn-theme::before { content:''; position:absolute; inset:3px; background:var(--surface); border-radius:12px; z-index:-1; }
@@ -717,4 +718,13 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 
 @media(max-width:759px) { .keyboard-open .main-navigation { display:none; } .contribution-dialog,.outing-filters-dialog { max-height:calc(88dvh - var(--kb,0px)); } }
 
-@media(max-width:349px) { .topbar .brand p { font-size:10px; line-height:15px; } .topbar .brand p .brand-accent { display:none; } }
+.topbar .brand h1, .outing-welcome h3, .outing-welcome .jippi-promise { font-family:'Wanted Sans',Pretendard,sans-serif; font-synthesis:none; }
+.topbar .brand h1 { font-size:24px; font-weight:700; letter-spacing:-.02em; }
+.topbar .brand p { font-size:12px; line-height:18px; }
+.outing-welcome h3 { font-size:16px; font-weight:500; line-height:1.5; color:var(--text-muted); margin-bottom:10px; }
+.outing-welcome .jippi-promise { font-size:24px; font-weight:700; line-height:1.3; letter-spacing:-.025em; margin:10px 0 16px; }
+.jippi-promise .brand-accent { font-weight:inherit; }
+.outing-welcome p { word-break:keep-all; overflow-wrap:break-word; }
+.topbar .brand { background:var(--bg); border-radius:14px; }
+:root[data-theme="dark"] { --signature:#FFB45C; }
+@media(max-width:349px) { .topbar .brand p { max-width:82px; font-size:12px; line-height:16px; } }
