@@ -33,7 +33,7 @@ for (const [out, src, w, h] of jobs) {
 }
 
 // 상단·파비콘은 작은 핀·지도 시안을 쓴다. 큰 앱 아이콘의 글자를 작게 줄이지 않는다.
-for (const [out, name] of [['web/icons/logo-header.png', 'small-light.png'], ['web/icons/logo-header-dark.png', 'small-dark.png']]) {
+for (const [out, name] of [['web/icons/logo-header.png', 'symbol.svg'], ['web/icons/logo-header-dark.png', 'symbol-dark.svg']]) {
   await sharp(`scripts/assets/jippi/${name}`)
     .resize({ width: 144 })
     .png({ compressionLevel: 9 })
@@ -41,5 +41,5 @@ for (const [out, name] of [['web/icons/logo-header.png', 'small-light.png'], ['w
   console.log(out);
 }
 for (const theme of ['light','dark']) {
-  for (const size of [32,192]) await sharp(`scripts/assets/jippi/small-${theme}.png`).resize(size).png().toFile(`web/icons/favicon-${theme}-${size}.png`);
+  for (const size of [32,192]) await sharp(`scripts/assets/jippi/${theme==='dark'?'symbol-dark':'symbol'}.svg`).resize(size).png().toFile(`web/icons/favicon-${theme}-${size}.png`);
 }
