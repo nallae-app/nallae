@@ -725,6 +725,13 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .outing-welcome .jippi-promise { font-size:24px; font-weight:700; line-height:1.3; letter-spacing:-.025em; margin:10px 0 16px; }
 .jippi-promise .brand-accent { font-weight:inherit; }
 .outing-welcome p { word-break:keep-all; overflow-wrap:break-word; }
-.topbar .brand { background:var(--bg); border-radius:14px; }
+/* 로고에 작은 타일을 덧씌우지 않고 헤더 전체에서 지도와 글자의 겹침을 막는다. */
+.topbar { background:linear-gradient(to bottom,var(--bg) 0%,var(--bg) calc(100% - 16px),transparent 100%); }
+.topbar .brand { background:transparent; border-radius:0; }
 :root[data-theme="dark"] { --signature:#FFB45C; }
 @media(max-width:349px) { .topbar .brand p { max-width:82px; font-size:12px; line-height:16px; } }
+/* 확대 등으로 폭이 매우 좁아지면 기존 아이콘 전용 배치를 확실히 유지한다. */
+@media(max-width:300px) {
+  .topbar .brand p { display:none; }
+  .topbar .controls button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+}
