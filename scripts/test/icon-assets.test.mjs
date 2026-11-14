@@ -58,3 +58,17 @@ test('Android 중요 표식과 단색 마스크는 66dp 안전 원 안에 둔다
     assert.ok(coreCount > 1000, file + ': 표식 검사가 빈 그림을 통과시키면 안 됨');
   }
 });
+
+test('Android 컬러 전경은 OS 마스크 가장자리까지 불투명하고 흰 매트를 남기지 않는다', async () => {
+  for (const file of ['drawable-nodpi/ic_launcher_foreground.png','drawable-night-nodpi/ic_launcher_foreground.png']) {
+    const {data,info}=await sharp(await read('store/android-icons/'+file)).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+    let rim=0;
+    for(let y=0;y<info.height;y++)for(let x=0;x<info.width;x++){
+      const i=(y*info.width+x)*4,[r,g,b,a]=data.subarray(i,i+4);
+      assert.equal(a,255,file+': 투명 전경과 바탕이 겹쳐 이중 타일이 생김');
+      const radius=Math.hypot(x+.5-216,y+.5-216);
+      if(radius>=132&&radius<=160){rim++;assert.ok(!(Math.min(r,g,b)>240&&Math.max(r,g,b)-Math.min(r,g,b)<7),file+': 런처 외곽에 중립 흰 매트가 남음');}
+    }
+    assert.ok(rim>20000,'실제 런처 마스크 주변을 충분히 검사해야 함');
+  }
+});
