@@ -1,38 +1,38 @@
-// 아이콘·스토어 그래픽 PNG 만들기
-//   web/icons/icon.svg           → icon-192.png, icon-512.png (PWA), store/icon-512.png (Play 스토어)
-//   web/icons/icon-maskable.svg  → maskable-512.png (안드로이드 마스크형). 없으면 icon.svg를 쓴다.
-// 승인된 원본 픽셀을 재사용한다. 설치 아이콘은 불투명하게, 헤더 심벌은 투명하게 만든다.
+// 승인 PNG에서 설치 아이콘·스토어 아이콘을 만든다. OS용은 불투명 정사각형,
+// 헤더·파비콘은 투명 심벌이며, 글자를 폰트로 다시 그리지 않는다.
 import fs from 'node:fs';
 import sharp from 'sharp';
 import './apply-logo.mjs';
 import { iconSvg } from './logo-mark.mjs';
+import { installIcon } from './lib/install-icon.mjs';
 
-const icon = fs.readFileSync('web/icons/icon.svg');
-const maskable = fs.existsSync('web/icons/icon-maskable.svg') ? fs.readFileSync('web/icons/icon-maskable.svg') : icon;
 
 const jobs = [
-  ['web/icons/icon-192.png', icon, 192, 192],
-  ['web/icons/icon-512.png', icon, 512, 512],
-  ['web/icons/icon-dark-512.png', fs.readFileSync('web/icons/icon-dark.svg'), 512, 512],
-  ['web/icons/maskable-512.png', maskable, 512, 512],
-  // Play 스토어 아이콘은 스토어가 모서리를 둥글게 깎으므로 꽉 찬 마스크형을 쓴다
-  ['store/icon-512.png', maskable, 512, 512],
-  // iOS는 홈 화면 아이콘의 투명 영역을 검게 합성할 수 있어 전용 불투명 PNG를 쓴다.
-  ['web/icons/apple-touch-icon-jippi-v1.png', icon, 180, 180],
-  ['store/android-icons/drawable-nodpi/ic_launcher_foreground.png', Buffer.from(iconSvg({size:432,scale:.56,rx:0,bg:'none'})), 432, 432],
-  ['store/android-icons/drawable-night-nodpi/ic_launcher_foreground.png', Buffer.from(iconSvg({size:432,scale:.56,rx:0,bg:'none',colors:{dark:true}})), 432, 432],
   ['store/android-icons/drawable-nodpi/ic_launcher_monochrome.png', Buffer.from(iconSvg({size:432,scale:.46,rx:0,bg:'none',colors:{mono:true}})), 432, 432],
 ];
-// 스토어 그래픽 이미지는 실제 앱 화면을 넣는 scripts/build-feature.mjs 가 만든다 (store/feature.svg는 화면 없는 대안 시안)
+// 설치·스토어용은 불투명 full-bleed. 원본 추출 자산·헤더 심벌은 그대로 둔다.
+for (const [out, size, options] of [
+  ['web/icons/icon-192.png', 192, {}],
+  ['web/icons/icon-512.png', 512, {}],
+  ['web/icons/icon-dark-512.png', 512, { dark: true }],
+  ['web/icons/apple-touch-icon-v2.png', 180, {}],
+  ['web/icons/maskable-512.png', 512, { maskable: true }],
+  ['store/icon-512.png', 512, {}],
+  // Android 108dp 레이어: 66dp 안전 원 안에 승인 그림 전체를 두고 배경은 끝까지 채운다.
+  ['store/android-icons/drawable-nodpi/ic_launcher_foreground.png', 432, { canvasSize: 704 }],
+  ['store/android-icons/drawable-night-nodpi/ic_launcher_foreground.png', 432, { canvasSize: 704, dark: true }],
+]) {
+  fs.mkdirSync(out.slice(0, out.lastIndexOf('/')), { recursive: true });
+  fs.writeFileSync(out, await installIcon(`scripts/assets/jippi/final/app-${options.dark ? 'dark' : 'light'}.png`, { size, ...options }));
+  console.log(out);
+}
+// 스토어 그래픽 이미지는 실제 앱 화면을 넣는 scripts/build-feature.mjs 가 만든다 (작업자료/스토어/feature.svg는 화면 없는 대안 시안)
 
 fs.mkdirSync('store', { recursive: true });
 for (const [out, src, w, h] of jobs) {
   fs.mkdirSync(out.slice(0, out.lastIndexOf('/')), { recursive: true });
   let img = sharp(src, { density: 300 }).resize(w, h);
-  if (out === 'store/icon-512.png' || out === 'web/icons/apple-touch-icon-jippi-v1.png'
-      || /^web\/icons\/(?:icon-(?:192|512|dark-512)|maskable-512)\.png$/.test(out)) {
-    img = img.flatten({ background: out.includes('dark-512') ? '#0B1B33' : '#FFF7E8' });
-  }
+  if (out === 'store/icon-512.png') img = img.flatten({ background: '#FFF7E8' });
   await img.png().toFile(out);
   console.log(out);
 }

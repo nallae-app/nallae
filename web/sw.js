@@ -1,11 +1,11 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-const VERSION = 'nallae-v75';
+const VERSION = 'nallae-v76';
 const SHELL = [
   './', 'index.html', 'style.css', 'fonts/pretendard/pretendard-subset.css', 'fonts/wanted-sans/brand.css', 'fonts/wanted-sans/WantedSansVariable.woff2', 'app.js', 'local-scope.js', 'discovery.js', 'community.js', 'community-ui.js', 'nearby-fuel.js', 'manifest.webmanifest',
   'vendor/leaflet.min.css', 'vendor/leaflet.min.js', 'vendor/topojson-client.min.js',
   'data/regions.json', 'icons/logo-header.png', 'icons/logo-header-dark.png', 'icons/icon-192.png',
+  'icons/apple-touch-icon-v2.png', 'icons/icon-192.png?v=2', 'icons/icon-512.png?v=2', 'icons/maskable-512.png?v=2',
   'icons/favicon-light-32.png', 'icons/favicon-dark-32.png',
-  'icons/apple-touch-icon-jippi-v1.png',
   'about.html', 'privacy.html', 'doc.css',
 ];
 
@@ -26,16 +26,20 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
 
-  if (/\/data\/(?:demo-)?(?:food|parking|pharmacy)\//.test(url.pathname) || /\/(?:community|parking-live|demo-parking-live|news|festivals|demo-festivals|fuel|demo-fuel|weather|demo-weather|forecast|demo-forecast|seoul-places|er|demo-er)\.json$/.test(url.pathname)) {
-    // 네트워크 우선, 실패하면 마지막으로 받은 소식
-    e.respondWith(
-      fetch(e.request).then((res) => {
+  if (/\/data\/.+\.json$/.test(url.pathname) && !url.pathname.endsWith('/data/regions.json')) {
+    // 모든 갱신 자료(코스·식당 포함)는 네트워크 우선. 정적 지도 경계는 껍데기 캐시.
+    // 연결만 열린 채 응답이 멈춰도 8초 뒤 마지막 정상 자료를 보여준다.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const network = fetch(e.request, { signal: controller.signal }).then(async (res) => {
         if (!res.ok) throw new Error('data unavailable');
         const copy = res.clone();
-        caches.open(VERSION).then((c) => c.put(e.request, copy));
+        try { await (await caches.open(VERSION)).put(e.request, copy); } catch (_) {}
+        // 헤더 뒤 본문 수신이 멈춘 경우에도 중단된 응답 대신 정상 캐시로 돌아간다.
+        if (controller.signal.aborted) throw new Error('data timed out');
         return res;
-      }).catch(() => caches.match(e.request))
-    );
+      }).finally(() => clearTimeout(timeout));
+    e.respondWith(network.catch(async () => (await caches.match(e.request)) || Response.error()));
     return;
   }
 
@@ -50,6 +54,7 @@ self.addEventListener('fetch', (e) => {
         }
         return res;
       }).catch(() => hit);
+      e.waitUntil(net.then(() => {}));
       return hit || net;
     })
   );

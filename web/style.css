@@ -735,3 +735,24 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
   .topbar .brand p { display:none; }
   .topbar .controls button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
 }
+
+/* 코스를 고르기 전, 기존 날씨·축제 상세로 이어지는 두 가지 확인만 둔다. */
+.before-outing { padding:12px 14px; border:1px solid var(--border-sgg); border-radius:16px; background:var(--surface); }
+.before-outing-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px; font-size:13px; }
+.before-outing-head > span { min-width:0; color:var(--text-muted); overflow-wrap:anywhere; }
+.before-outing-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.before-outing-actions button { min-width:0; min-height:56px; padding:8px; border:0; border-radius:12px; background:var(--surface-muted); color:var(--text); font:inherit; text-align:left; cursor:pointer; }
+.before-outing-actions button span { display:block; font-size:13px; font-weight:600; line-height:1.5; overflow-wrap:anywhere; }
+.before-outing-actions small { display:block; margin-top:3px; color:var(--text-muted); font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+.before-outing-actions button:disabled { cursor:default; }
+
+/* 직접 다음 외출로 정한 저장 코스 하나만, 지역과 관계없이 다시 꺼낸다. */
+.next-outing { display:flex; align-items:center; gap:6px; padding:10px 12px; border:1px solid var(--border-sgg); border-radius:14px; background:var(--surface); }
+.next-outing > div { flex:1; min-width:0; }
+.next-outing strong,.next-outing span,.next-outing small { display:block; }
+.next-outing strong { color:var(--brand); font-size:12px; line-height:1.5; }
+.next-outing span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; line-height:1.5; }
+.next-outing small { color:var(--text-muted); font-size:10px; line-height:1.5; }
+.next-outing button,.next-outing a { flex:none; display:grid; place-items:center; min-height:44px; padding:0 6px; border:0; border-radius:10px; background:var(--surface-muted); color:var(--text); font:inherit; font-size:12px; text-decoration:none; cursor:pointer; }
+.personal-record [data-plan-next] { min-height:44px; margin:0 6px 6px 0; }
+.personal-record [data-plan-next][aria-pressed="true"] { color:var(--brand); }

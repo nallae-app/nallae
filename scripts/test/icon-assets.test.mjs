@@ -8,15 +8,15 @@ const read = p => fs.readFile(new URL(p, root));
 
 test('iOS 홈 화면은 전용 180px 불투명 PNG와 연결한다', async () => {
   const html = await read('web/index.html');
-  assert.match(html.toString(), /rel="apple-touch-icon" sizes="180x180" href="icons\/apple-touch-icon-jippi-v1\.png"/);
-  const png = await read('web/icons/apple-touch-icon-jippi-v1.png');
+  assert.match(html.toString(), /rel="apple-touch-icon" sizes="180x180" href="icons\/apple-touch-icon-v2\.png"/);
+  const png = await read('web/icons/apple-touch-icon-v2.png');
   const meta = await sharp(png).metadata();
   assert.equal(meta.width, 180);
   assert.equal(meta.height, 180);
   assert.equal(meta.format, 'png');
   const { data } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   for (let i = 3; i < data.length; i += 4) assert.equal(data[i], 255, 'iOS 설치 아이콘에 투명 픽셀이 남아 있음');
-  assert.match((await read('web/sw.js')).toString(), /icons\/apple-touch-icon-jippi-v1\.png/);
+  assert.match((await read('web/sw.js')).toString(), /icons\/apple-touch-icon-v2\.png/);
 });
 
 test('설치용 PWA·Play 아이콘은 모두 불투명하고 헤더 심벌은 투명도를 유지한다', async () => {

@@ -92,5 +92,19 @@
     if(plan.sourceType==='community'&&typeof plan.communityId==='string'&&plan.communityId.trim())saved.communityId=plan.communityId;
     return saved;
   }
-  globalThis.NallaeDiscovery=Object.freeze({point,distance,route,plans,eligible,planId,snapshotPlan});
+  // 코스 화면의 외출 요약. 날짜는 한국 기준이며 행사 개방·안전 여부를 추정하지 않는다.
+  function beforeOuting({code,codes=[],weather,weatherFailed=false,festivals=[],festivalUpdated,festivalLoaded=false,festivalFailed=false,now=Date.now()}={}) {
+    if(!code)return null;
+    const fresh=(value,limit)=>{const age=now-Date.parse(value);return Number.isFinite(age)&&age>=0&&age<limit;};
+    const observed=weather?.sgg?.[code],weatherReady=!!observed;
+    const weatherFresh=!weatherFailed&&weatherReady&&Number.isFinite(observed.t)&&fresh(weather?.base,2*3600000);
+    const precipitation={0:'강수 없음',1:'비',2:'비·눈',3:'눈',4:'소나기',5:'빗방울',6:'빗방울·눈날림',7:'눈날림'};
+    const weatherLabel=weatherFresh?'실황 '+observed.t+'° · '+(precipitation[observed.pty]||'강수 미제공'):'실황 확인 필요';
+    const day=new Date(now+9*3600000).toISOString().slice(0,10),regionCodes=new Set([code,...codes].map(String));
+    const validDay=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value;
+    const festivalFresh=festivalLoaded&&!festivalFailed&&fresh(festivalUpdated,24*3600000);
+    const count=festivalFresh?festivals.filter(f=>validDay(f?.start)&&validDay(f?.end)&&f.start<=day&&f.end>=day&&(Array.isArray(f.sgg)?f.sgg:[f.sgg]).some(c=>regionCodes.has(String(c)))).length:null;
+    return {weather:{label:weatherLabel,available:weatherReady,base:weatherFresh?weather.base:null},festival:{label:count===null?'축제 확인 필요':'오늘 등록 축제 '+count+'건',available:festivalLoaded&&festivals.length>0,count}};
+  }
+  globalThis.NallaeDiscovery=Object.freeze({point,distance,route,plans,eligible,planId,snapshotPlan,beforeOuting});
 })();
