@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-app-version="84">
 <head>
   <script>
     (() => {
@@ -22,9 +22,9 @@
   <link id="app-favicon" rel="icon" href="icons/favicon-light-32.png" type="image/png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-v2.png">
   <link rel="stylesheet" href="vendor/leaflet.min.css">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="fonts/pretendard/pretendard-subset.css">
-  <link rel="stylesheet" href="fonts/wanted-sans/brand.css">
+  <link rel="stylesheet" href="style.css?v=84">
+  <link rel="stylesheet" href="fonts/pretendard/pretendard-subset.css?v=84">
+  <link rel="stylesheet" href="fonts/wanted-sans/brand.css?v=84">
 </head>
 <body>
   <div id="map" aria-label="한국·일본·중국 코스·장소 지도"></div>
@@ -73,12 +73,14 @@
 
   <p id="replay-status" class="replay-toast" role="status" hidden>최근 1시간 소식 재생 중</p>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <aside class="app-update" id="app-update" role="status" hidden><span>새 버전이 준비됐어요</span><button type="button" data-app-refresh>새 화면 적용</button><small>작성 중인 내용이 있다면 저장한 뒤 적용하세요.</small></aside>
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <div class="dialog-head"><h2 id="settings-title">설정</h2><button type="button" data-close>닫기</button></div>
     <button type="button" data-contribution-open>다시 가는 곳 제보</button>
     <section class="settings-regions"><h3>관심 지역</h3><div id="favorites" class="favorites" role="group" aria-label="관심 지역 선택·관리"></div></section>
     <div class="settings-row"><span>화면 모드</span><button id="btn-theme" type="button" aria-label="화면 테마 전환">시스템</button></div>
     <p class="settings-note">화면 모드를 누르면 시스템 · 라이트 · 다크 순으로 바뀌어요.</p>
+    <button type="button" class="settings-refresh" data-app-refresh>최신 화면 불러오기</button>
     <a class="settings-link" href="about.html">앱 정보·데이터 출처 <span aria-hidden="true">›</span></a>
     <a class="settings-link" href="privacy.html">개인정보처리방침 <span aria-hidden="true">›</span></a>
     <details class="map-legend" id="map-legend">
@@ -103,13 +105,14 @@
 
   <script src="vendor/leaflet.min.js"></script>
   <script src="vendor/topojson-client.min.js"></script>
-  <script src="local-scope.js"></script>
-  <script src="discovery.js"></script>
-  <script src="community.js"></script>
-  <script src="community-ui.js"></script>
-  <script src="nearby-fuel.js"></script>
-  <script src="overseas-courses.js"></script>
-  <script src="overseas-map.js"></script>
-  <script src="app.js"></script>
+  <script src="local-scope.js?v=84"></script>
+  <script src="discovery.js?v=84"></script>
+  <script src="community.js?v=84"></script>
+  <script src="community-ui.js?v=84"></script>
+  <script src="nearby-fuel.js?v=84"></script>
+  <script src="overseas-courses.js?v=84"></script>
+  <script src="overseas-map.js?v=84"></script>
+  <script src="release-update.js?v=84"></script>
+  <script src="app.js?v=84"></script>
 </body>
 </html>

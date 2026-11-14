@@ -9,18 +9,19 @@ function worker(fetch, previous = new Map()) {
   let deadline;
   let storing;
   const cacheStarted = new Promise(resolve => { storing = resolve; });
-  const cache = { match: async request => previous.has(request.url) ? new Response(previous.get(request.url)) : undefined, put: async (request, response) => { storing(); writes.push([request.url, await response.text()]); } };
+  const cache = { match: async request => previous.has(typeof request==='string'?request:request.url) ? new Response(previous.get(typeof request==='string'?request:request.url)) : undefined, put: async (request, response) => { storing(); writes.push([typeof request==='string'?request:request.url, await response.text()]); } };
   vm.runInNewContext(source, {
     self: { addEventListener: (name, fn) => handlers[name] = fn },
-    location: { origin: 'https://example.test' }, URL, Request, Response, AbortController,
+    location: { origin: 'https://example.test' }, URL, Request, Response, Headers, AbortController,
     setTimeout: fn => { deadline = fn; return 1; }, clearTimeout: () => {}, fetch,
-    caches: { keys: async () => [source.match(/const VERSION = '([^']+)'/)[1]], open: async () => cache, match: async request => previous.has(request.url) ? new Response(previous.get(request.url)) : undefined },
+    caches: { keys: async () => [source.match(/const VERSION = '([^']+)'/)[1]], open: async () => cache, match: async request => previous.has(typeof request==='string'?request:request.url) ? new Response(previous.get(typeof request==='string'?request:request.url)) : undefined },
   });
   return {
     writes, cacheStarted, expire: () => deadline(),
-    request(path) {
+    request(path,navigate=false) {
       let response;
-      handlers.fetch({ request: new Request('https://example.test/nallae/' + path), respondWith: p => { response = p; }, waitUntil: p => p.catch(() => {}) });
+      const request=new Request('https://example.test/nallae/'+path);
+      handlers.fetch({ request:navigate?{url:request.url,method:'GET',mode:'navigate'}:request, respondWith: p => { response = p; }, waitUntil: p => p.catch(() => {}) });
       return response;
     },
   };
@@ -91,4 +92,23 @@ test('이관 실패 뒤 오프라인에서도 가장 최근 정상 버전 자료
  const sw=activation({'nallae-v9':{[url]:'oldest'},'nallae-v77':{[url]:'last normal'},'other-app':{[url]:'unrelated'}},true);
  await sw.run();assert.equal(await(await sw.request('data/places.json')).text(),'last normal');
  assert.equal((await sw.request('data/missing.json')).type,'error');
+});
+
+test('새 탐색은 오래된 HTML 대신 최신 문서를 사용하고 질의가 있어도 오프라인 시작이 된다',async()=>{
+ const old=new Map([['https://example.test/nallae/index.html','old']]);
+ const sw=worker(async()=>new Response('new',{headers:{'content-type':'text/html'}}),old);
+ assert.equal(await(await sw.request('?travel=1&appv=84',true)).text(),'new');
+ const offline=worker(async()=>{throw Error('offline');},old);
+ assert.equal(await(await offline.request('?travel=1&appv=84',true)).text(),'old');
+ const bad=worker(async()=>new Response('bad',{status:404}),old);
+ assert.equal(await(await bad.request('index.html',true)).text(),'old');assert.equal(bad.writes.length,0);
+});
+test('릴리스 확인은 오래된 JSON을 최신인 것처럼 반환하지 않는다',async()=>{
+ const sw=worker(async()=>{throw Error('offline');},new Map([['https://example.test/nallae/data/app-release.json','{"version":83}']]));
+ await assert.rejects(sw.request('data/app-release.json'));assert.equal(sw.writes.length,0);
+});
+
+test('버전이 지정된 프로그램은 열린 문서 뒤에서 다른 버전으로 교체하지 않는다',async()=>{
+ let requests=0;const sw=worker(async()=>{requests++;return new Response('future');},new Map([['https://example.test/nallae/app.js?v=84','v84']]));
+ assert.equal(await(await sw.request('app.js?v=84')).text(),'v84');assert.equal(requests,0);assert.equal(sw.writes.length,0);
 });

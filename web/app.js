@@ -12,9 +12,11 @@ async function fetchJsonData(url, options = {}) {
   } finally { clearTimeout(timeout); }
 }
 const DEMO = params.has('demo');
+const directTravel=params.has('travel');
 let locationRequestId = 0, routePicking = false;
 let mode = 'explore', exploreChoiceChanged=false, savedView=false;
 try { const saved=localStorage.getItem('nallae-mode');if(['news','explore'].includes(saved))mode=saved; } catch (_) {}
+if(directTravel)mode='explore';
 if (DEMO && (params.has('rain') || params.has('snow'))) mode = 'explore';
 rootMode();
 function rootMode() { document.documentElement.dataset.mode = mode; }
@@ -2349,7 +2351,7 @@ const travelSaved=JippiTravel.readSaved();
 const travelPins=L.layerGroup().addTo(map);
 const compactTravelControls=matchMedia('(min-width:760px) and (max-height:500px)');
 compactTravelControls.addEventListener('change',()=>{const d=exploreTools.querySelector('.travel-controls');if(d)d.open=!compactTravelControls.matches;});
-function travelEntry(){return '<div class="travel-entry"><div><strong>일본·중국 여행도 같이</strong><p>오사카 · 교토 · 상하이에서 둘이 걷고 싶은 곳</p></div><button type="button" data-travel-open>여행 코스 보기</button></div>';}
+function travelEntry(){return '<div class="travel-entry"><div><strong>일본·중국 여행도 같이</strong><p>오사카 · 교토 · 상하이에서 둘이 걷고 싶은 곳</p></div><div class="travel-entry-actions"><a class="travel-map-entry" href="?travel=1&amp;appv='+document.documentElement.dataset.appVersion+'">일본·중국 지도</a><button type="button" data-travel-open>여행 코스 보기</button></div></div>';}
 function travelTabs(){return '<div class="travel-tabs" role="group" aria-label="코스 지역"><button type="button" data-travel-domestic aria-pressed="false">국내 코스</button><button type="button" data-travel-open aria-pressed="true">일본·중국 여행</button></div>';}
 function travelSavedTabs(){return '<div class="saved-tabs" role="group" aria-label="저장한 항목 종류">'+[['plans','코스'],['saved','장소'],['restaurants','맛집'],['travel','여행']].map(([id,name])=>'<button type="button" data-saved-tab="'+id+'" aria-pressed="'+(id==='travel')+'">'+name+'</button>').join('')+'</div>';}
 function syncTravelMap(){
@@ -2367,7 +2369,8 @@ function loadTravel(){
     travelMap=JippiOverseasMap.create({map,L,cities:data.cities,getPadding:()=>({paddingTopLeft:leftPad(),paddingBottomRight:[bottomPad()[0],Math.min(bottomPad()[1],200)]}),onCitySelect:openTravelCity,onStatus:status=>{travelStatus=status;document.querySelectorAll('[data-travel-basemap]').forEach(x=>x.textContent=travelBasemapButtonText());document.querySelectorAll('[data-travel-status]').forEach(x=>x.textContent=status.message||'');}});
     syncTravelMap();
     if(mode==='explore'&&exploreLayer==='outing'&&!selection&&!nextPlanId&&!savedView&&!overseasView&&atHome&&!exploreChoiceChanged){travelMapContext=true;atHome=false;fitTravelOverview();}
-    if(overseasView){overseasCityId=overseasCityId||data.cities[0].id;travelMapContext=true;atHome=false;selectionAutoFit=false;travelMap.focusCity(overseasCityId);}
+    if(overseasView){travelMapContext=true;atHome=false;selectionAutoFit=false;if(directTravel&&!overseasCityId){if(mobileSheet.matches)setSheetStage(0,false);clearTimeout(sheetFitTimer);fitTravelOverview();}else{overseasCityId=overseasCityId||data.cities[0].id;travelMap.focusCity(overseasCityId);}}
+    if(directTravel){const entered=new URL(location.href);entered.searchParams.delete('travel');history.replaceState(null,'',entered.href);}
     if(mode==='explore'&&exploreLayer==='outing')renderOutings();
   }).catch(()=>{overseasError=true;if(overseasView||savedView&&outingTheme==='travel')renderTravel();}).finally(()=>{overseasRequest=null;});
   return overseasRequest;
@@ -2423,6 +2426,7 @@ fetchJsonData('data/regions.json', { cache: 'default' })
   .then((topo) => {
     setupRegions(topo);
     initFavorites();
+    if(directTravel){mode='explore';exploreLayer='outing';overseasView=true;savedView=false;exploreChoiceChanged=true;selectionAutoFit=false;}
     if (params.has('debug')) window.nallae = { map, munis, sidos };
     if (DEMO && muniByCode.has(params.get('near'))) {
       const m = muniByCode.get(params.get('near'));
@@ -2453,9 +2457,6 @@ fetchJsonData('data/regions.json', { cache: 'default' })
   })
   .catch(() => toast('지도를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'));
 
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
 function centroid(geom) {
   const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
   let best = null, bestArea = 0;

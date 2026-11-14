@@ -820,3 +820,12 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
   .travel-controls[open] { max-height:160px; overflow:auto; }
   .travel-controls[open]>summary { position:sticky; top:0; background:var(--surface); }
 }
+.app-update { position:fixed; z-index:2400; left:12px; right:12px; bottom:calc(80px + env(safe-area-inset-bottom)); max-width:460px; margin:0 auto; padding:14px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--brand); border-radius:16px; background:var(--surface); color:var(--text); box-shadow:var(--shadow); }
+.app-update[hidden] { display:none; }
+.app-update small { flex-basis:100%; color:var(--text-muted); font-size:12px; }
+.app-update button,.settings-refresh { min-height:44px; border:1px solid var(--border-sgg); border-radius:12px; background:var(--surface-muted); color:var(--text); padding:8px 12px; font:inherit; cursor:pointer; }
+.settings-refresh { margin-top:10px; width:100%; }
+.travel-entry { flex-wrap:wrap; }
+.travel-entry-actions { display:flex; flex:1 0 100%; gap:8px; flex-wrap:wrap; }
+.travel-entry-actions>* { flex:1; }
+.travel-map-entry { display:flex; align-items:center; justify-content:center; min-height:44px; padding:10px 12px; border:1px solid var(--border-sgg); border-radius:12px; color:var(--brand); font-size:13px; font-weight:700; text-decoration:none; }
