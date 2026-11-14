@@ -1,5 +1,5 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-const VERSION = 'nallae-v77';
+const VERSION = 'nallae-v78';
 const SHELL = [
   './', 'index.html', 'style.css', 'fonts/pretendard/pretendard-subset.css', 'fonts/wanted-sans/brand.css', 'fonts/wanted-sans/WantedSansVariable.woff2', 'app.js', 'local-scope.js', 'discovery.js', 'community.js', 'community-ui.js', 'nearby-fuel.js', 'manifest.webmanifest',
   'vendor/leaflet.min.css', 'vendor/leaflet.min.js', 'vendor/topojson-client.min.js',
@@ -14,19 +14,44 @@ self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
+// 새 껍데기로 바꿔도 마지막 정상 동네 자료는 보존한다.
+const dynamicData = url => url.origin === location.origin && /\/data\/.+\.json$/.test(url.pathname) && !url.pathname.endsWith('/data/regions.json');
+async function cachedData(request) {
+  const keys = (await caches.keys()).filter(k => /^nallae-v\d+$/.test(k) && Number(k.slice(8)) <= Number(VERSION.slice(8)))
+    .sort((a,b) => Number(b.slice(8)) - Number(a.slice(8)));
+  for (const key of keys) {
+    const hit = await (await caches.open(key)).match(request);
+    if (hit?.ok) return hit;
+  }
+  return Response.error();
+}
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  e.waitUntil((async () => {
+    const current = await caches.open(VERSION);
+    const older = (await caches.keys()).filter(k => /^nallae-v\d+$/.test(k) && Number(k.slice(8)) < Number(VERSION.slice(8)))
+      .sort((a,b) => Number(b.slice(8)) - Number(a.slice(8)));
+    for (const key of older) {
+      let migrated = true;
+      try {
+        const previous = await caches.open(key);
+        for (const request of await previous.keys()) {
+          if (!dynamicData(new URL(request.url)) || await current.match(request)) continue;
+          const response = await previous.match(request);
+          if (response?.ok) await current.put(request, response);
+        }
+      } catch (_) { migrated = false; }
+      // 저장공간 오류 때는 유일한 정상 사본을 지우지 않는다.
+      if (migrated) await caches.delete(key);
+    }
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
 
-  if (/\/data\/.+\.json$/.test(url.pathname) && !url.pathname.endsWith('/data/regions.json')) {
+  if (dynamicData(url)) {
     // 모든 갱신 자료(코스·식당 포함)는 네트워크 우선. 정적 지도 경계는 껍데기 캐시.
     // 연결만 열린 채 응답이 멈춰도 8초 뒤 마지막 정상 자료를 보여준다.
     const controller = new AbortController();
@@ -39,13 +64,13 @@ self.addEventListener('fetch', (e) => {
         if (controller.signal.aborted) throw new Error('data timed out');
         return res;
       }).finally(() => clearTimeout(timeout));
-    e.respondWith(network.catch(async () => (await caches.match(e.request)) || Response.error()));
+    e.respondWith(network.catch(() => cachedData(e.request)));
     return;
   }
 
   // 껍데기: 캐시 우선 + 뒤에서 갱신
   e.respondWith(
-    caches.match(e.request).then((hit) => {
+    caches.open(VERSION).then(c => c.match(e.request)).then((hit) => {
       // 뒤에서 갱신할 때도 HTTP 캐시 대신 서버에 확인(ETag 조건부 요청이라 바뀌지 않았으면 가볍다)
       const net = fetch(e.request, { cache: 'no-cache' }).then((res) => {
         if (res.ok) {

@@ -8,7 +8,7 @@ function setup(){
   const storage=new Map(),messages=[];
   const ctx={Map,Set,Math,Number,Object,String,Date,encodeURIComponent,nextPlanId:null,savedView:false,outingTheme:'date',outingQuery:'old search',exploreChoiceChanged:false,selection:null,savedPlans:new Map(),savedOutings:new Map(),communityUI:{reviewFor:()=>null},mobileSheet:{matches:true},feedEl:{querySelectorAll:()=>[]},exploreTools:{querySelector:()=>null},localStorage:{setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},toast:m=>messages.push(m),renderOutingCards:()=>{},renderOutings:()=>{},applyMode:()=>{},setSheetStage:()=>{}};
   vm.createContext(ctx);for(const file of ['local-scope','discovery'])vm.runInContext(fs.readFileSync(new URL('../../web/'+file+'.js',import.meta.url),'utf8'),ctx);
-  for(const fn of ['escapeHtml','escapeAttr','nextOutingCard','toggleNextOuting','openNextOuting','toggleSavedPlan','outingPlanCard'])load(ctx,fn);
+  for(const fn of ['escapeHtml','escapeAttr','nextOutingCard','toggleNextOuting','openNextOuting','toggleSavedPlan','restoreOutingFocus','outingPlanCard'])load(ctx,fn);
   const plan=ctx.NallaeDiscovery.snapshotPlan({stops:[{id:'meal',name:'식당 <한곳>',lat:37.65,lon:127.06,type:'restaurant',address:'공개주소'},{id:'park',name:'공원 "산책"',lat:37.655,lon:127.06,type:'park',kind:'근린공원',address:'공개주소'}]});
   ctx.savedPlans.set(plan.id,plan);
   return {ctx,storage,messages,plan};
