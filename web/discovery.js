@@ -85,6 +85,11 @@
     if(legs.some(x=>x<100||x>2000)||total>4000)return null;
     const match=stops.length===2?pairing(...stops):{reason:stops.map(placeLabel).join(' + ')};
     const saved={id:planId(stops),stops,meters:Math.round(total),legMeters:legs.map(Math.round),withFood:stops.some(x=>x.type==='restaurant'),reason:match.reason,createdAt:typeof createdAt==='string'&&Number.isFinite(Date.parse(createdAt))?createdAt:new Date().toISOString()};
+    if(plan.sourceType==='editorial-pair'){
+      saved.sourceType='editorial-pair';
+      if(typeof plan.title==='string'&&plan.title.trim()&&plan.title.length<=120)saved.title=plan.title.trim();
+      if(typeof plan.reason==='string'&&plan.reason.trim()&&plan.reason.length<=600)saved.reason=plan.reason.trim();
+    }
     if(plan.sourceType==='community'){
       saved.sourceType='community';if(typeof plan.reason==='string'&&plan.reason.trim()&&plan.reason.length<=600)saved.reason=plan.reason.trim();
       const d=plan.communityDetails;if(d&&typeof d==='object'&&['none','owner','compensated'].includes(d.relationship)&&/^\d{4}-(0[1-9]|1[0-2])$/.test(d.recentVisit)&&typeof d.reason==='string'&&d.reason.trim()&&d.reason.length<=600&&typeof d.caution==='string'&&d.caution.length<=600)saved.communityDetails={reason:d.reason,recentVisit:d.recentVisit,caution:d.caution,relationship:d.relationship};

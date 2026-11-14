@@ -919,3 +919,152 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
 .outing-extra-filters { margin-top:20px; border-top:1px solid var(--border-sgg); }
 .outing-extra-filters summary { min-height:48px; display:flex; align-items:center; font-size:13px; font-weight:650; cursor:pointer; }
 .welcome-about button { min-height:44px; padding:8px 12px; margin:8px 0; border:1px solid var(--border-sgg); border-radius:12px; color:var(--brand); background:var(--surface); font:inherit; }
+
+/* First-visit discovery shelf. Other map/list modes keep their existing layout. */
+:root[data-course-welcome="true"] {
+  --discover-paper:#F8F3E7;
+  --discover-card:#FFFDF7;
+  --discover-ink:#14293F;
+  --discover-muted:#61706F;
+  --discover-line:#DDDCCF;
+  --discover-accent:#A8440C;
+  --discover-honey:#EFC05A;
+}
+:root[data-course-welcome="true"][data-theme="dark"] {
+  --discover-paper:#152A3D;
+  --discover-card:#1C3448;
+  --discover-ink:#FFF4DF;
+  --discover-muted:#BBC9CE;
+  --discover-line:#3B5262;
+  --discover-accent:#FFC76D;
+  --discover-honey:#F4C36C;
+}
+:root[data-course-welcome="true"] .panel { background:var(--discover-paper); }
+:root[data-course-welcome="true"] .feed { padding:0 16px 10px; }
+:root[data-course-welcome="true"] .feed>.discover-shelf { padding:0; margin:0; border:0; background:transparent; box-shadow:none; list-style:none; }
+:root[data-course-welcome="true"] .panel-footer.main-navigation { min-height:76px; background:var(--discover-paper); border-top:1px solid var(--discover-line); }
+.discover-welcome { color:var(--discover-ink,var(--text)); padding:0; }
+.discover-heading { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin:0 1px 6px; }
+.discover-heading .discover-eyebrow { margin:0; color:var(--discover-muted,var(--text-muted)); font-size:12px; line-height:18px; font-weight:650; white-space:nowrap; }
+.discover-city-tabs { display:flex; gap:4px; margin:0 0 8px; padding:0 1px; border-bottom:1px solid var(--discover-line,var(--border-sgg)); }
+.discover-city-tab { flex:1; min-width:0; min-height:44px; padding:8px 10px; margin:0 0 -1px; border:0; border-bottom:3px solid transparent; border-radius:0; background:transparent; color:var(--discover-muted,var(--text-muted)); font:inherit; font-size:13px; line-height:20px; font-weight:550; }
+.discover-city-tab[aria-selected="true"] { border-bottom-color:var(--discover-honey,var(--brand)); color:var(--discover-ink,var(--text)); font-weight:800; }
+.discover-track { min-width:0; }
+.discover-card { min-width:0; padding:13px 14px 12px; border:1px solid var(--discover-line,var(--border-sgg)); border-radius:20px; background:var(--discover-card,#FFFDF7); box-shadow:0 3px 12px #172A3507; }
+.discover-card .discover-kind { margin:0 0 4px; color:var(--discover-muted,var(--text-muted)); font-size:10px; line-height:15px; letter-spacing:.01em; }
+.discover-card .discover-title { margin:0; color:var(--discover-ink,var(--text)); font-size:22px; line-height:27px; letter-spacing:-.045em; font-weight:750; overflow-wrap:anywhere; }
+.discover-stops { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; list-style:none; padding:0; margin:10px 0 8px; }
+.discover-stops>li { position:relative; display:flex; flex-direction:column; gap:3px; min-width:0; padding:0; margin:0; border:0; background:none; box-shadow:none; }
+.discover-stops>li+li::before { content:'→'; position:absolute; left:-21px; top:15px; color:var(--discover-accent,var(--brand)); font-size:17px; line-height:20px; }
+.discover-stop-kind { color:var(--discover-muted,var(--text-muted)); font-size:10px; line-height:14px; }
+.discover-stop-name { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; color:var(--discover-ink,var(--text)); font-size:14px; line-height:19px; letter-spacing:-.035em; font-weight:700; }
+.discover-card .discover-reason { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; margin:0; color:var(--discover-muted,var(--text-muted)); font-size:12px; line-height:18px; letter-spacing:-.015em; }
+.discover-card .discover-distance { margin:6px 0 9px; color:var(--discover-muted,var(--text-muted)); font-size:10px; line-height:15px; }
+.discover-actions { display:grid; grid-template-columns:minmax(0,1fr) 88px; gap:8px; }
+.discover-actions button { display:flex; align-items:center; justify-content:center; min-width:0; min-height:44px; padding:8px 6px; border:1px solid var(--discover-line,var(--border-sgg)); border-radius:11px; background:transparent; color:var(--discover-ink,var(--text)); font:inherit; font-size:12px; line-height:18px; font-weight:650; }
+.discover-actions .discover-open { border-color:#14293F; background:#14293F; color:#FFF6E4; font-weight:750; }
+:root[data-theme="dark"] .discover-card { --discover-card:#FFF6E4; --discover-ink:#14293F; --discover-muted:#536465; --discover-line:#D8D3C4; --discover-accent:#98400B; --discover-honey:#EFC05A; }
+.discover-actions .discover-save[aria-pressed="true"] { color:var(--discover-accent,var(--brand)); border-color:currentColor; }
+.discover-bottom { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px; margin-top:4px; }
+.discover-count { min-width:32px; text-align:center; color:var(--discover-muted,var(--text-muted)); font-size:11px; line-height:18px; font-variant-numeric:tabular-nums; }
+.discover-local { min-height:44px; padding:6px 1px; border:0; background:transparent; color:var(--discover-accent,var(--brand)); font:inherit; font-size:11px; line-height:18px; font-weight:650; text-decoration:underline; text-underline-offset:3px; }
+.discover-utilities { display:flex; align-items:center; gap:12px; margin-top:4px; padding-top:4px; border-top:1px solid var(--discover-line,var(--border-sgg)); }
+.discover-utilities>button,.discover-utilities .travel-entry { flex:1; width:auto; min-width:0; min-height:44px; padding:8px 0; margin:0; border:0; border-radius:0; background:transparent; box-shadow:none; color:var(--discover-muted,var(--text-muted)); font:inherit; font-size:11px; line-height:18px; }
+.discover-utilities>button[data-outing-near] { color:var(--discover-accent,var(--brand)); text-align:left; }
+.discover-detail { width:min(620px,calc(100vw - 24px)); max-height:86vh; max-height:86dvh; padding:0; margin:auto; border:1px solid var(--border-sgg); border-radius:24px; background:var(--surface); color:var(--text); overflow:hidden; }
+.discover-detail[open] { display:flex; flex-direction:column; }
+.discover-detail .dialog-head { flex:none; display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:18px 18px 14px; margin:0; border-bottom:1px solid var(--border-sgg); }
+.discover-detail .dialog-head>div { min-width:0; }
+.discover-detail .dialog-head span { color:var(--brand); font-size:12px; line-height:18px; font-weight:650; }
+.discover-detail .dialog-head h2 { margin:4px 0 0; font-size:22px; line-height:29px; letter-spacing:-.04em; overflow-wrap:anywhere; }
+.discover-detail .dialog-head button { flex:none; min-width:52px; min-height:44px; padding:8px; margin:0; border:1px solid var(--border-sgg); background:transparent; font-size:12px; }
+.discover-detail-list { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; list-style:none; padding:16px 18px 20px; margin:0; }
+.discover-detail-list>.outing-plan { padding:0; margin:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.discover-detail-list .outing-plan h3 { font-size:19px; line-height:27px; }
+.discover-detail-list .outing-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.discover-detail-list .outing-actions button { flex:1; min-height:44px; }
+.discover-detail::backdrop { background:#0B1B3370; backdrop-filter:blur(2px); }
+:root[data-course-welcome="true"][data-theme="dark"] .leaflet-munis-pane path { fill:#E7E3D6!important; fill-opacity:1!important; stroke:#BFC4B6!important; transition:none; }
+:root[data-course-welcome="true"][data-theme="dark"] .leaflet-provs-pane path { stroke:#8C9F97!important; transition:none; }
+:root[data-course-welcome="true"][data-theme="dark"] .region-label { color:#183247; text-shadow:0 1px 2px #F8F4E9; }
+@media(max-width:759px) {
+  :root[data-course-welcome="true"] .panel { border-radius:25px 25px 0 0; }
+  :root[data-course-welcome="true"] .panel-handle { height:20px; }
+  :root[data-course-welcome="true"] .panel-handle::after { top:8px; }
+}
+@media(max-width:359px) {
+  :root[data-course-welcome="true"] .feed { padding-left:12px; padding-right:12px; }
+  .discover-heading { gap:6px; }
+  .discover-heading .discover-eyebrow { font-size:10px; }
+  .discover-card { padding:13px 12px; }
+  .discover-card .discover-title { font-size:18px; line-height:23px; }
+  .discover-stops { gap:20px; }
+  .discover-stops>li+li::before { left:-18px; }
+  .discover-stop-name { font-size:13px; line-height:18px; }
+  .discover-actions { grid-template-columns:minmax(0,1fr) 80px; }
+}
+@media(min-width:760px) and (max-height:500px) {
+  :root[data-course-welcome="true"] .panel-footer.main-navigation { min-height:60px; }
+}
+/* Restore the device safe area after the compact header overrides above. */
+.topbar { padding-top:max(14px,env(safe-area-inset-top)); }
+@media(max-width:759px) {
+  .topbar {
+    padding-top:max(12px,env(safe-area-inset-top));
+    padding-bottom:10px;
+    padding-left:max(16px,env(safe-area-inset-left));
+    padding-right:max(16px,env(safe-area-inset-right));
+  }
+}
+
+/* At national scale, province lines carry the map instead of hundreds of tiny borders. */
+:root[data-course-welcome="true"][data-theme="dark"]:not([data-map-detail="local"]) .leaflet-munis-pane path { stroke:#E7E3D6!important; stroke-opacity:1!important; stroke-width:.6!important; }
+:root[data-course-welcome="true"][data-theme="dark"] .leaflet-provs-pane path { stroke-width:.8!important; stroke-opacity:.65!important; }
+
+/* The same paper card carries selected and saved domestic courses. */
+:root[data-theme="dark"] .feed>.outing-plan {
+  --surface:#FFF6E4;--surface-muted:#F1E8D7;--text:#14293F;--text-muted:#5D686A;
+  --border-sgg:#DDD3C0;--brand:#9A410E;--selection-fill:#F8E5BA;
+  background:var(--surface);color:var(--text);
+}
+:root[data-theme="dark"] .feed>.outing-plan .outing-actions button:first-child { background:#14293F;color:#FFF6E4; }
+.discover-utilities { display:flex;align-items:center;gap:8px;margin-top:6px;border-top:1px solid var(--discover-line,var(--border-sgg)); }
+.discover-utilities>[data-outing-near] { min-height:44px;flex:none;padding:8px 2px;border:0;background:transparent;color:var(--discover-muted,var(--text-muted));font-size:12px; }
+.discover-utilities>.travel-entry { flex:1;min-width:0;margin:0;border:0;padding-left:8px;font-size:12px; }
+
+.discover-map-marker { display:grid;place-items:center; }
+.discover-map-marker>span { display:grid;place-items:center;width:34px;height:34px;border:2px solid #FFF6E4;border-radius:50%;background:#EFC05A;color:#14293F;box-shadow:0 2px 8px #10213A30;font-size:14px;font-weight:800; }
+.discover-local { display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 2px;border-bottom:1px solid var(--discover-line,var(--border-sgg));font-size:12px;text-decoration:none; }
+.discover-card .discover-reason { font-size:13px;line-height:20px; }
+.discover-heading .discover-count { margin-left:auto; }
+@media(max-height:650px) and (max-width:759px),(max-height:500px){
+  .discover-card { padding:11px 12px; }
+  .discover-card .discover-title { font-size:18px;line-height:23px; }
+  .discover-stops { margin:7px 0 4px; }
+  .discover-stop-kind { display:none; }
+  .discover-card .discover-reason { display:none; }
+  .discover-card .discover-distance { margin:4px 0 6px; }
+  .discover-heading { margin-bottom:2px; }
+  .discover-heading .discover-eyebrow { font-size:10px;line-height:15px; }
+}
+
+/* Paper cartography stays consistent while browsing and saving domestic courses. */
+:root[data-theme="dark"]:is([data-navigation="courses"],[data-navigation="saved"]) .region-label { color:#183247;text-shadow:0 1px 2px #F8F4E9; }
+:root[data-theme="dark"]:is([data-navigation="courses"],[data-navigation="saved"]) .leaflet-provs-pane path { stroke:#8C9F97!important;stroke-opacity:.65!important; }
+.discover-detail { --surface:#FFF6E4;--surface-muted:#F1E8D7;--text:#14293F;--text-muted:#5D686A;--border-sgg:#DDD3C0;--brand:#9A410E;--selection-fill:#F8E5BA; }
+
+/* The real course dot stays on its coordinate; only the decorative mascot gets room. */
+:root[data-course-welcome="true"] .bukangi { position:relative;left:18px; }
+:root[data-course-welcome="true"] .bukangi-name { left:30px; }
+
+/* Keep editable controls legible without iOS focus enlargement. */
+@media(max-width:759px){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),textarea,select { font-size:16px!important; }
+}
+
+@media(min-width:760px){ .panel { left:max(16px,env(safe-area-inset-left)); } }
+
+@media(min-width:760px) and (max-height:500px){
+  :root[data-course-welcome="true"] .topbar { padding-bottom:10px; }
+  :root[data-course-welcome="true"] .panel { top:84px;bottom:8px; }
+}

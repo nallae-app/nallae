@@ -87,3 +87,18 @@ test('방문 제보 저장·복원에도 재방문 이유와 광고 관계를 �
   assert.equal(restored.communityDetails.email,undefined);
   assert.equal(snapshotPlan({stops:[food,park],communityDetails:details}).communityDetails,undefined);
 });
+
+
+test('첫 화면의 실존 두 곳은 저장 후에도 같은 순서·출처·제목을 유지하고 개인 위치를 보관하지 않는다',()=>{
+  const catalog=JSON.parse(fs.readFileSync(new URL('../../web/data/discovery-shelf.json',import.meta.url),'utf8'));
+  for(const item of catalog.items){
+    const saved=snapshotPlan({...item,origin:[37.5,127],privateNote:'버릴 정보'});
+    const restored=snapshotPlan(JSON.parse(JSON.stringify(saved)));
+    assert.equal(restored.id,item.id);
+    assert.deepEqual(Array.from(restored.stops,x=>x.id),item.stops.map(x=>x.id));
+    assert.deepEqual(Array.from(restored.stops,x=>x.sourceUrl),item.stops.map(x=>x.sourceUrl));
+    assert.equal(restored.sourceType,'editorial-pair');assert.equal(restored.title,item.title);assert.equal(restored.reason,item.reason);
+    assert.equal(restored.origin,undefined);assert.equal(restored.privateNote,undefined);assert.equal(restored.communityDetails,undefined);
+    assert.equal(restored.id,planId(restored.stops),'기존 같은 순서의 저장 코스와 별도 ID를 만들지 않는다');
+  }
+});

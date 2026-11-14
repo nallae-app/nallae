@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const app=fs.readFileSync(new URL('../../web/app.js',import.meta.url),'utf8');
 function setup(extra={}){
-  const ctx={overseasView:false,savedView:false,Math,Number,Date,Set,Map,Object,String,DEMO:true,parkingLiveState:()=>({current:true}),outingCoreFailureNote:()=>'',beforeOutingCard:()=>'',nextOutingCard:()=>'',nextPlanId:null,fuelShown:[],fuelLookupAllowed:false,fuelSampleFallback:false,fuelRadius:5000,fuelSort:'distance',selection:{center:{code:'11350',name:'노원구'},origin:[37.65,127.06]},escapeHtml:s=>String(s),escapeAttr:s=>String(s),validDate:d=>Number.isFinite(d?.getTime()),label:()=> '서울 노원구',productName:()=> '휘발유',money:x=>String(x)+'원',...extra};
+  const ctx={root:{dataset:{}},mode:'explore',exploreLayer:'outing',syncDiscoveryMarker:()=>{},discoveryCatalog:null,overseasView:false,savedView:false,Math,Number,Date,Set,Map,Object,String,DEMO:true,parkingLiveState:()=>({current:true}),outingCoreFailureNote:()=>'',beforeOutingCard:()=>'',nextOutingCard:()=>'',nextPlanId:null,fuelShown:[],fuelLookupAllowed:false,fuelSampleFallback:false,fuelRadius:5000,fuelSort:'distance',selection:{center:{code:'11350',name:'노원구'},origin:[37.65,127.06]},escapeHtml:s=>String(s),escapeAttr:s=>String(s),validDate:d=>Number.isFinite(d?.getTime()),label:()=> '서울 노원구',productName:()=> '휘발유',money:x=>String(x)+'원',...extra};
   vm.createContext(ctx);for(const name of ['local-scope','discovery'])vm.runInContext(fs.readFileSync(new URL('../../web/'+name+'.js',import.meta.url),'utf8'),ctx);
   vm.runInContext(app.match(/^function travelEntry\(\).*$/m)[0],ctx);
   return ctx;

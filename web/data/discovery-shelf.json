@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "updated": "2026-11-14",
+  "items": [
+    {
+      "id": "v2:[\"outing-a6a7e0dd9d050777\",\"outing-b5cfd6c1cb3a0f0c\"]",
+      "city": "부산",
+      "title": "책방골목, 그리고 공원",
+      "reason": "헌책 구경 뒤, 공원으로 이어 보는 두 곳.",
+      "sourceType": "editorial-pair",
+      "stops": [
+        {
+          "id": "outing-a6a7e0dd9d050777",
+          "name": "보수동책방골목",
+          "address": "부산광역시 중구 대청로 57-1",
+          "lat": 35.10323904,
+          "lon": 129.0263248,
+          "sgg": "26110",
+          "district": "부산 중구",
+          "type": "attraction",
+          "kind": "관광지",
+          "source": "부산광역시 중구",
+          "referenceDate": "2026-03-30",
+          "sourceUrl": "https://www.data.go.kr/data/15021141/standard.do"
+        },
+        {
+          "id": "outing-b5cfd6c1cb3a0f0c",
+          "name": "중앙공원",
+          "address": "부산광역시 중구 영주동 239-114",
+          "lat": 35.1096029,
+          "lon": 129.0281365,
+          "sgg": "26110",
+          "district": "부산 중구",
+          "type": "park",
+          "kind": "근린공원",
+          "source": "부산시설공단",
+          "referenceDate": "2025-10-21",
+          "sourceUrl": "https://www.data.go.kr/data/15012890/standard.do"
+        }
+      ],
+      "meters": 727,
+      "legMeters": [
+        727
+      ],
+      "withFood": false
+    },
+    {
+      "id": "v2:[\"outing-7271e0be9fe8e2f8\",\"outing-d3dea7c9d8ac9a23\"]",
+      "city": "서울",
+      "title": "공원 두 곳을 가볍게",
+      "reason": "문화공원과 역사공원을 함께 둘러보는 두 곳.",
+      "sourceType": "editorial-pair",
+      "stops": [
+        {
+          "id": "outing-7271e0be9fe8e2f8",
+          "name": "당인동문화공원",
+          "address": "서울특별시 마포구 당인동 27-9",
+          "lat": 37.545411,
+          "lon": 126.920154,
+          "sgg": "11440",
+          "district": "서울 마포구",
+          "type": "park",
+          "kind": "문화공원",
+          "source": "서울특별시 마포구청",
+          "referenceDate": "2025-12-03",
+          "sourceUrl": "https://www.data.go.kr/data/15012890/standard.do"
+        },
+        {
+          "id": "outing-d3dea7c9d8ac9a23",
+          "name": "양화진역사공원",
+          "address": "서울특별시 마포구 합정동 139-21 일대",
+          "lat": 37.545546,
+          "lon": 126.911201,
+          "sgg": "11440",
+          "district": "서울 마포구",
+          "type": "park",
+          "kind": "역사공원",
+          "source": "서울특별시 마포구청",
+          "referenceDate": "2025-12-03",
+          "sourceUrl": "https://www.data.go.kr/data/15012890/standard.do"
+        }
+      ],
+      "meters": 789,
+      "legMeters": [
+        789
+      ],
+      "withFood": false
+    },
+    {
+      "id": "v2:[\"outing-085ab660db3928fe\",\"outing-8f760593315a6935\"]",
+      "city": "제주",
+      "title": "절물과 노루생태관찰원",
+      "reason": "절물과 노루생태관찰원을 함께 살펴보는 두 곳.",
+      "sourceType": "editorial-pair",
+      "stops": [
+        {
+          "id": "outing-085ab660db3928fe",
+          "name": "절물자연휴양림",
+          "address": "제주특별자치도 제주시 명림로 584(봉개동)",
+          "lat": 33.44004881,
+          "lon": 126.6252034,
+          "sgg": "50110",
+          "district": "제주 제주시",
+          "type": "attraction",
+          "kind": "관광지",
+          "source": "제주특별자치도 제주시 절물생태관리소",
+          "referenceDate": "2023-10-30",
+          "sourceUrl": "https://www.data.go.kr/data/15021141/standard.do"
+        },
+        {
+          "id": "outing-8f760593315a6935",
+          "name": "노루생태관찰원",
+          "address": "제주특별자치도 제주시 명림로 520(봉개동)",
+          "lat": 33.4443253,
+          "lon": 126.6266934,
+          "sgg": "50110",
+          "district": "제주 제주시",
+          "type": "attraction",
+          "kind": "관광지",
+          "source": "제주특별자치도 제주시 절물생태관리소",
+          "referenceDate": "2023-10-30",
+          "sourceUrl": "https://www.data.go.kr/data/15021141/standard.do"
+        }
+      ],
+      "meters": 495,
+      "legMeters": [
+        495
+      ],
+      "withFood": false
+    }
+  ]
+}

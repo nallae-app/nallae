@@ -188,6 +188,7 @@ map.on('moveend zoomend', updateBukangi);
 document.addEventListener('visibilitychange', updateBukangi);
 map.createPane('pulses').style.zIndex = 650;
 
+const paperCourseMap=()=>mode==='explore'&&exploreLayer==='outing'&&outingTheme!=='travel'&&!overseasView&&root.dataset.theme==='dark';
 const baseStyle = { color: token('border-sgg'), weight: 0.35, opacity:.48, fillColor: token('land'), fillOpacity: 1 };
 let provinceLayer, selectionOutline;
 const regionLabels = [];
@@ -205,8 +206,10 @@ function renderLabels() {
     outlinedRegion = selection?.center;
     selectionOutline = selection ? L.geoJSON(selection.center.feature, { pane:"selection", interactive:false, style:{color:token("brand"),weight:2,fill:false} }).addTo(map) : null;
   }
-  selectionOutline?.setStyle({color:token("brand")});
+  selectionOutline?.setStyle({color:paperCourseMap()?'#9A410E':token("brand")});
   const occupied = replayEl.hidden ? [] : [replayEl.getBoundingClientRect()];
+  const discoveryBounds=discoveryMarker?.getElement()?.getBoundingClientRect();
+  if(discoveryBounds?.width)occupied.push(discoveryBounds);
   const zoomed = map.getZoom() >= MUNI_ZOOM;
   const sorted = regionLabels.slice().sort((a,b) => {
     const rank = r => selection?.center.code === r.code ? 0 : r.kind === "sido" ? 1 : 2;
@@ -264,7 +267,7 @@ const moveToBounds = (bounds, options) => reducedMotion.matches ? map.fitBounds(
 let munis = [], muniByCode = new Map(), sidos = new Map(), neighborIdx = [], homeBounds = null;
 
 const sheetTarget = () => parseFloat(panel.style.height) || panel.offsetHeight;
-const leftPad = () => (window.innerWidth >= 760 ? [370, 70] : [10, Math.max(0, Math.min(document.querySelector('.controls').getBoundingClientRect().bottom + 8, innerHeight - sheetTarget() - 120))]);
+const leftPad = () => (window.innerWidth >= 760 ? [Math.min(innerWidth-140,panel.getBoundingClientRect().right+14),Math.max(70,document.querySelector('.topbar').getBoundingClientRect().bottom+8)] : [10, Math.max(0, Math.min(document.querySelector('.controls').getBoundingClientRect().bottom + 8, innerHeight - sheetTarget() - 120))]);
 const bottomPad = () => (window.innerWidth >= 760 ? [20, 20] : [10, sheetTarget() + (parseFloat(getComputedStyle(root).getPropertyValue('--kb')) || 0) + 10]);
 function fitSelection() {
   const bounds = L.latLngBounds([]);
@@ -335,6 +338,7 @@ const regionTitle = (m) => { const f = favorites.find(r => r.code === m.code); r
 
 map.on('zoomend', () => {
   const z = map.getZoom() >= MUNI_ZOOM;
+  root.dataset.mapDetail=z?'local':'national';
   baseStyle.weight = z ? .8 : .35;
   baseStyle.opacity = z ? .85 : .48;
   baseStyle.color = token('border-sgg');
@@ -347,10 +351,11 @@ let meMarker = null;
 const isSelected = (m) => !!selection && selection.codes.has(m.code);
 function restyle(m) {
   if (!m.layer) return;
+  const paper=paperCourseMap(),land=paper?'#E7E3D6':baseStyle.fillColor,selectedFill=paper?'#F1D9A7':token('selection-fill'),selectedStroke=paper?'#9A410E':token('brand');
   const fuelFill = mode === 'explore' && exploreLayer === 'fuel' ? fuelColor(m.code) : mode === 'explore' && exploreLayer === 'weather' ? weatherColor(m.code) : null;
-  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && ['food','parking','pharmacy','er'].includes(exploreLayer) ? selection?.center === m : isSelected(m)) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
-  if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 2.5, opacity:1 });
-  else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 1.3, opacity:1 });
+  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && ['food','parking','pharmacy','er'].includes(exploreLayer) ? selection?.center === m : isSelected(m)) ? selectedFill : land,fillOpacity:1};
+  if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color:selectedStroke, weight:2.5, opacity:1 });
+  else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color:selectedStroke, weight:1.3, opacity:1 });
   else m.layer.setStyle({...baseStyle,...fill});
 }
 
@@ -1082,11 +1087,12 @@ function sheetHeights() {
   const dedicated=mode==='explore'&&['places','outing'].includes(panel.dataset.exploreLayer);
   const extra = outer(document.getElementById('collection-alert')) + (dedicated?0:outer(document.querySelector('.category-row'))) + outer(document.querySelector('.explore-tools'));
   if(dedicated&&root.dataset.courseWelcome==='true'){
-    const welcome=feedEl.querySelector('.outing-welcome');
-    const body=(welcome?.offsetHeight||218)+outer(feedEl.querySelector('.next-outing'));
+    const welcome=feedEl.querySelector('.discover-shelf,.outing-welcome');
+    const discover=welcome?.classList.contains('discover-shelf');
+    const body=(discover?(welcome.querySelector('.discover-welcome')?.offsetHeight||324):welcome?.offsetHeight||218)+outer(feedEl.querySelector('.next-outing'));
     const fixed=folded+extra;
-    const middle=Math.min(full,Math.max(low+180,Math.min(fixed+body+8,H*.40)));
-    const heights=[low,middle,full];heights.fixed=fixed;heights.fits=!feedEl.querySelector('.next-outing')||middle-fixed>=body-2||middle===full;return heights;
+    const middle=Math.min(full,Math.max(low+180,Math.min(fixed+body+8,H*(discover?(H<=650?.55:.54):.40))));
+    const heights=[low,middle,full];heights.fixed=fixed;heights.fits=discover?middle-fixed>=body-2||middle===full:!feedEl.querySelector('.next-outing')||middle-fixed>=body-2||middle===full;return heights;
   }
   const cards = mode === 'news' ? firstTwoHeight() : TWO_CARDS;
   const want = folded + extra + cards;
@@ -1117,7 +1123,7 @@ function applySheetHeight(heights) {
   // 중간에서 앞 두 소식을 다 담지 못하면 손잡이에 '전체 목록 보기'를 보여 준다(글자를 줄이거나 제목을 자르지 않는다)
   const hint = sheetStage === 1 && !heights.fits;
   panel.classList.toggle('needs-expand', hint);
-  handle.setAttribute('aria-label', '목록 높이: ' + stageNames[sheetStage] + (hint ? '. 앞 소식이 다 보이지 않아요. 누르면 전체 목록' : '. 누르면 다음 높이로 바뀌어요'));
+  handle.setAttribute('aria-label', '목록 높이: ' + stageNames[sheetStage] + (hint ? '. 내용이 다 보이지 않아요. 누르면 전체 목록' : '. 누르면 다음 높이로 바뀌어요'));
   const scroll = sheetStage === 2 && h - heights.fixed < SCROLL_FEED;
   if (panel.classList.contains('sheet-scroll') !== scroll) { panel.classList.toggle('sheet-scroll', scroll); if (!scroll) panel.scrollTop = 0; }
   if (Math.abs(before - h) > 4) refitAfterSheet();
@@ -1309,6 +1315,31 @@ const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
 let outingIndex=null, outingQuery='', outingTheme='date', outingLimit=30, outingCode=null, outingNonce=0, outingShown=[], outingPlans=[], outingRadius=5000, outingStopCount=2, outingPlanLimit=3;
 const outingCache=new Map(), outingPending=new Set(), outingErrors=new Set(), outingMarkers=L.layerGroup().addTo(map);
 const outingPlanMemo=new Map();let outingRevision=0,outingSearchTimer,outingDataTimer;
+let discoveryCatalog=null,discoveryIndex=0,discoveryError=false,discoveryRequest=null,discoveryDialog=null,discoveryMarker=null,discoveryMarkerId='';
+function syncDiscoveryMarker(){
+  const active=mode==='explore'&&exploreLayer==='outing'&&outingTheme==='date'&&!selection&&!overseasView&&!savedView&&map.getZoom()<MUNI_ZOOM;
+  const item=active?discoveryCatalog?.items[discoveryIndex]:null;
+  if(!item){if(discoveryMarker){discoveryMarker.remove();discoveryMarker=null;scheduleLabels();}discoveryMarkerId='';return;}
+  if(discoveryMarkerId===item.id)return;
+  discoveryMarker?.remove();discoveryMarkerId=item.id;
+  const first=item.stops[0];
+  discoveryMarker=L.marker([first.lat,first.lon],{title:item.city+' · '+item.title,icon:L.divIcon({className:'discover-map-marker',html:'<span aria-hidden="true">2</span>',iconSize:[44,44],iconAnchor:[22,22]})}).addTo(map);
+  discoveryMarker.getElement()?.setAttribute('aria-label',item.city+' · '+item.title+' 지도에서 보기');
+  discoveryMarker.on('click',()=>{const plan=discoveryPlan(discoveryIndex);if(plan){outingPlans=[plan];focusOutings(plan.stops);}});
+  scheduleLabels();
+}
+map.on('zoomend',syncDiscoveryMarker);
+function loadDiscoveryShelf(){
+  if(discoveryRequest)return discoveryRequest;
+  discoveryError=false;
+  discoveryRequest=fetchJsonData('data/discovery-shelf.json').then(data=>{
+    const catalog=JippiDiscoveryShelf.validate(data);if(!catalog)throw Error('Invalid discovery catalog');
+    discoveryCatalog=catalog;
+    if(mode==='explore'&&exploreLayer==='outing'&&!selection&&!savedView&&!overseasView){renderExplore();fitSheet();}
+  }).catch(()=>{discoveryError=true;}).finally(()=>{discoveryRequest=null;});
+  return discoveryRequest;
+}
+
 const savedOutings=new Map();
 const savedPlans=new Map();
 const communityUI=NallaeCommunityUI.create({toast,onReview:()=>{if(mode==='explore'&&exploreLayer==='outing')renderOutings();}});
@@ -1616,7 +1647,7 @@ function updateExploreStatus() {
 function renderExplore() {
   if(exploreTools.querySelector('.outing-filters-dialog[open]'))return;
   if(exploreLayer==='outing'&&(overseasView||savedView&&outingTheme==='travel')){syncModeNavigation();panel.dataset.exploreLayer='outing';exploreTools.hidden=false;syncCategories();newButton.hidden=true;if(exploreTools.dataset.travelView!==travelViewKey())renderTravel();return;}
-  if(exploreLayer==='outing'&&!outingIndex&&!savedView&&!overseasView){syncModeNavigation();panel.dataset.exploreLayer='outing';exploreTools.hidden=false;exploreTools.innerHTML='';titleEl.textContent='오늘 어디 갈까?';subEl.textContent='';feedEl.innerHTML=nextOutingCard()+(exploreReady?'<li class="empty">코스에 필요한 장소 자료를 받지 못했어요. <button type="button" data-outings-load>다시 받기</button></li>':'<li class="empty" role="status">가까운 코스를 준비하고 있어요…</li>');return;}
+  if(exploreLayer==='outing'&&!outingIndex&&!savedView&&!overseasView&&!(discoveryCatalog&&!selection)){syncModeNavigation();panel.dataset.exploreLayer='outing';exploreTools.hidden=false;exploreTools.innerHTML='';titleEl.textContent='오늘 어디 갈까?';subEl.textContent='';feedEl.innerHTML=nextOutingCard()+(exploreReady?'<li class="empty">코스에 필요한 장소 자료를 받지 못했어요. <button type="button" data-outings-load>다시 받기</button></li>':'<li class="empty" role="status">가까운 코스를 준비하고 있어요…</li>');return;}
   locationFocus.clearLayers();
   outingMarkers.clearLayers();
   const available=availableLayers();
@@ -1971,7 +2002,7 @@ function renderOutings() {
   if(overseasView||(savedView&&outingTheme==='travel')){renderTravel();return;}
   delete exploreTools.dataset.travelView;
   root.dataset.courseWelcome=String(!savedView&&!selection&&outingTheme==='date');
-  if((!outingIndex&&!savedView)||exploreTools.querySelector('.outing-filters-dialog[open]'))return;
+  if((!outingIndex&&!savedView&&(selection||!discoveryCatalog))||exploreTools.querySelector('.outing-filters-dialog[open]'))return;
   const code=selection?.center.code||'';
   if(outingCode!==code){outingCode=code;outingLimit=30;outingPlanLimit=3;}
   titleEl.textContent=savedView?'저장한 곳':selection?regionTitle(selection.center)+'에서 뭐 할까?':'오늘 어디 갈까?';
@@ -1999,7 +2030,27 @@ function outingPlanCard(p,i,saved=false,contribution=null) {
   if(saved&&!contribution&&p.sourceType==='community'&&p.communityDetails)contribution={...p.communityDetails,id:p.communityId};
   const first=p.stops[0],approach=!saved&&selection?NallaeLocalScope.distance(selection.origin,[first.lat,first.lon]):null,hasSaved=savedPlans.has(p.id),own=saved?communityUI.reviewFor(p.stops):null;
   const from=selection?.fromLocation?'내 위치':'동네 대표 지점';
-  return '<li class="festival-card outing-plan'+(contribution?' community-card':'')+'" data-plan-card="'+escapeHtml(p.id)+'" tabindex="-1"><span class="festival-day">'+(contribution?(saved?'저장한 방문 제보 · 당시 내용':'방문 제보 · 운영자 검토'):saved&&p.sourceType==='community'?'저장한 방문 제보 코스':saved?'저장한 코스':'자동 조합 · '+p.stops.length+'곳')+'</span><h3>'+p.stops.map(x=>escapeHtml(x.name)).join(' → ')+'</h3><p class="plan-reason">'+escapeHtml(contribution?contribution.reason:p.reason)+' · 구간 직선 합계 '+(p.meters/1000).toFixed(1)+'km</p>'+(approach!==null?'<p class="place-checked">'+from+' → 첫 장소 직선 '+(approach/1000).toFixed(1)+'km</p>':'')+(contribution?'<p class="place-checked">최근 방문 '+escapeHtml(contribution.recentVisit)+' · 방문 미인증</p>':'')+(saved?'<p class="place-checked">저장 당시 장소 정보'+(own?' · 나만 보는 별점 '+own.rating+'/5':'')+'</p>':'')+'<div class="outing-actions"><button type="button" data-plan-map="'+escapeHtml(p.id)+'">지도</button><button type="button" data-plan-save="'+escapeHtml(p.id)+'" aria-pressed="'+hasSaved+'">'+(hasSaved?'♥ 저장됨':'♡ 저장')+'</button><a class="food-map" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(NallaeDiscovery.route(p.stops,'walk'))+'">길찾기 ↗</a></div><details class="plan-details"><summary>장소 정보·방문 전 확인</summary><ol>'+p.stops.map(x=>'<li><strong>'+escapeHtml(x.name)+'</strong><p>'+escapeHtml(x.address||'주소 미제공')+'</p><p class="place-checked">'+escapeHtml(typeof x.source==='string'?x.source:x.source?.name||'소개된 식당')+' · 자료 '+escapeHtml(x.referenceDate||x.sourceDate||x.checkedAt||'기준일 미제공')+'</p>'+(/^https?:\/\//i.test(x.sourceUrl||x.source?.url||'')?'<a target="_blank" rel="noopener noreferrer" href="'+escapeAttr(x.sourceUrl||x.source.url)+'">출처 확인 ↗</a>':'')+'</li>').join('')+'</ol><p>'+(contribution?escapeHtml(contribution.caution)+'<br>'+escapeHtml({none:'관계·대가 없음 (제보자 신고)',owner:'운영자·관계자 제보',compensated:'대가를 받은 제보'}[contribution.relationship]):'장소 종류와 직선거리로 묶은 제안이에요.')+' 실제 보행 경로·영업·요금·현재 개방 여부는 방문 전에 확인해 주세요.</p>'+(contribution?'<a href="mailto:nallae.app@gmail.com?subject='+encodeURIComponent('[제보 신고·삭제] '+contribution.id)+'">이 제보 신고·삭제 문의</a>':'')+'</details>'+(saved?'<div class="personal-record"><button type="button" data-plan-next="'+escapeHtml(p.id)+'" aria-pressed="'+(nextPlanId===p.id)+'">'+(nextPlanId===p.id?'이번엔 여기 · 선택 해제':'이번엔 여기')+'</button><button type="button" data-plan-review="'+escapeHtml(p.id)+'">'+(own?'내 방문 기록 수정':'다녀왔어요 · 내 별점 기록')+'</button>'+(own?.text?'<p>'+escapeHtml(own.text)+'</p>':'')+'</div>':'')+'</li>';
+  return '<li class="festival-card outing-plan'+(contribution?' community-card':'')+'" data-plan-card="'+escapeHtml(p.id)+'" tabindex="-1"><span class="festival-day">'+(contribution?(saved?'저장한 방문 제보 · 당시 내용':'방문 제보 · 운영자 검토'):saved&&p.sourceType==='community'?'저장한 방문 제보 코스':saved?'저장한 코스':p.sourceType==='editorial-pair'?'지삐가 묶은 두 곳':'자동 조합 · '+p.stops.length+'곳')+'</span><h3>'+p.stops.map(x=>escapeHtml(x.name)).join(' → ')+'</h3><p class="plan-reason">'+escapeHtml(contribution?contribution.reason:p.reason)+' · 구간 직선 합계 '+(p.meters/1000).toFixed(1)+'km</p>'+(approach!==null?'<p class="place-checked">'+from+' → 첫 장소 직선 '+(approach/1000).toFixed(1)+'km</p>':'')+(contribution?'<p class="place-checked">최근 방문 '+escapeHtml(contribution.recentVisit)+' · 방문 미인증</p>':'')+(saved?'<p class="place-checked">저장 당시 장소 정보'+(own?' · 나만 보는 별점 '+own.rating+'/5':'')+'</p>':'')+'<div class="outing-actions"><button type="button" data-plan-map="'+escapeHtml(p.id)+'">지도</button><button type="button" data-plan-save="'+escapeHtml(p.id)+'" aria-pressed="'+hasSaved+'">'+(hasSaved?'♥ 저장됨':'♡ 저장')+'</button><a class="food-map" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(NallaeDiscovery.route(p.stops,'walk'))+'">길찾기 ↗</a></div><details class="plan-details"><summary>장소 정보·방문 전 확인</summary><ol>'+p.stops.map(x=>'<li><strong>'+escapeHtml(x.name)+'</strong><p>'+escapeHtml(x.address||'주소 미제공')+'</p><p class="place-checked">'+escapeHtml(typeof x.source==='string'?x.source:x.source?.name||'소개된 식당')+' · 자료 '+escapeHtml(x.referenceDate||x.sourceDate||x.checkedAt||'기준일 미제공')+'</p>'+(/^https?:\/\//i.test(x.sourceUrl||x.source?.url||'')?'<a target="_blank" rel="noopener noreferrer" href="'+escapeAttr(x.sourceUrl||x.source.url)+'">출처 확인 ↗</a>':'')+'</li>').join('')+'</ol><p>'+(contribution?escapeHtml(contribution.caution)+'<br>'+escapeHtml({none:'관계·대가 없음 (제보자 신고)',owner:'운영자·관계자 제보',compensated:'대가를 받은 제보'}[contribution.relationship]):'장소 종류와 직선거리로 묶은 제안이에요.')+' 실제 보행 경로·영업·요금·현재 개방 여부는 방문 전에 확인해 주세요.</p>'+(contribution?'<a href="mailto:nallae.app@gmail.com?subject='+encodeURIComponent('[제보 신고·삭제] '+contribution.id)+'">이 제보 신고·삭제 문의</a>':'')+'</details>'+(saved?'<div class="personal-record"><button type="button" data-plan-next="'+escapeHtml(p.id)+'" aria-pressed="'+(nextPlanId===p.id)+'">'+(nextPlanId===p.id?'이번엔 여기 · 선택 해제':'이번엔 여기')+'</button><button type="button" data-plan-review="'+escapeHtml(p.id)+'">'+(own?'내 방문 기록 수정':'다녀왔어요 · 내 별점 기록')+'</button>'+(own?.text?'<p>'+escapeHtml(own.text)+'</p>':'')+'</div>':'')+'</li>';
+}
+
+function discoveryPlan(index){
+  const item=discoveryCatalog?.items[index];
+  return item?NallaeDiscovery.snapshotPlan(item):null;
+}
+function openDiscoveryPlan(index){
+  const item=discoveryCatalog?.items[index],plan=discoveryPlan(index);if(!item||!plan)return;
+  discoveryDialog?.remove();
+  const dialog=document.createElement('dialog');discoveryDialog=dialog;let returnToMap=false;
+  dialog.className='discover-detail';
+  dialog.innerHTML='<div class="dialog-head"><div><span>'+escapeHtml(item.city)+'</span><h2>'+escapeHtml(item.title)+'</h2></div><button type="button" data-discover-close>닫기</button></div><ul class="discover-detail-list">'+outingPlanCard(plan,0)+'</ul>';
+  dialog.addEventListener('click',event=>{
+    const b=event.target.closest('button');if(!b)return;
+    if(b.hasAttribute('data-discover-close'))dialog.close();
+    if(b.hasAttribute('data-plan-save')){toggleSavedPlan(plan);const pressed=savedPlans.has(plan.id);b.setAttribute('aria-pressed',String(pressed));b.textContent=pressed?'♥ 저장됨':'♡ 저장';}
+    if(b.hasAttribute('data-plan-map')){returnToMap=true;dialog.close();outingPlans=[plan];focusOutings(plan.stops);}
+  });
+  dialog.addEventListener('close',()=>{dialog.remove();if(discoveryDialog===dialog)discoveryDialog=null;(returnToMap?map.getContainer():feedEl.querySelector('[data-discover-open]'))?.focus({preventScroll:true});},{once:true});
+  document.body.append(dialog);dialog.showModal();
 }
 
 function nextOutingCard() {
@@ -2079,7 +2130,9 @@ feedEl.addEventListener('click',e=>{
   if(mode==='explore'&&exploreLayer==='outing'&&savedView&&outingTheme==='restaurants'&&e.target.closest('[data-saved-restaurants-retry]'))retrySavedRestaurants();
 });
 function renderOutingCards() {
-  if(overseasView||(savedView&&outingTheme==='travel'))return;
+  root.dataset.courseWelcome=String(mode==='explore'&&exploreLayer==='outing'&&!savedView&&!overseasView&&!selection&&outingTheme==='date');
+  if(overseasView||(savedView&&outingTheme==='travel')){syncDiscoveryMarker();return;}
+  syncDiscoveryMarker();
   if(outingTheme==='restaurants') {outingPlans=[];outingShown=[];renderOutingMarkers([]);feedEl.innerHTML=savedRestaurantContent();return;}
   if(outingTheme==='plans') {
     const q=outingQuery.trim().toLocaleLowerCase();outingPlans=[...savedPlans.values()].filter(p=>!q||p.stops.some(x=>(x.name+' '+x.district).toLocaleLowerCase().includes(q)));
@@ -2087,6 +2140,10 @@ function renderOutingCards() {
   }
   if(outingTheme==='date'&&!selection) {
     outingPlans=[];renderOutingMarkers([]);
+    if(discoveryCatalog){
+      syncDiscoveryMarker();
+      feedEl.innerHTML=nextOutingCard()+'<li class="discover-shelf">'+JippiDiscoveryShelf.render({catalog:discoveryCatalog,activeIndex:discoveryIndex,saved:savedPlans})+'<div class="discover-utilities"><button type="button" data-outing-near>내 주변에서 찾기</button>'+travelEntry()+'</div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div><details class="welcome-about"><summary>지삐 소개 · 참여하기</summary><p>오늘 어디 갈지 모르겠어?<br><span class="brand-accent">지삐</span>지기와 함께라면 언제나 백전백승</p><p>위치는 내 주변을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'<button type="button" data-contribution-open>다시 가는 곳 제보하기</button></details></li>';return;
+    }
     feedEl.innerHTML=nextOutingCard()+'<li class="outing-welcome"><div class="welcome-heading"><span class="welcome-eyebrow">오늘의 작은 외출</span><h3>오늘, 어디 갈까?</h3></div><p>동네를 고르면 두 곳을 잇는 코스를 찾아드려요.</p><div class="welcome-actions"><button type="button" class="welcome-primary" data-outing-choose>동네 고르기 <span aria-hidden="true">›</span></button><button type="button" class="welcome-near" data-outing-near>내 주변</button></div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div>'+travelEntry()+'<details class="welcome-about"><summary>지삐 소개</summary><p>오늘 어디 갈지 모르겠어?<br><span class="brand-accent">지삐</span>지기와 함께라면 언제나 백전백승</p><p>위치는 내 주변을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'<button type="button" data-contribution-open>다시 가는 곳 제보하기</button></details></li>';return;
   }
 
@@ -2175,8 +2232,17 @@ exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-the
 exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-radius]')){outingPlanLimit=3;const radius=Number(e.target.value);if(![5000,10000,15000].includes(radius))return;outingRadius=radius;try{localStorage.setItem('nallae-outing-radius',String(radius));}catch(_){}renderOutingCards();}});
 exploreTools.addEventListener('click',e=>{if(e.target.closest('[data-outing-date]')){outingTheme='date';outingLimit=30;renderOutings();fitSheet();}});
 exploreTools.addEventListener('click',e=>{const dialog=exploreTools.querySelector('.outing-filters-dialog');if(e.target.closest('[data-outing-filters]'))openOutingFilters();if(e.target.closest('[data-outing-filters-close]'))dialog?.close();});
+feedEl.addEventListener('keydown',event=>{
+  const tab=event.target.closest('.discover-city-tab');if(!tab||!discoveryCatalog)return;
+  const count=discoveryCatalog.items.length,current=Number(tab.dataset.discoverIndex);
+  const index=event.key==='Home'?0:event.key==='End'?count-1:event.key==='ArrowRight'?(current+1)%count:event.key==='ArrowLeft'?(current+count-1)%count:null;
+  if(index===null)return;event.preventDefault();discoveryIndex=index;renderOutingCards();fitSheet();feedEl.querySelector('.discover-city-tab[data-discover-index="'+index+'"]')?.focus({preventScroll:true});
+});
 feedEl.addEventListener('click',e=>{
   if(mode!=='explore'||exploreLayer!=='outing')return;const b=e.target.closest('button');if(!b)return;
+  if(b.hasAttribute('data-discover-index')){const i=Number(b.dataset.discoverIndex);if(Number.isInteger(i)&&discoveryCatalog?.items[i]){discoveryIndex=i;renderOutingCards();fitSheet();feedEl.querySelector('[data-discover-index="'+i+'"]')?.focus({preventScroll:true});}return;}
+  if(b.hasAttribute('data-discover-open')){openDiscoveryPlan(Number(b.dataset.discoverOpen));return;}
+  if(b.hasAttribute('data-discover-save')){const i=Number(b.dataset.discoverSave),p=discoveryPlan(i);if(p){toggleSavedPlan(p);feedEl.querySelector('[data-discover-save]')?.focus({preventScroll:true});}return;}
   if(b.dataset.beforeOutingLayer){exploreChoiceChanged=true;savedView=false;exploreLayer=b.dataset.beforeOutingLayer;if(exploreLayer==='festival')festivalPeriod='all';applyMode();resetSelectedFeed();return;}
   if(b.hasAttribute('data-outing-core-retry')){b.disabled=true;b.textContent='다시 받는 중…';retryOutingCore();return;}
   if(b.hasAttribute('data-plan-next')){toggleNextOuting(b.dataset.planNext);return;}
@@ -2348,6 +2414,7 @@ function syncModeNavigation() {
   const utility=!savedView&&!places&&!outings;
   root.dataset.navigation=savedView?'saved':outings?'courses':places?'places':'utilities';
   root.dataset.courseWelcome=String(outings&&!savedView&&!overseasView&&!selection&&outingTheme==='date');
+  syncDiscoveryMarker();
   document.querySelector('[data-open-saved]').setAttribute('aria-pressed',String(savedView));
   document.querySelector('[data-open-utilities]').setAttribute('aria-pressed',String(utility));
   document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode&&!places&&!outings)));
@@ -2486,6 +2553,7 @@ fetchJsonData('data/regions.json', { cache: 'default' })
   .then((topo) => {
     setupRegions(topo);
     initFavorites();
+    loadDiscoveryShelf();
     if(directTravel){mode='explore';exploreLayer='outing';overseasView=false;savedView=false;}
     if (params.has('debug')) window.nallae = { map, munis, sidos };
     if (DEMO && muniByCode.has(params.get('near'))) {
