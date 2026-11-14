@@ -797,6 +797,14 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .travel-place-pin { background:none; border:0; }
 .travel-place-pin span { display:grid; place-items:center; width:36px; height:36px; background:var(--brand); color:var(--on-brand); border:3px solid var(--surface); border-radius:50% 50% 50% 4px; box-shadow:0 3px 8px #0004; font-size:16px; font-weight:800; }
 :root[data-overseas-city=true] .leaflet-munis-pane,:root[data-overseas-city=true] .leaflet-provs-pane,:root[data-overseas-city=true] .leaflet-labels-pane { opacity:.32; }
+.overseas-map-label { color:var(--text); text-shadow:0 1px 2px var(--surface),1px 0 2px var(--surface),-1px 0 2px var(--surface); }
+.overseas-map-label-city { padding:3px 4px 3px 12px; position:relative; }
+.overseas-map-label-city::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--brand); border:1px solid var(--surface); position:absolute; left:2px; top:8px; }
+.overseas-map-label-country { color:var(--text-muted); padding:2px; letter-spacing:.08em; }
+.overseas-edge-hints.leaflet-control { margin:0; z-index:700; }
+.overseas-edge-hints[hidden] { display:none!important; }
+.overseas-edge-hint { pointer-events:auto; min-height:44px; padding:8px 11px; border:0; border-radius:9px; background:transparent; color:var(--text); box-shadow:none; font:600 12px/1.35 system-ui,sans-serif; white-space:nowrap; cursor:pointer; }
+.overseas-edge-hint:focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
 @media(max-width:390px){.travel-entry { flex-direction:column; align-items:stretch; }.travel-city-chips button { flex:1; padding:9px 6px; }.saved-tabs { flex-wrap:wrap; }}
 .travel-basemap summary { min-height:44px; display:flex; align-items:center; cursor:pointer; font-size:12px; }
 .travel-basemap { margin-top:8px; padding:0 12px; }
@@ -829,3 +837,85 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .travel-entry-actions { display:flex; flex:1 0 100%; gap:8px; flex-wrap:wrap; }
 .travel-entry-actions>* { flex:1; }
 .travel-map-entry { display:flex; align-items:center; justify-content:center; min-height:44px; padding:10px 12px; border:1px solid var(--border-sgg); border-radius:12px; color:var(--brand); font-size:13px; font-weight:700; text-decoration:none; }
+
+/* Korea-first discovery. Keep the approved Jippi logo assets unchanged. */
+:root[data-theme="light"] { --sea:#DFEAED; --land:#F8F4E9; --surface:#FFFEFA; --surface-muted:#F2F0E9; --border-sgg:#D5DCD5; --border-sido:#93A79E; --shadow:0 8px 28px #162B3810; }
+:root[data-theme="dark"] { --sea:#0E2135; --land:#263F51; --surface:#13283C; --surface-muted:#1C354A; --border-sgg:#365365; --border-sido:#6C8A99; --shadow:0 8px 28px #0002; }
+.region-label-anchor { pointer-events:none; width:0!important; height:0!important; }
+.region-label { left:0; top:0; transform:translate(-50%,-50%); font-size:12px; font-weight:650; line-height:18px; letter-spacing:-.035em; text-shadow:0 1px 2px var(--land),0 0 3px var(--land); }
+.region-label.selected { font-size:13px; font-weight:800; }
+:root[data-overseas-city=true] .leaflet-munis-pane,:root[data-overseas-city=true] .leaflet-provs-pane,:root[data-overseas-city=true] .leaflet-labels-pane { opacity:1; }
+.topbar { padding:14px 16px 22px; gap:12px; background:linear-gradient(var(--bg) 0%,var(--bg) 80%,transparent); }
+.topbar .brand { gap:9px; align-items:center; }
+.topbar .brand h1 { font-size:23px; line-height:28px; }
+.topbar .brand p { font-size:11px; line-height:16px; }
+.topbar .logo { width:42px; height:42px; flex:0 0 42px; background-size:contain; }
+.topbar .controls button { min-height:44px; padding:9px 11px; border:1px solid var(--border-sgg); border-radius:15px; box-shadow:none; background:var(--surface); font-size:12px; }
+.topbar .controls svg { width:18px; height:18px; }
+.panel { background:var(--surface); box-shadow:0 -4px 24px #1025360C; }
+.panel-handle::after { width:30px; height:3px; left:calc(50% - 15px); opacity:.6; }
+.panel-footer.main-navigation { padding:8px 10px calc(8px + env(safe-area-inset-bottom)); gap:4px; border-top:1px solid var(--border-sgg); background:var(--surface); }
+.panel-footer.main-navigation button { min-height:48px; border-radius:0; gap:3px; background:transparent; font-size:11px; font-weight:550; color:var(--text-muted); position:relative; }
+.panel-footer.main-navigation button svg { width:21px; height:21px; }
+.panel-footer.main-navigation button[aria-pressed=true] { background:transparent; color:var(--brand); font-weight:800; }
+.panel-footer.main-navigation button[aria-pressed=true]::after { content:''; position:absolute; bottom:0; width:20px; height:2px; border-radius:3px; background:currentColor; }
+:root[data-course-welcome=true] .explore-tools { padding:0; }
+:root[data-course-welcome=true] .feed { padding:0 22px 10px; }
+.feed .outing-welcome { padding:0; margin:0; border:0; background:transparent; box-shadow:none; }
+.welcome-heading { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.welcome-eyebrow { flex-basis:100%; font-size:10px; line-height:14px; font-weight:650; color:var(--brand); letter-spacing:.03em; }
+.outing-welcome h3 { margin:0; font-size:25px; line-height:32px; letter-spacing:-.05em; font-weight:750; color:var(--text); }
+.outing-welcome>p { margin:8px 0 14px; color:var(--text-muted); font-size:13px; line-height:20px; }
+.welcome-actions { display:flex; gap:8px; margin:0 0 8px; }
+.welcome-actions button { display:flex; align-items:center; justify-content:center; min-height:48px; border-radius:14px; font:inherit; font-size:14px; font-weight:750; cursor:pointer; }
+.welcome-primary { flex:1; gap:32px; color:#15283B; background:#FFC654; border:1px solid #FFC654; }
+.welcome-primary span { font-size:20px; font-weight:400; }
+.welcome-near { flex:0 0 86px; background:var(--surface); color:var(--text); border:1px solid var(--border-sgg); }
+.travel-entry.travel-entry-quiet { display:flex; width:100%; min-height:44px; align-items:center; justify-content:space-between; padding:10px 2px; margin:0; border:0; border-top:1px solid var(--border-sgg); border-radius:0; background:transparent; color:var(--text-muted); font:inherit; font-size:12px; box-shadow:none; cursor:pointer; }
+.travel-entry-quiet span:last-child { font-size:17px; color:var(--brand); }
+.welcome-about { border-top:1px solid var(--border-sgg); color:var(--text-muted); font-size:12px; }
+.welcome-about summary { cursor:pointer; min-height:44px; display:flex; align-items:center; }
+.welcome-about p { font-size:12px; line-height:20px; }
+:root[data-course-welcome=true] .contribution-invite { border-top:1px solid var(--border-sgg); padding:20px 0; margin-top:8px; border-radius:0; }
+.outing-toolbar .outing-condition { border-radius:14px; background:var(--surface-muted); border:0; min-height:46px; font-size:13px; }
+.feed .outing-plan,.feed .travel-card { border:1px solid var(--border-sgg); border-radius:20px; padding:18px; margin:0 0 12px; background:var(--surface); box-shadow:none; }
+.outing-plan h3,.travel-card h3 { font-size:20px; font-weight:750; line-height:28px; letter-spacing:-.04em; margin:10px 0; }
+.festival-day { font-size:10px; letter-spacing:.02em; background:var(--surface-muted); border-radius:6px; padding:3px 7px; }
+.plan-reason { font-size:13px; line-height:21px; color:var(--text-muted); }
+.outing-actions { gap:6px; }
+.outing-actions button { min-height:44px; border-radius:12px; font-size:13px; background:var(--surface-muted); border:0; }
+.outing-actions a { font-size:12px; }
+.travel-stops>li { padding:10px 0; }
+.travel-stops h4 { font-size:15px; }
+.travel-stops p { font-size:12px; line-height:20px; }
+.travel-intro { padding:0 4px 12px!important; }
+.travel-intro h3 { font-size:21px; }
+.travel-intro .travel-eyebrow { display:none; }
+.travel-intro>p { margin:6px 0 8px; font-size:12px; }
+.travel-tabs button { border-radius:12px; min-height:44px; }
+.travel-city-chips button { border-radius:12px; }
+@media(max-width:759px){
+  .topbar { padding:12px 16px 20px; }
+  .panel { border-radius:26px 26px 0 0; }
+  .panel-handle { height:24px; }
+  .panel-handle::after { top:10px; }
+  .topbar .brand h1 { font-size:22px; }
+  .topbar .brand p { font-size:10px; line-height:15px; }
+  .topbar .controls button { padding:8px 9px; }
+}
+@media(max-width:359px){ .topbar { padding-left:12px; padding-right:12px; gap:6px; }.topbar .logo { width:36px; height:36px; flex-basis:36px; }.topbar .controls button { padding:8px; }.topbar .controls button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }.topbar .brand p { display:block; max-width:none; font-size:10px; } }
+@media(max-height:650px){ .welcome-eyebrow { display:none; }.outing-welcome h3 { font-size:23px; }.outing-welcome>p { margin:6px 0 10px; } }
+@media(prefers-reduced-motion:reduce){ .region-label { transition:none; } }
+.feed .outing-welcome { padding:0!important; }
+.outing-welcome .welcome-near { background:var(--surface); color:var(--text); }
+.travel-entry.travel-entry-quiet { flex-direction:row; flex-wrap:nowrap; }
+dialog { border:1px solid var(--border-sgg); border-radius:24px; padding:22px; box-shadow:0 16px 60px #0003; }
+dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
+.dialog-head { align-items:center; margin-bottom:14px; }
+.dialog-head h2 { font-size:21px; line-height:29px; letter-spacing:-.04em; }
+.dialog-head button { min-height:44px; padding:8px 12px; border-radius:12px; background:var(--surface-muted); border:0; color:var(--text); }
+.outing-filters-dialog label { font-size:12px; font-weight:650; color:var(--text-muted); }
+.outing-filters-dialog input,.outing-filters-dialog select { min-height:50px; margin-top:7px; padding:12px; border:1px solid var(--border-sgg); border-radius:13px; background:var(--surface); color:var(--text); font:inherit; font-size:15px; font-weight:500; }
+.outing-extra-filters { margin-top:20px; border-top:1px solid var(--border-sgg); }
+.outing-extra-filters summary { min-height:48px; display:flex; align-items:center; font-size:13px; font-weight:650; cursor:pointer; }
+.welcome-about button { min-height:44px; padding:8px 12px; margin:8px 0; border:1px solid var(--border-sgg); border-radius:12px; color:var(--brand); background:var(--surface); font:inherit; }

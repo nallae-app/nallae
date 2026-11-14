@@ -131,15 +131,15 @@ map.on('moveend zoomend', updateBukangi);
 document.addEventListener('visibilitychange', updateBukangi);
 map.createPane('pulses').style.zIndex = 650;
 
-const baseStyle = { color: token('border-sgg'), weight: 0.6, fillColor: token('land'), fillOpacity: 1 };
+const baseStyle = { color: token('border-sgg'), weight: 0.35, opacity:.48, fillColor: token('land'), fillOpacity: 1 };
 let provinceLayer, selectionOutline;
 const regionLabels = [];
-let labelFrame, labelZoomAnimating = false, outlinedRegion;
+let labelFrame, outlinedRegion;
 function scheduleLabels() {
   if (labelFrame) return;
   labelFrame = requestAnimationFrame(() => {
     labelFrame = null;
-    if (!labelZoomAnimating) renderLabels();
+    renderLabels();
   });
 }
 function renderLabels() {
@@ -149,7 +149,6 @@ function renderLabels() {
     selectionOutline = selection ? L.geoJSON(selection.center.feature, { pane:"selection", interactive:false, style:{color:token("brand"),weight:2,fill:false} }).addTo(map) : null;
   }
   selectionOutline?.setStyle({color:token("brand")});
-  const safe = mapSafeArea();
   const occupied = replayEl.hidden ? [] : [replayEl.getBoundingClientRect()];
   const zoomed = map.getZoom() >= MUNI_ZOOM;
   const sorted = regionLabels.slice().sort((a,b) => {
@@ -181,34 +180,25 @@ function renderLabels() {
     const pt = map.latLngToContainerPoint(r.at);
     const w = r.width, h = r.height;
     const box = {left:pt.x-w/2-2,right:pt.x+w/2+2,top:pt.y-h/2-1,bottom:pt.y+h/2+1};
-    if (box.left < safe.left || box.right > safe.right || box.top < safe.top || box.bottom > safe.bottom || occupied.some(b => box.left < b.right && box.right > b.left && box.top < b.bottom && box.bottom > b.top)) { r.el.hidden=true; continue; }
+    if (occupied.some(b => box.left < b.right && box.right > b.left && box.top < b.bottom && box.bottom > b.top)) { r.el.hidden=true; continue; }
     occupied.push(box);
     r.el.hidden = false;
-    L.DomUtil.setPosition(r.el, map.latLngToLayerPoint(r.at).subtract([w/2,h/2]));
+    // Leaflet owns marker movement; only visibility and text change here.
   }
 }
 function addRegionLabel(f, kind) {
   const p=f.properties;
   if (!Number.isFinite(p.lx) || !Number.isFinite(p.ly)) return;
   const el=document.createElement("span");
-  el.className="region-label leaflet-zoom-animated"; el.textContent=kind === "sido" ? p.short || p.name : p.name;
+  el.className="region-label"; el.textContent=kind === "sido" ? p.short || p.name : p.name;
   el.hidden=true; el.setAttribute("aria-hidden","true");
-  map.getPane("labels").append(el);
-  regionLabels.push({el,kind,name:el.textContent,code:p.code,area:p.la || 0,at:[p.ly,p.lx]});
+  const marker=L.marker([p.ly,p.lx],{pane:"labels",interactive:false,keyboard:false,icon:L.divIcon({className:"region-label-anchor",html:el,iconSize:[0,0],iconAnchor:[0,0]})}).addTo(map);
+  regionLabels.push({el,marker,kind,name:el.textContent,code:p.code,area:p.la || 0,at:[p.ly,p.lx]});
 }
-map.on("move zoom moveend resize", scheduleLabels);
-// 경계와 같은 CSS 전환으로 지명도 목표 배율의 위치까지 이동한다.
-map.on('zoomanim', (e) => {
-  labelZoomAnimating = true;
-  const center = map.project(e.center, e.zoom);
-  const half = map.getSize().divideBy(2);
-  for (const r of regionLabels) {
-    if (r.el.hidden) continue;
-    const point = map.project(r.at, e.zoom).subtract(center).add(half);
-    L.DomUtil.setPosition(r.el, map.containerPointToLayerPoint(point).subtract([r.width / 2, r.height / 2]));
-  }
-});
-map.on('zoomend', () => { labelZoomAnimating = false; scheduleLabels(); });
+// Leaflet Marker synchronizes pan, pinch and animated zoom with the geometry.
+// Collision filtering runs after a gesture instead of rewriting hundreds of
+// label positions and measuring the layout on every animation frame.
+map.on("moveend zoomend resize", scheduleLabels);
 document.fonts?.ready.then(() => {
   regionLabels.forEach(r => { r.width = 0; });
   scheduleLabels();
@@ -258,7 +248,7 @@ function setupRegions(topo) {
   sidoGeo.features.forEach(f => addRegionLabel(f, "sido"));
   sidoGeo.features.forEach((f) => { const s = sidos.get(f.properties.code); if (s) s.short = f.properties.short; });
   provinceLayer = L.geoJSON(sidoGeo, {
-    pane: 'provs', interactive: false, style: { color: token('border-sido'), weight: 1.3, fill: false },
+    pane: 'provs', interactive: false, style: { color: token('border-sido'), weight: 1.05, opacity:.85, fill: false },
   }).addTo(map);
 
   for (const s of sidos.values()) {
@@ -288,7 +278,8 @@ const regionTitle = (m) => { const f = favorites.find(r => r.code === m.code); r
 
 map.on('zoomend', () => {
   const z = map.getZoom() >= MUNI_ZOOM;
-  baseStyle.weight = z ? 1 : 0.6;
+  baseStyle.weight = z ? .8 : .35;
+  baseStyle.opacity = z ? .85 : .48;
   baseStyle.color = token('border-sgg');
   munis.forEach((m) => { if (!m.flashing) restyle(m); });
 });
@@ -301,8 +292,8 @@ function restyle(m) {
   if (!m.layer) return;
   const fuelFill = mode === 'explore' && exploreLayer === 'fuel' ? fuelColor(m.code) : mode === 'explore' && exploreLayer === 'weather' ? weatherColor(m.code) : null;
   const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && ['food','parking','pharmacy','er'].includes(exploreLayer) ? selection?.center === m : isSelected(m)) ? token('selection-fill') : baseStyle.fillColor,fillOpacity:1};
-  if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 2.5 });
-  else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 1.3 });
+  if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 2.5, opacity:1 });
+  else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color: token('brand'), weight: 1.3, opacity:1 });
   else m.layer.setStyle({...baseStyle,...fill});
 }
 
@@ -1000,10 +991,10 @@ const mobileSheet = matchMedia('(max-width:759px)');
 const handle = document.getElementById('panel-handle');
 const sheetHead = panel.querySelector('.panel-head');
 const stages = ['collapsed', 'middle', 'full'], stageNames = ['접힘', '중간', '전체'];
-let sheetStage = mode==='explore'?2:1, sheetDrag = null, suppressSheetClick = false, sheetFitTimer;
+let sheetStage = 1, sheetDrag = null, suppressSheetClick = false, sheetFitTimer;
 try {
   const saved = stages.indexOf(localStorage.getItem('nallae-sheet-stage'));
-  if (saved >= 0) sheetStage = saved;
+  if (saved >= 0) sheetStage = saved===2&&mode==='explore'?1:saved;
   else if(mode==='explore'&&localStorage.getItem('nallae-explore-layer')&&localStorage.getItem('nallae-explore-layer')!=='outing')sheetStage=1;
 } catch (_) {}
 const TWO_CARDS = 172, MAP_MIN = 140; // 두 줄 제목 소식 2건, 중간 시트에서 남길 지도 최소 높이
@@ -1033,6 +1024,13 @@ function sheetHeights() {
   };
   const dedicated=mode==='explore'&&['places','outing'].includes(panel.dataset.exploreLayer);
   const extra = outer(document.getElementById('collection-alert')) + (dedicated?0:outer(document.querySelector('.category-row'))) + outer(document.querySelector('.explore-tools'));
+  if(dedicated&&root.dataset.courseWelcome==='true'){
+    const welcome=feedEl.querySelector('.outing-welcome');
+    const body=(welcome?.offsetHeight||218)+outer(feedEl.querySelector('.next-outing'));
+    const fixed=folded+extra;
+    const middle=Math.min(full,Math.max(low+180,Math.min(fixed+body+8,H*.40)));
+    const heights=[low,middle,full];heights.fixed=fixed;heights.fits=!feedEl.querySelector('.next-outing')||middle-fixed>=body-2||middle===full;return heights;
+  }
   const cards = mode === 'news' ? firstTwoHeight() : TWO_CARDS;
   const want = folded + extra + cards;
   const mapRoom = H - document.querySelector('.controls').getBoundingClientRect().bottom - MAP_MIN;
@@ -1079,6 +1077,7 @@ function refitAfterSheet() {
 }
 // 모드·탐험 레이어를 바꾼 직후 현재 단계 높이를 다시 맞춘다 (ResizeObserver와 같은 계산)
 function fitSheet() { if (!sheetDrag && mobileSheet.matches) applySheetHeight(sheetHeights()); }
+panel.addEventListener('transitionend',e=>{if(e.propertyName==='height')syncTravelMap();});
 function feedTouchAction() {
   const top = panel.classList.contains('sheet-scroll') ? panel.scrollTop : feedEl.scrollTop;
   feedEl.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && top <= 0);
@@ -1914,6 +1913,7 @@ function outingCard(x) {
 function renderOutings() {
   if(overseasView||(savedView&&outingTheme==='travel')){renderTravel();return;}
   delete exploreTools.dataset.travelView;
+  root.dataset.courseWelcome=String(!savedView&&!selection&&outingTheme==='date');
   if((!outingIndex&&!savedView)||exploreTools.querySelector('.outing-filters-dialog[open]'))return;
   const code=selection?.center.code||'';
   if(outingCode!==code){outingCode=code;outingLimit=30;outingPlanLimit=3;}
@@ -1921,15 +1921,15 @@ function renderOutings() {
   subEl.textContent='';
   const themeOptions=[['date','데이트 코스'],['','전체 장소'],['park','산책'],['attraction','관광지']];
   const regionOptions=(favorites.length?'<optgroup label="관심 지역">'+favorites.map(r=>'<option value="'+r.code+'"'+(r.code===code?' selected':'')+'>'+escapeHtml(r.name+' · '+label(muniByCode.get(r.code)))+'</option>').join('')+'</optgroup>':'')+'<optgroup label="모든 동네">'+munis.filter(m=>!favorites.some(r=>r.code===m.code)).map(m=>'<option value="'+m.code+'"'+(m.code===code?' selected':'')+'>'+escapeHtml(label(m))+'</option>').join('')+'</optgroup>';
-  exploreTools.innerHTML=(savedView?'<div class="saved-tabs" role="group" aria-label="저장한 항목 종류">'+[['plans','코스'],['saved','장소'],['restaurants','맛집'],['travel','여행']].map(([k,n])=>'<button type="button" data-saved-tab="'+k+'" aria-pressed="'+(outingTheme===k)+'">'+n+'</button>').join('')+'</div>':'<div class="outing-toolbar"><button type="button" class="outing-condition" data-outing-filters aria-haspopup="dialog">'+escapeHtml(selection?regionTitle(selection.center):'동네 고르기')+' · '+outingRadius/1000+'km · '+(outingTheme==='date'?outingStopCount+'곳 데이트':'장소 보기')+' ▾'+(outingQuery?' · 검색 중':'')+'</button></div>')
-    +(!savedView?travelEntry():'')+'<dialog class="outing-filters-dialog" aria-labelledby="outing-filters-title"><div class="dialog-head"><h2 id="outing-filters-title">어디서 어떻게 놀까요?</h2><button type="button" data-outing-filters-close>완료</button></div>'
+  exploreTools.innerHTML=(savedView?'<div class="saved-tabs" role="group" aria-label="저장한 항목 종류">'+[['plans','코스'],['saved','장소'],['restaurants','맛집'],['travel','여행']].map(([k,n])=>'<button type="button" data-saved-tab="'+k+'" aria-pressed="'+(outingTheme===k)+'">'+n+'</button>').join('')+'</div>':!selection&&outingTheme==='date'?'':'<div class="outing-toolbar"><button type="button" class="outing-condition" data-outing-filters aria-haspopup="dialog">'+escapeHtml(selection?regionTitle(selection.center):'동네 고르기')+' · '+outingRadius/1000+'km · '+(outingTheme==='date'?outingStopCount+'곳 데이트':'장소 보기')+' ▾'+(outingQuery?' · 검색 중':'')+'</button></div>')
+    +'<dialog class="outing-filters-dialog" aria-labelledby="outing-filters-title"><div class="dialog-head"><h2 id="outing-filters-title">어느 동네로 갈까요?</h2><button type="button" data-outing-filters-close>완료</button></div>'
     +'<div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div>'
     +'<label>동네 이름 검색<input type="search" data-outing-region-search placeholder="예: 노원, 부산 해운대" autocomplete="off"></label><div class="outing-region-results" aria-label="동네 검색 결과"></div>'
     +'<label class="outing-region">둘러볼 동네<select data-outing-region aria-label="놀거리 지역 선택"><option value="">전국 관광지</option>'+regionOptions+'</select></label>'
-    +'<label class="outing-region">보고 싶은 것<select data-outing-theme-select>'+themeOptions.map(([k,n])=>'<option value="'+k+'"'+(outingTheme===k?' selected':'')+'>'+n+'</option>').join('')+'</select></label>'
+    +'<details class="outing-extra-filters"><summary>코스 조건 · '+outingStopCount+'곳 · '+outingRadius/1000+'km</summary><label class="outing-region">보고 싶은 것<select data-outing-theme-select>'+themeOptions.map(([k,n])=>'<option value="'+k+'"'+(outingTheme===k?' selected':'')+'>'+n+'</option>').join('')+'</select></label>'
     +'<label class="outing-region">코스 장소 수<select data-outing-stop-count><option value="2"'+(outingStopCount===2?' selected':'')+'>두 곳 데이트 · 가볍게</option><option value="3"'+(outingStopCount===3?' selected':'')+'>세 곳 데이트 · 선택 넓히기</option></select></label>'
     +'<label class="outing-region">찾을 반경<select data-outing-radius aria-label="데이트 반경">'+[5000,10000,15000].map(r=>'<option value="'+r+'"'+(outingRadius===r?' selected':'')+'>'+r/1000+'km 이내</option>').join('')+'</select></label>'
-    +'<label>장소 이름·종류 검색<input type="search" data-outing-search placeholder="공원·관광지 이름" value="'+escapeHtml(outingQuery)+'"></label>'
+    +'<label>장소 이름·종류 검색<input type="search" data-outing-search placeholder="공원·관광지 이름" value="'+escapeHtml(outingQuery)+'"></label></details>'
     +sourceDisclosure('장소 자료·거리 안내','선택 지점부터 각 장소까지는 직선거리예요. 내 주변을 누르면 내 위치, 동네를 고르면 대표 지점을 써요. 자동 코스는 실제 보행·영업을 확인한 코스가 아니에요. 전국 공식 장소 자료 '+(outingIndex?.total||0).toLocaleString('ko-KR')+'곳.')+'</dialog>';
   renderOutingCards();
 }
@@ -2030,8 +2030,9 @@ function renderOutingCards() {
   }
   if(outingTheme==='date'&&!selection) {
     outingPlans=[];renderOutingMarkers([]);
-    feedEl.innerHTML=nextOutingCard()+'<li class="outing-welcome"><h3>오늘 어디 갈지 모르겠어?</h3><p class="jippi-promise"><span class="brand-accent">지삐</span>지기와 함께라면<br>언제나 백전백승</p><p>동네를 고르면 가까운 데이트 코스를 보여드려요.</p><div class="outing-actions"><button type="button" data-outing-near>내 주변에서 찾기</button><button type="button" data-outing-choose>동네 직접 고르기</button></div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div><p class="place-checked">위치는 버튼을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'</li>'+contributionFooter();return;
+    feedEl.innerHTML=nextOutingCard()+'<li class="outing-welcome"><div class="welcome-heading"><span class="welcome-eyebrow">오늘의 작은 외출</span><h3>오늘, 어디 갈까?</h3></div><p>동네를 고르면 두 곳을 잇는 코스를 찾아드려요.</p><div class="welcome-actions"><button type="button" class="welcome-primary" data-outing-choose>동네 고르기 <span aria-hidden="true">›</span></button><button type="button" class="welcome-near" data-outing-near>내 주변</button></div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div>'+travelEntry()+'<details class="welcome-about"><summary>지삐 소개</summary><p>오늘 어디 갈지 모르겠어?<br><span class="brand-accent">지삐</span>지기와 함께라면 언제나 백전백승</p><p>위치는 내 주변을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'<button type="button" data-contribution-open>다시 가는 곳 제보하기</button></details></li>';return;
   }
+
   const q=outingQuery.trim().toLocaleLowerCase();
   const items=currentOutings().filter(x=>(!q||(x.name+' '+x.district+' '+x.kind).toLocaleLowerCase().includes(q))&&(!['park','attraction'].includes(outingTheme)||x.type===outingTheme));
   if(selection)items.sort((a,b)=>NallaeLocalScope.distance(selection.origin,[a.lat,a.lon])-NallaeLocalScope.distance(selection.origin,[b.lat,b.lon])||a.name.localeCompare(b.name,'ko'));
@@ -2050,7 +2051,7 @@ function renderOutingCards() {
     outingPlans=[...sharedPlans,...candidates.slice(0,outingPlanLimit)];
 
     const sharedHtml=contributions.map(contributionCard).join('');
-    feedEl.innerHTML=nextOutingCard()+beforeOutingCard()+note+(communityState==='error'?'<li class="explore-source">방문 제보를 불러오지 못했어요. <button type="button" data-community-retry>다시 받기</button></li>':'')+sharedHtml+'<li class="outing-intro"><div class="plan-intro-head"><h3>가까운 '+outingStopCount+'곳 데이트</h3><button type="button" data-outing-shuffle>다른 조합</button></div><p>직선거리로 묶은 자동 조합 · 실제 동선은 길찾기에서 확인</p></li>'+candidates.slice(0,outingPlanLimit).map((p,i)=>outingPlanCard(p,i)).join('')+(candidates.length>outingPlanLimit?'<li><button type="button" data-plans-more>코스 3개 더 보기</button></li>':'')+(!pending&&!candidates.length?'<li class="empty">이 조건에서는 '+outingStopCount+'곳 코스를 만들지 못했어요.'+(outingStopCount===3?' 서로 다른 종류의 가까운 장소가 부족해요.':'')+'<div class="outing-actions"><button type="button" data-outing-choose>조건 바꾸기</button><button type="button" data-outing-all>장소 하나씩 보기</button></div></li>':'')+contributionFooter();
+    feedEl.innerHTML=nextOutingCard()+note+(communityState==='error'?'<li class="explore-source">방문 제보를 불러오지 못했어요. <button type="button" data-community-retry>다시 받기</button></li>':'')+sharedHtml+'<li class="outing-intro"><div class="plan-intro-head"><h3>가까운 '+outingStopCount+'곳 데이트</h3><button type="button" data-outing-shuffle>다른 조합</button></div><p>직선거리로 묶은 자동 조합 · 실제 동선은 길찾기에서 확인</p></li>'+candidates.slice(0,outingPlanLimit).map((p,i)=>outingPlanCard(p,i)).join('')+(candidates.length>outingPlanLimit?'<li><button type="button" data-plans-more>코스 3개 더 보기</button></li>':'')+(!pending&&!candidates.length?'<li class="empty">이 조건에서는 '+outingStopCount+'곳 코스를 만들지 못했어요.'+(outingStopCount===3?' 서로 다른 종류의 가까운 장소가 부족해요.':'')+'<div class="outing-actions"><button type="button" data-outing-choose>조건 바꾸기</button><button type="button" data-outing-all>장소 하나씩 보기</button></div></li>':'')+beforeOutingCard()+'<li class="travel-secondary-entry">'+travelEntry()+'</li>'+contributionFooter();
     renderOutingMarkers(outingPlans.flatMap(p=>p.stops));return;
   }
   feedEl.innerHTML=note+'<li class="explore-source">'+items.length.toLocaleString('ko-KR')+'곳 · '+(selection?'선택 지점에서 직선거리 순':'지역·이름 순')+'</li>'+(items.slice(0,outingLimit).map(outingCard).join('')||(!pending?empty:''))+(items.length>outingLimit?'<li><button type="button" data-outing-more>놀거리 더 보기 ('+outingLimit+' / '+items.length+')</button></li>':'');
@@ -2289,6 +2290,7 @@ function syncModeNavigation() {
   }
   const utility=!savedView&&!places&&!outings;
   root.dataset.navigation=savedView?'saved':outings?'courses':places?'places':'utilities';
+  root.dataset.courseWelcome=String(outings&&!savedView&&!overseasView&&!selection&&outingTheme==='date');
   document.querySelector('[data-open-saved]').setAttribute('aria-pressed',String(savedView));
   document.querySelector('[data-open-utilities]').setAttribute('aria-pressed',String(utility));
   document.querySelectorAll('[data-mode-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modeChoice===mode&&!places&&!outings)));
@@ -2351,7 +2353,7 @@ const travelSaved=JippiTravel.readSaved();
 const travelPins=L.layerGroup().addTo(map);
 const compactTravelControls=matchMedia('(min-width:760px) and (max-height:500px)');
 compactTravelControls.addEventListener('change',()=>{const d=exploreTools.querySelector('.travel-controls');if(d)d.open=!compactTravelControls.matches;});
-function travelEntry(){return '<div class="travel-entry"><div><strong>일본·중국 여행도 같이</strong><p>오사카 · 교토 · 상하이에서 둘이 걷고 싶은 곳</p></div><div class="travel-entry-actions"><a class="travel-map-entry" href="?travel=1&amp;appv='+document.documentElement.dataset.appVersion+'">일본·중국 지도</a><button type="button" data-travel-open>여행 코스 보기</button></div></div>';}
+function travelEntry(){return '<button type="button" class="travel-entry travel-entry-quiet" data-travel-open><span>일본·중국도 둘러보기</span><span aria-hidden="true">›</span></button>';}
 function travelTabs(){return '<div class="travel-tabs" role="group" aria-label="코스 지역"><button type="button" data-travel-domestic aria-pressed="false">국내 코스</button><button type="button" data-travel-open aria-pressed="true">일본·중국 여행</button></div>';}
 function travelSavedTabs(){return '<div class="saved-tabs" role="group" aria-label="저장한 항목 종류">'+[['plans','코스'],['saved','장소'],['restaurants','맛집'],['travel','여행']].map(([id,name])=>'<button type="button" data-saved-tab="'+id+'" aria-pressed="'+(id==='travel')+'">'+name+'</button>').join('')+'</div>';}
 function syncTravelMap(){
@@ -2366,10 +2368,10 @@ function loadTravel(){
   overseasError=false;
   overseasRequest=fetchJsonData('data/overseas-courses.json').then(JippiTravel.validate).then(data=>{
     overseasData=data;
-    travelMap=JippiOverseasMap.create({map,L,cities:data.cities,getPadding:()=>({paddingTopLeft:leftPad(),paddingBottomRight:[bottomPad()[0],Math.min(bottomPad()[1],200)]}),onCitySelect:openTravelCity,onStatus:status=>{travelStatus=status;document.querySelectorAll('[data-travel-basemap]').forEach(x=>x.textContent=travelBasemapButtonText());document.querySelectorAll('[data-travel-status]').forEach(x=>x.textContent=status.message||'');}});
+    travelMap=JippiOverseasMap.create({map,L,cities:data.cities,getVisibleArea:()=>mapSafeArea(),getPadding:()=>({paddingTopLeft:leftPad(),paddingBottomRight:[bottomPad()[0],Math.min(bottomPad()[1],200)]}),onCitySelect:openTravelCity,onStatus:status=>{travelStatus=status;document.querySelectorAll('[data-travel-basemap]').forEach(x=>x.textContent=travelBasemapButtonText());document.querySelectorAll('[data-travel-status]').forEach(x=>x.textContent=status.message||'');}});
     syncTravelMap();
-    if(mode==='explore'&&exploreLayer==='outing'&&!selection&&!nextPlanId&&!savedView&&!overseasView&&atHome&&!exploreChoiceChanged){travelMapContext=true;atHome=false;fitTravelOverview();}
-    if(overseasView){travelMapContext=true;atHome=false;selectionAutoFit=false;if(directTravel&&!overseasCityId){if(mobileSheet.matches)setSheetStage(0,false);clearTimeout(sheetFitTimer);fitTravelOverview();}else{overseasCityId=overseasCityId||data.cities[0].id;travelMap.focusCity(overseasCityId);}}
+    if(mode==='explore'&&exploreLayer==='outing'&&!selection&&!nextPlanId&&!savedView&&!overseasView&&atHome&&!exploreChoiceChanged)fitHome();
+    if(overseasView){travelMapContext=true;atHome=false;selectionAutoFit=false;overseasCityId=overseasCityId||data.cities[0].id;travelMap.focusCity(overseasCityId);}
     if(directTravel){const entered=new URL(location.href);entered.searchParams.delete('travel');history.replaceState(null,'',entered.href);}
     if(mode==='explore'&&exploreLayer==='outing')renderOutings();
   }).catch(()=>{overseasError=true;if(overseasView||savedView&&outingTheme==='travel')renderTravel();}).finally(()=>{overseasRequest=null;});
@@ -2388,6 +2390,7 @@ function travelViewKey(){return String(savedView&&outingTheme==='travel')+'|'+ov
 function renderTravel(){
   exploreTools.dataset.travelView=travelViewKey();
   const saved=savedView&&outingTheme==='travel';
+  root.dataset.courseWelcome='false';
   titleEl.textContent=saved?'저장한 여행 코스':'둘이 떠나는 여행';
   subEl.textContent='';outingMarkers.clearLayers();
   exploreTools.innerHTML='<details class="travel-controls"'+(compactTravelControls.matches?'':' open')+'><summary>'+JippiTravel.esc(saved?'저장한 여행 코스':(overseasData?.cities.find(c=>c.id===overseasCityId)?.nameKo||'일본·중국')+' · 여행 코스')+' · 도시 바꾸기 ▾</summary>'+(saved?travelSavedTabs():travelTabs())+(overseasData?'<div class="travel-city-chips" role="group" aria-label="준비된 여행 도시">'+overseasData.cities.map(c=>'<button type="button" data-travel-city="'+JippiTravel.esc(c.id)+'" aria-pressed="'+(!saved&&overseasCityId===c.id)+'">'+JippiTravel.esc(c.nameKo)+' <span lang="'+(c.countryCode==='JP'?'ja':'zh-CN')+'">'+JippiTravel.esc(c.nameLocal)+'</span></button>').join('')+'</div><button type="button" class="travel-overview-button" data-travel-overview>지도에서 도시 고르기</button>':'')+'</details>';
@@ -2426,7 +2429,7 @@ fetchJsonData('data/regions.json', { cache: 'default' })
   .then((topo) => {
     setupRegions(topo);
     initFavorites();
-    if(directTravel){mode='explore';exploreLayer='outing';overseasView=true;savedView=false;exploreChoiceChanged=true;selectionAutoFit=false;}
+    if(directTravel){mode='explore';exploreLayer='outing';overseasView=false;savedView=false;}
     if (params.has('debug')) window.nallae = { map, munis, sidos };
     if (DEMO && muniByCode.has(params.get('near'))) {
       const m = muniByCode.get(params.get('near'));

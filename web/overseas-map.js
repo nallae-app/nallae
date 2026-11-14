@@ -91,6 +91,7 @@
     let coastLayer = null, coastData = null, coastController = null, coastTimer = null;
     let contextCanvas = null, contextLostHandler = null, glErrorHandler = null;
     const cityMarkers = [], countryMarkers = [];
+    let citySignature = null;
     const group = L.layerGroup(), fallback = L.layerGroup();
     const paneName = 'jippi-overseas-background';
     const pinPaneName = 'jippi-overseas-cities';
@@ -102,6 +103,20 @@
     coastPane.style.zIndex = '180'; coastPane.style.pointerEvents = 'none';
     const pinPane = map.getPane(pinPaneName) || map.createPane(pinPaneName);
     pinPane.style.zIndex = '450';
+    let edgeControl = null, edgeNode = null;
+    if (typeof L.control === 'function') {
+      edgeControl = L.control({ position: 'topleft' });
+      edgeControl.onAdd = () => {
+        edgeNode = document.createElement('div');
+        edgeNode.className = 'overseas-edge-hints';
+        edgeNode.setAttribute('role', 'group');
+        edgeNode.setAttribute('aria-label', '해외 여행 지도 탐험');
+        L.DomEvent?.disableClickPropagation(edgeNode);
+        L.DomEvent?.disableScrollPropagation(edgeNode);
+        return edgeNode;
+      };
+      edgeControl.addTo(map);
+    }
 
     function status(state, message) {
       if (destroyed || lastStatus === state) return;
@@ -114,11 +129,8 @@
       node.className = 'overseas-map-label overseas-map-label-' + kind;
       Object.assign(node.style, {
         display: 'block', width: '100%', boxSizing: 'border-box', whiteSpace: 'pre-line',
-        padding: kind === 'city' ? '6px 9px' : '2px 5px', borderRadius: '12px',
-        color: 'var(--text, #15263c)', background: 'var(--surface, #fff7e8)',
-        border: kind === 'city' ? '2px solid var(--brand, #ffb655)' : '0',
-        font: (kind === 'city' ? '700 12px' : '600 14px') + ' system-ui, sans-serif',
-        lineHeight: '1.4', textAlign: 'center', boxShadow: '0 1px 4px #0003'
+        font: (kind === 'city' ? '600 11px' : '500 13px') + ' system-ui, sans-serif',
+        lineHeight: '1.4', textAlign: 'center'
       });
       return node;
     }
@@ -136,19 +148,74 @@
       { point: [36, 127.5], name: '대한민국', ko: '대한민국' }
     ]) {
       const marker = L.marker(country.point, { pane: pinPaneName, interactive: false, keyboard: false, icon: icon(country.name, 'country') }).addTo(fallback);
-      countryMarkers.push({ marker, country });
+      countryMarkers.push({ marker, country, text: country.name });
+    }
+    function visibleArea() {
+      const size = map.getSize?.();
+      if (!size) return null;
+      const explicit = typeof options.getVisibleArea === 'function' ? options.getVisibleArea() : null;
+      if (explicit && [explicit.left, explicit.right, explicit.top, explicit.bottom].every(Number.isFinite)) return explicit;
+      const padding = typeof options.getPadding === 'function' ? options.getPadding() : {};
+      const start = padding.paddingTopLeft || padding.padding || [8, 96];
+      const end = padding.paddingBottomRight || padding.padding || [8, 8];
+      return { left: start[0], top: start[1], right: size.x - end[0], bottom: size.y - end[1] };
+    }
+    function visibleCenter() {
+      const area = visibleArea();
+      return area && typeof map.containerPointToLatLng === 'function'
+        ? map.containerPointToLatLng([(area.left + area.right) / 2, (area.top + area.bottom) / 2])
+        : map.getCenter?.();
+    }
+    function foreignCenter() {
+      const center = visibleCenter();
+      return Boolean(center && (center.lng < 124.1 || center.lng > 132.3));
+    }
+    function geographicLabelsVisible() {
+      return foreignCenter() || (basemapAllowed && map.getZoom() <= 5.5);
+    }
+    function updateEdgeHint() {
+      if (!edgeNode) return;
+      edgeNode.replaceChildren();
+      edgeNode.hidden = true;
+      if (!visible || destroyed || foreignCenter()) return;
+      const center = visibleCenter(), zoom = map.getZoom();
+      if (!center || zoom < 6.75 || zoom > 8) return;
+      const west = center.lng >= 124.1 && center.lng <= 126.2 && center.lat >= 33 && center.lat <= 39;
+      const east = !west && center.lng >= 128 && center.lng <= 132.3 && center.lat >= 32 && center.lat <= 36.5;
+      const city = west ? cities.find(c => /shanghai|상하이/i.test(c.id + c.nameKo))
+        : east ? cities.find(c => /osaka|오사카/i.test(c.id + c.nameKo)) : null;
+      if (!city) return;
+      const area = visibleArea();
+      if (!area || area.bottom - area.top < 120 || area.right - area.left < 150) return;
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'overseas-edge-hint';
+      button.textContent = west ? '← 中国 · 상하이' : '日本 · 오사카·교토 →';
+      button.setAttribute('aria-label', (west ? '중국 상하이' : '일본 오사카') + ' 여행 코스 보기. 지리적 위치 표식이 아닌 지도 탐험 버튼');
+      button.addEventListener('click', () => { if (visible && typeof onCitySelect === 'function') onCitySelect(city.id); });
+      edgeNode.appendChild(button);
+      Object.assign(edgeNode.style, { position: 'absolute', left: (area.left + 8) + 'px',
+        top: (area.top + 10) + 'px', width: (area.right - area.left - 16) + 'px',
+        display: 'flex', justifyContent: west ? 'flex-start' : 'flex-end', pointerEvents: 'none' });
+      edgeNode.hidden = false;
     }
     function updateLabels() {
       if (!visible || destroyed) return;
-      group.clearLayers(); cityMarkers.length = 0;
       const clusters = [];
       for (const city of cities) {
+        const bounds = map.getBounds?.();
+        if (!geographicLabelsVisible() || (bounds && !bounds.contains([city.lat, city.lon]))) continue;
         const point = map.latLngToContainerPoint?.([city.lat, city.lon]);
         const near = point && clusters.find(cluster => cluster.point && Math.hypot(cluster.point.x - point.x, cluster.point.y - point.y) < 85);
         if (near) near.cities.push(city);
         else clusters.push({ point, cities: [city] });
       }
-      for (const cluster of clusters) {
+      const signature = clusters.map(cluster => cluster.cities.map(city => city.id + ':' + cityLabel(city)).join('|')).join(';');
+      // Leaflet already moves existing markers with the map. Keep their DOM while
+      // panning/zooming unless membership or language actually changes.
+      if (signature !== citySignature) {
+        citySignature = signature;
+        group.clearLayers(); cityMarkers.length = 0;
+        for (const cluster of clusters) {
         const xs = cluster.cities, single = xs.length === 1;
         const point = [xs.reduce((n, c) => n + c.lat, 0) / xs.length, xs.reduce((n, c) => n + c.lon, 0) / xs.length];
         const text = single ? cityLabel(xs[0]) : xs.map(c => map.getZoom() < LABEL_ZOOM ? c.nameLocal : c.nameKo).join(' · ');
@@ -163,15 +230,18 @@
           }
         });
         cityMarkers.push({ marker, city: single ? xs[0] : null });
+        }
       }
-      for (const { marker, country } of countryMarkers) {
+      for (const entry of countryMarkers) {
+        const { marker, country } = entry;
         const text = map.getZoom() < LABEL_ZOOM || country.ko === country.name ? country.name : country.ko + '\n' + country.name;
-        marker.setIcon(icon(text, 'country'));
+        if (entry.text !== text) { marker.setIcon(icon(text, 'country')); entry.text = text; }
       }
-      if (map.getZoom() < 7) { if (!map.hasLayer(fallback)) fallback.addTo(map); }
+      if (geographicLabelsVisible() && map.getZoom() < 7) { if (!map.hasLayer(fallback)) fallback.addTo(map); }
       else if (map.hasLayer(fallback)) map.removeLayer(fallback);
+      updateEdgeHint();
     }
-    map.on('zoomend', updateLabels);
+    map.on('zoomend moveend resize', updateLabels);
 
     function coastStyle(){return document.documentElement.dataset.theme==='dark'?{color:'#4b6477',weight:0.8,fillColor:'#263c50',fillOpacity:1}:{color:'#a5ad9b',weight:0.8,fillColor:'#e7e7d8',fillOpacity:1};}
     async function showCoast() {
@@ -218,7 +288,7 @@
       if (!visible || !basemapAllowed || destroyed || token !== generation) return;
       clearTimer(); controller?.abort(); controller = null;
       removeVector();
-      if (map.getZoom() < 7 && !map.hasLayer(fallback)) fallback.addTo(map);
+      if (geographicLabelsVisible() && map.getZoom() < 7 && !map.hasLayer(fallback)) fallback.addTo(map);
       status('fallback', message || '배경지도를 받지 못했어요. 도시를 고르면 준비한 코스는 볼 수 있어요.');
       void showCoast();
     }
@@ -287,7 +357,11 @@
       const nextVisible = Boolean(value);
       const nextAllowed = visibilityOptions && Object.hasOwn(visibilityOptions, 'basemap')
         ? Boolean(visibilityOptions.basemap) : basemapAllowed;
-      if (destroyed || (visible === nextVisible && basemapAllowed === nextAllowed)) return;
+      if (destroyed) return;
+      if (visible === nextVisible && basemapAllowed === nextAllowed) {
+        if (visible) updateLabels();
+        return;
+      }
       visible = nextVisible; basemapAllowed = nextAllowed; generation++;
       clearTimer(); controller?.abort(); controller = null; removeVector();
       if (visible) {
@@ -300,6 +374,7 @@
         coastController?.abort(); coastController = null; clearTimeout(coastTimer); coastTimer = null;
         if (coastLayer && map.hasLayer(coastLayer)) map.removeLayer(coastLayer);
         map.removeLayer(group); map.removeLayer(fallback);
+        if (edgeNode) { edgeNode.hidden = true; edgeNode.replaceChildren(); }
         status('hidden', '');
       }
     }
@@ -334,7 +409,8 @@
       if (destroyed) return;
       setVisible(false); destroyed = true; generation++;
       themeObserver?.disconnect();
-      map.off('zoomend', updateLabels); group.clearLayers(); fallback.clearLayers();
+      map.off('zoomend moveend resize', updateLabels); group.clearLayers(); fallback.clearLayers();
+      edgeControl?.remove();
     }
     return Object.freeze({ setVisible, focusCity, enableBasemap, disableBasemap, destroy });
   }
