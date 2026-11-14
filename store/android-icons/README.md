@@ -9,10 +9,11 @@ AndroidManifest.xml의 android:icon은 @mipmap/ic_launcher로 지정한다.
 - monochrome: 배경 없는 단색 알파 마스크. 색상은 지원 런처가 지정한다.
 - Android API 33 이상으로 컴파일해야 monochrome을 사용할 수 있다.
 - 테마 아이콘 설정/런처/OS 버전에 따라 실제 표시와 night 리소스 갱신 동작은 달라진다. 실제 기기 검증이 필요하다.
-- 현재 PC에는 android/ 프로젝트가 없으므로 이 파일은 패키지에 아직 포함되지 않았다.
+- 2026-11-14 최신 Android 백업을 복구해 1.0.3/code4 AAB·APK에 이 리소스를 반영했고, AAB에서 추출한 전경/야간/단색 PNG가 준비본과 픽셀 단위로 일치함을 확인했다. 구형 API24/25용 legacy 아이콘은 흰 매트 없는 둥근 사각형 알파 PNG를 별도로 넣었다.
+- 빌드와 서명 검증 및 Alpha 업로드는 완료했다. 실제 기기 표시·업데이트 실행 확인은 남아 있다.
 
 공식 문서: https://developer.android.com/develop/ui/compose/system/icon_design_adaptive
 재생성: node scripts/build-icons.mjs (npm 의존성 설치 필요).
-최종 확정 시안 원본: scripts/assets/jippi/final/approved-gpt.png (GPT 제작 후 사용자 승인).
+최종 확정 시안 원본: 원본자료/지삐/사용자승인-로고원본.png (GPT 제작 후 사용자 승인).
 선택 영역 재추출: node scripts/build-jippi-assets.mjs.
 앱 패키지 app.nallae·서명은 유지한다. 이 리소스 파일을 준비한 것만으로 이미 설치된 Android 런처 아이콘이 바뀌지는 않는다.
