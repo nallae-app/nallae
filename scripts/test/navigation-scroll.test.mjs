@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const app=fs.readFileSync(new URL('../../web/app.js',import.meta.url),'utf8');
 function setup(){
   const handlers=new Map(),classes=new Set(['sheet-scroll']);
-  const ctx={mode:'explore',exploreLayer:'outing',savedView:false,exploreChoiceChanged:false,lastUtilityLayer:'weather',festivalPeriod:'all',category:null,outingTheme:'date',selectedFeedPositions:new Map(),
+  const ctx={overseasView:false,overseasCityId:'',mode:'explore',exploreLayer:'outing',savedView:false,exploreChoiceChanged:false,lastUtilityLayer:'weather',festivalPeriod:'all',category:null,outingTheme:'date',selectedFeedPositions:new Map(),
     panel:{scrollTop:230,classList:{contains:c=>classes.has(c)}},feedEl:{scrollTop:165},localStorage:{setItem:()=>{}},
     mobileSheet:{matches:true},sheetStage:2,availableLayers:()=>[['outing','코스'],['weather','날씨'],['parking','주차장']],
     map:{closePopup:()=>{}},fitSheet:()=>{},feedTouchAction:()=>{},
@@ -59,4 +59,11 @@ test('소식과 생활을 왕복하면 각 화면의 읽던 위치를 복원하�
   ctx.mode='explore';ctx.exploreLayer='outing';ctx.panel.scrollTop=700;ctx.feedEl.scrollTop=640;
   handlers.get('news')();ctx.exploreLayer='weather';handlers.get('explore')();
   assert.equal(ctx.panel.scrollTop,230);assert.equal(ctx.feedEl.scrollTop,165);
+});
+
+test('여행 목록의 읽던 위치가 국내 목록에 섞이지 않는다',()=>{
+ const {ctx}=setup();ctx.panel.scrollTop=120;ctx.rememberSelectedFeed();
+ ctx.overseasView=true;ctx.overseasCityId='jp-osaka';ctx.panel.scrollTop=600;ctx.rememberSelectedFeed();
+ ctx.overseasView=false;ctx.restoreSelectedFeed();assert.equal(ctx.panel.scrollTop,120);
+ ctx.overseasView=true;ctx.restoreSelectedFeed();assert.equal(ctx.panel.scrollTop,600);
 });

@@ -1,0 +1,383 @@
+{
+  "version": 1,
+  "checkedAt": "2026-11-14",
+  "status": "pilot",
+  "notices": [
+    "오사카·교토·상하이의 준비된 장소만 제공하는 시작판입니다.",
+    "코스는 지삐가 사실 자료를 바탕으로 묶은 2곳 조합이며 공식 추천 코스나 실제 방문 인증이 아닙니다.",
+    "지도 점은 장소의 대표 위치입니다. 선이나 점 간 직선거리는 실제 보행 경로·거리·시간을 뜻하지 않습니다.",
+    "영업·관람·입장·예약·통행 조건은 바뀔 수 있으니 방문 전 공식 안내를 확인하세요."
+  ],
+  "coordinateSystem": "WGS84",
+  "coordinateLicense": {
+    "label": "Wikidata CC0",
+    "url": "https://www.wikidata.org/wiki/Wikidata:Licensing"
+  },
+  "contentPolicy": "이름·주소·장소 종류 등 공개 사실만 선별하고 설명은 지삐가 짧게 작성했습니다. 출처의 본문·사진·리뷰·평점·방문 수를 복제하거나 창작하지 않았습니다.",
+  "cities": [
+    {
+      "id": "jp-osaka",
+      "nameKo": "오사카",
+      "nameLocal": "大阪",
+      "countryCode": "JP",
+      "timeZone": "Asia/Tokyo",
+      "lat": 34.6807634,
+      "lon": 135.5036119,
+      "positionNote": "파일럿 4곳의 좌표 평균으로 정한 지도 이동점이며, 행정 중심점이나 도시 경계가 아닙니다."
+    },
+    {
+      "id": "jp-kyoto",
+      "nameKo": "교토",
+      "nameLocal": "京都",
+      "countryCode": "JP",
+      "timeZone": "Asia/Tokyo",
+      "lat": 35.0108043,
+      "lon": 135.7875628,
+      "positionNote": "파일럿 4곳의 좌표 평균으로 정한 지도 이동점이며, 행정 중심점이나 도시 경계가 아닙니다."
+    },
+    {
+      "id": "cn-shanghai",
+      "nameKo": "상하이",
+      "nameLocal": "上海",
+      "countryCode": "CN",
+      "timeZone": "Asia/Shanghai",
+      "lat": 31.2350406,
+      "lon": 121.4867986,
+      "positionNote": "파일럿 4곳의 좌표 평균으로 정한 지도 이동점이며, 행정 중심점이나 도시 경계가 아닙니다."
+    }
+  ],
+  "places": [
+    {
+      "id": "jp-osaka-dotonbori",
+      "cityId": "jp-osaka",
+      "nameKo": "도톤보리",
+      "nameLocal": "道頓堀",
+      "lat": 34.66861111,
+      "lon": 135.50138889,
+      "address": "大阪市中央区道頓堀",
+      "reason": "강변의 큰 간판을 구경하고 주변 상점가를 걸어 보고 싶을 때 골라 보세요.",
+      "source": {
+        "label": "道頓堀商店会",
+        "url": "https://www.dotonbori.or.jp/en/"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q964876",
+        "license": "CC0",
+        "precisionDegrees": 0.00027777777777778
+      },
+      "positionNote": "거리 일대의 대표 위치로, 특정 상점이나 입구가 아니에요.",
+      "visitNote": "상점별 영업과 강변 통행 상황은 현장에서 확인하세요."
+    },
+    {
+      "id": "jp-osaka-hozenji",
+      "cityId": "jp-osaka",
+      "nameKo": "호젠지",
+      "nameLocal": "法善寺",
+      "lat": 34.66785833,
+      "lon": 135.50262778,
+      "address": "大阪市中央区難波1-2-16",
+      "reason": "이끼로 덮인 부동명왕상과 돌길 골목을 함께 볼 수 있는 사찰이에요.",
+      "source": {
+        "label": "法善寺",
+        "url": "https://www.houzenji.jp/"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q11555078",
+        "license": "CC0",
+        "precisionDegrees": 1e-05
+      },
+      "positionNote": "사찰 대표 위치로, 출입구를 보장하는 안내점이 아니에요.",
+      "visitNote": "예배 장소의 안내와 참배 예절을 따라 주세요."
+    },
+    {
+      "id": "jp-osaka-nakanoshima",
+      "cityId": "jp-osaka",
+      "nameKo": "나카노시마 공원",
+      "nameLocal": "中之島公園",
+      "lat": 34.693056,
+      "lon": 135.506431,
+      "address": "大阪市北区中之島1丁目1",
+      "reason": "물가 산책에 장미원과 잔디 공간을 더하고 싶을 때 둘러볼 공원이에요.",
+      "source": {
+        "label": "大阪市建設局",
+        "url": "https://parksgreenery.city.osaka.lg.jp/article/parks-nakanoshima/"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q6960289",
+        "license": "CC0",
+        "precisionDegrees": 2.77777777778e-06
+      },
+      "positionNote": "긴 공원 안의 대표 위치로, 공원 전체 경계나 입구가 아니에요.",
+      "visitNote": "장미 개화는 계절과 날씨에 따라 달라요. 개별 시설 이용과 행사·공사 여부는 공식 안내에서 확인하세요."
+    },
+    {
+      "id": "jp-osaka-public-hall",
+      "cityId": "jp-osaka",
+      "nameKo": "오사카시 중앙공회당",
+      "nameLocal": "大阪市中央公会堂",
+      "lat": 34.693528,
+      "lon": 135.504,
+      "address": "大阪市北区中之島1-1-27",
+      "reason": "1918년에 완공된 붉은 벽돌의 네오르네상스 건축을 바깥에서 살펴보세요.",
+      "source": {
+        "label": "大阪市中央公会堂",
+        "url": "https://osaka-chuokokaido.com/en/access"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q10938355",
+        "license": "CC0",
+        "precisionDegrees": 1e-06
+      },
+      "positionNote": "건물 대표 위치로, 이용 목적에 따른 출입구는 공식 안내를 확인하세요.",
+      "visitNote": "실내 관람과 투어 가능 여부는 행사 일정에 따라 확인하세요."
+    },
+    {
+      "id": "jp-kyoto-yasaka",
+      "cityId": "jp-kyoto",
+      "nameKo": "야사카 신사",
+      "nameLocal": "八坂神社",
+      "lat": 35.003645,
+      "lon": 135.778529,
+      "address": "京都市東山区祇園町北側625",
+      "reason": "기온 거리를 둘러보며 신사의 문과 경내 건축도 함께 보고 싶을 때 좋아요.",
+      "source": {
+        "label": "八坂神社",
+        "url": "https://www.yasaka-jinja.or.jp/en/access_map/"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q692714",
+        "license": "CC0",
+        "precisionDegrees": 1e-07
+      },
+      "positionNote": "신사 대표 위치로, 출입구를 보장하는 안내점이 아니에요.",
+      "visitNote": "참배와 촬영은 현장 안내를 따라 주세요."
+    },
+    {
+      "id": "jp-kyoto-maruyama",
+      "cityId": "jp-kyoto",
+      "nameKo": "마루야마 공원",
+      "nameLocal": "円山公園",
+      "lat": 35.00333333,
+      "lon": 135.78138889,
+      "address": "京都市東山区円山町473",
+      "reason": "신사 관람 뒤 연못과 나무가 있는 공원에서 산책을 이어 가세요.",
+      "source": {
+        "label": "円山公園",
+        "url": "https://kyoto-maruyama-park.jp/"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q1108695",
+        "license": "CC0",
+        "precisionDegrees": 0.00027777777777778
+      },
+      "positionNote": "공원 대표 위치로, 특정 입구나 산책 경로가 아니에요.",
+      "visitNote": "꽃과 단풍 상태, 행사 여부는 방문 시기에 따라 달라요."
+    },
+    {
+      "id": "jp-kyoto-nanzenji",
+      "cityId": "jp-kyoto",
+      "nameKo": "난젠지",
+      "nameLocal": "南禅寺",
+      "lat": 35.011111111111,
+      "lon": 135.79416666667,
+      "address": "京都市左京区南禅寺福地町",
+      "reason": "큰 사찰 문과 붉은 벽돌 아치의 수로교를 함께 둘러볼 수 있어요.",
+      "source": {
+        "label": "南禅寺",
+        "url": "https://nanzenji.or.jp/equipment"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q1089767",
+        "license": "CC0",
+        "precisionDegrees": null
+      },
+      "positionNote": "사찰 경내의 대표 위치로, 출입구나 관람 동선이 아니에요.",
+      "visitNote": "건물·정원별 관람 가능 여부와 별도 입장 안내를 공식 공지에서 확인하세요."
+    },
+    {
+      "id": "jp-kyoto-philosophers-path",
+      "cityId": "jp-kyoto",
+      "nameKo": "철학의 길",
+      "nameLocal": "哲学の道",
+      "lat": 35.025127777778,
+      "lon": 135.79616666667,
+      "address": "京都市左京区・哲学の道沿い",
+      "reason": "수로 옆 길을 따라 걸으며 동쪽 교토의 동네 풍경을 보고 싶을 때 골라 보세요.",
+      "source": {
+        "label": "京都市観光協会",
+        "url": "https://kyoto.travel/en/travel-inspiration/the-philosophers-path-nishida-kitaros-contemplative-route/"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q1510488",
+        "license": "CC0",
+        "precisionDegrees": null
+      },
+      "positionNote": "수로를 따라 이어진 길의 대표 위치로, 시작점이나 난젠지와 연결된 보행 경로가 아니에요.",
+      "visitNote": "길 전체가 아닌 주변 일대 주소이며, 실제 진입점과 통행 상황을 확인하세요."
+    },
+    {
+      "id": "cn-shanghai-bund",
+      "cityId": "cn-shanghai",
+      "nameKo": "와이탄",
+      "nameLocal": "外滩",
+      "lat": 31.238027777778,
+      "lon": 121.48613888889,
+      "address": "上海市黄浦区中山东一路",
+      "reason": "황푸강변을 걸으며 고딕·바로크 등 서로 다른 양식의 역사 건축을 찾아보세요.",
+      "source": {
+        "label": "上海市文化和旅游局",
+        "url": "https://www.meet-in-shanghai.net/en/nighttime-culture/bund-sightseeing-area-026252/"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q125474",
+        "license": "CC0",
+        "precisionDegrees": null
+      },
+      "positionNote": "강변 구간의 대표 위치로, 특정 입구나 건물 위치가 아니에요.",
+      "visitNote": "강변 통행과 행사·공사 여부를 확인하세요. 조명 운영을 보장하지 않아요."
+    },
+    {
+      "id": "cn-shanghai-waibaidu",
+      "cityId": "cn-shanghai",
+      "nameKo": "와이바이두교",
+      "nameLocal": "外白渡桥",
+      "lat": 31.24519,
+      "lon": 121.4855,
+      "address": "上海市苏州河口，中山东一路与大名路之间",
+      "reason": "쑤저우허 하구의 강 풍경과 철제 트러스 구조를 함께 볼 수 있는 다리예요.",
+      "source": {
+        "label": "上海市虹口区人民政府",
+        "url": "https://www.shhk.gov.cn/zjhk/001003/001003002/20140902/a423fff6-23fd-48a8-bf5d-ba5bf6a06a0e.html"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q2121198",
+        "license": "CC0",
+        "precisionDegrees": 0.0001
+      },
+      "positionNote": "다리 대표 위치로, 횡단 경로나 진입점을 안내하는 좌표가 아니에요.",
+      "visitNote": "차량이 다니는 다리예요. 보행자 통로와 현장 안내를 따라 주세요."
+    },
+    {
+      "id": "cn-shanghai-yu-garden",
+      "cityId": "cn-shanghai",
+      "nameKo": "예원",
+      "nameLocal": "豫园",
+      "lat": 31.22916667,
+      "lon": 121.4875,
+      "address": "上海市黄浦区福佑路168号（北入口）／豫园老街279号（南入口）",
+      "reason": "연못과 정자, 기암이 어우러진 중국식 고전 정원을 둘러보고 싶을 때 골라 보세요.",
+      "source": {
+        "label": "上海豫园",
+        "url": "https://www.yugarden.com.cn/page/articleview/message.html"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q1328025",
+        "license": "CC0",
+        "precisionDegrees": 0.00027777777777778
+      },
+      "positionNote": "정원 대표 위치로, 북·남 출입구의 정확한 위치가 아니에요.",
+      "visitNote": "정원과 주변 상가·성황묘는 별도 장소예요. 입장·예약과 출입구는 공식 안내를 확인하세요."
+    },
+    {
+      "id": "cn-shanghai-city-god-temple",
+      "cityId": "cn-shanghai",
+      "nameKo": "상하이 성황묘",
+      "nameLocal": "上海城隍庙",
+      "lat": 31.22777778,
+      "lon": 121.48805556,
+      "address": "上海市黄浦区方浜中路249号",
+      "reason": "예원 가까이에서 상하이 옛 도심의 도교 사원도 함께 둘러보고 싶을 때 골라 보세요.",
+      "source": {
+        "label": "上海市文化和旅游局",
+        "url": "https://www.meet-in-shanghai.net/cn/attraction/temple-988620/"
+      },
+      "coordinateSource": {
+        "label": "Wikidata",
+        "url": "https://www.wikidata.org/wiki/Q289901",
+        "license": "CC0",
+        "precisionDegrees": 0.00027777777777778
+      },
+      "positionNote": "사원 대표 위치로, 상가 전체나 특정 출입구를 뜻하지 않아요.",
+      "visitNote": "예원과 별도 장소이며 입장 조건을 따로 확인하세요. 예배 장소의 현장 안내를 따라 주세요."
+    }
+  ],
+  "courses": [
+    {
+      "id": "jp-osaka-river-alley",
+      "cityId": "jp-osaka",
+      "title": "도톤보리 강변과 사찰 골목",
+      "kind": "editorial-pair",
+      "reason": "큰 간판이 있는 강변 거리와 이끼 낀 부동명왕상이 있는 사찰을 한 번에. 거리 구경에 골목 산책을 더하고 싶을 때 골라 보세요.",
+      "stopIds": [
+        "jp-osaka-dotonbori",
+        "jp-osaka-hozenji"
+      ]
+    },
+    {
+      "id": "jp-osaka-river-architecture",
+      "cityId": "jp-osaka",
+      "title": "나카노시마 물가와 붉은 벽돌",
+      "kind": "editorial-pair",
+      "reason": "물가 공원을 걷고 붉은 벽돌 공회당의 외관을 살펴보는 조합이에요. 녹지와 건축을 함께 보고 싶은 날에 골라 보세요.",
+      "stopIds": [
+        "jp-osaka-nakanoshima",
+        "jp-osaka-public-hall"
+      ]
+    },
+    {
+      "id": "jp-kyoto-shrine-park",
+      "cityId": "jp-kyoto",
+      "title": "야사카 신사에서 공원 산책",
+      "kind": "editorial-pair",
+      "reason": "기온의 신사 건축을 둘러본 뒤 이웃 공원의 연못과 나무 사이로 산책을 이어 가는 조합이에요.",
+      "stopIds": [
+        "jp-kyoto-yasaka",
+        "jp-kyoto-maruyama"
+      ]
+    },
+    {
+      "id": "jp-kyoto-temple-canal",
+      "cityId": "jp-kyoto",
+      "title": "난젠지와 수로 옆 산책길",
+      "kind": "editorial-pair",
+      "reason": "난젠지의 사찰 문·벽돌 수로교를 보고 수로 옆 산책길도 둘러보는 조합이에요. 다른 조합보다 이동이 길어 걷는 날에 골라 보세요. 실제 길은 별도로 확인하세요.",
+      "stopIds": [
+        "jp-kyoto-nanzenji",
+        "jp-kyoto-philosophers-path"
+      ]
+    },
+    {
+      "id": "cn-shanghai-river-bridge",
+      "cityId": "cn-shanghai",
+      "title": "와이탄 강변과 와이바이두교",
+      "kind": "editorial-pair",
+      "reason": "와이탄의 역사 건축과 강변을 둘러본 뒤 쑤저우허 하구의 철교도 살펴보는 조합이에요. 건물과 물가 풍경을 함께 보고 싶을 때 골라 보세요.",
+      "stopIds": [
+        "cn-shanghai-bund",
+        "cn-shanghai-waibaidu"
+      ]
+    },
+    {
+      "id": "cn-shanghai-garden-temple",
+      "cityId": "cn-shanghai",
+      "title": "예원과 옛 도심의 사원",
+      "kind": "editorial-pair",
+      "reason": "연못·정자·기암이 있는 고전 정원과 이웃한 도교 사원을 함께 둘러보는 조합이에요. 정원과 사원은 별도 장소로 입장 조건을 각각 확인하세요.",
+      "stopIds": [
+        "cn-shanghai-yu-garden",
+        "cn-shanghai-city-god-temple"
+      ]
+    }
+  ]
+}
