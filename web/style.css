@@ -813,3 +813,10 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
   .travel-overview-button { padding-top:0; padding-bottom:0; }
   .travel-intro .travel-eyebrow { margin-top:0; }
 }
+.travel-controls { border:0; padding:0; margin:0; }
+.travel-controls>summary { display:none; }
+@media(min-width:760px) and (max-height:500px){
+  .travel-controls>summary { display:flex; align-items:center; min-height:44px; font-size:13px; color:var(--brand); cursor:pointer; padding:4px 0; }
+  .travel-controls[open] { max-height:160px; overflow:auto; }
+  .travel-controls[open]>summary { position:sticky; top:0; background:var(--surface); }
+}

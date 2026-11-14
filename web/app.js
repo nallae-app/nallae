@@ -2347,6 +2347,8 @@ let overseasData=null,overseasError=false,overseasRequest=null,overseasView=fals
 let travelStatus={state:'idle',message:''},travelBasemapEnabled=false;
 const travelSaved=JippiTravel.readSaved();
 const travelPins=L.layerGroup().addTo(map);
+const compactTravelControls=matchMedia('(min-width:760px) and (max-height:500px)');
+compactTravelControls.addEventListener('change',()=>{const d=exploreTools.querySelector('.travel-controls');if(d)d.open=!compactTravelControls.matches;});
 function travelEntry(){return '<div class="travel-entry"><div><strong>일본·중국 여행도 같이</strong><p>오사카 · 교토 · 상하이에서 둘이 걷고 싶은 곳</p></div><button type="button" data-travel-open>여행 코스 보기</button></div>';}
 function travelTabs(){return '<div class="travel-tabs" role="group" aria-label="코스 지역"><button type="button" data-travel-domestic aria-pressed="false">국내 코스</button><button type="button" data-travel-open aria-pressed="true">일본·중국 여행</button></div>';}
 function travelSavedTabs(){return '<div class="saved-tabs" role="group" aria-label="저장한 항목 종류">'+[['plans','코스'],['saved','장소'],['restaurants','맛집'],['travel','여행']].map(([id,name])=>'<button type="button" data-saved-tab="'+id+'" aria-pressed="'+(id==='travel')+'">'+name+'</button>').join('')+'</div>';}
@@ -2385,7 +2387,7 @@ function renderTravel(){
   const saved=savedView&&outingTheme==='travel';
   titleEl.textContent=saved?'저장한 여행 코스':'둘이 떠나는 여행';
   subEl.textContent='';outingMarkers.clearLayers();
-  exploreTools.innerHTML=(saved?travelSavedTabs():travelTabs())+(overseasData?'<div class="travel-city-chips" role="group" aria-label="준비된 여행 도시">'+overseasData.cities.map(c=>'<button type="button" data-travel-city="'+JippiTravel.esc(c.id)+'" aria-pressed="'+(!saved&&overseasCityId===c.id)+'">'+JippiTravel.esc(c.nameKo)+' <span lang="'+(c.countryCode==='JP'?'ja':'zh-CN')+'">'+JippiTravel.esc(c.nameLocal)+'</span></button>').join('')+'</div><button type="button" class="travel-overview-button" data-travel-overview>지도에서 도시 고르기</button>':'');
+  exploreTools.innerHTML='<details class="travel-controls"'+(compactTravelControls.matches?'':' open')+'><summary>'+JippiTravel.esc(saved?'저장한 여행 코스':(overseasData?.cities.find(c=>c.id===overseasCityId)?.nameKo||'일본·중국')+' · 여행 코스')+' · 도시 바꾸기 ▾</summary>'+(saved?travelSavedTabs():travelTabs())+(overseasData?'<div class="travel-city-chips" role="group" aria-label="준비된 여행 도시">'+overseasData.cities.map(c=>'<button type="button" data-travel-city="'+JippiTravel.esc(c.id)+'" aria-pressed="'+(!saved&&overseasCityId===c.id)+'">'+JippiTravel.esc(c.nameKo)+' <span lang="'+(c.countryCode==='JP'?'ja':'zh-CN')+'">'+JippiTravel.esc(c.nameLocal)+'</span></button>').join('')+'</div><button type="button" class="travel-overview-button" data-travel-overview>지도에서 도시 고르기</button>':'')+'</details>';
   if(!overseasData){feedEl.innerHTML='<li class="empty">'+(overseasError?'여행 자료를 불러오지 못했어요. 저장한 항목은 지우지 않았어요. <button type="button" data-travel-retry>다시 받기</button>':'여행 코스를 준비하고 있어요…')+'</li>';return;}
   const courses=overseasData.courses.filter(c=>saved?travelSaved.has(c.id):!overseasCityId||c.cityId===overseasCityId);
   const unavailable=saved?travelSaved.size-courses.length:0;
