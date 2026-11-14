@@ -2052,7 +2052,7 @@ function renderOutingMarkers(items=outingShown) {
   for(const xs of groups.values()){
     const first=xs[0],bounds=L.latLngBounds(xs.map(x=>[x.lat,x.lon]));
     const m=L.marker(xs.length===1?[first.lat,first.lon]:bounds.getCenter(),{title:xs.length===1?first.name:'놀거리 '+xs.length+'곳 묶음',icon:L.divIcon({className:'outing-marker',html:'<span class="'+(xs.length>1?'cluster':'')+'">'+(xs.length>1?xs.length:first.type==='park'?'산책':'보기')+'</span>',iconSize:[44,44],iconAnchor:[22,xs.length>1?22:40]})}).addTo(outingMarkers);
-    if(xs.length>1&&map.getZoom()<18)m.on('click',()=>map.fitBounds(bounds,{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:Math.min(18,map.getZoom()+3),animate:!reducedMotion.matches}));
+    if(xs.length>1&&map.getZoom()<18)m.on('click',()=>map.fitBounds(bounds,outingBoundsOptions(Math.min(18,map.getZoom()+3))));
     else m.bindPopup(xs.slice(0,10).map(x=>'<strong>'+escapeHtml(x.name)+'</strong><p>'+escapeHtml(x.address)+'</p>'+routeLink(x)).join('<hr>'),{maxWidth:280});
   }
 }
@@ -2090,9 +2090,15 @@ function saveCommunityPlace(x,communityId) {
   if(!saveOuting(x))return;
   persistOutings();renderOutingCards();restoreOutingFocus('community-save',communityId);
 }
+function outingBoundsOptions(maxZoom) {
+  // fitBounds는 좌표만 고려하므로 아이콘(위 40px/좌우 22px) 여백도 확보한다.
+  const top=leftPad(),bottom=bottomPad(),size=map.getSize();
+  const lower=[bottom[0]+30,bottom[1]+16];
+  return {paddingTopLeft:[top[0]+30,Math.max(0,Math.min(top[1]+48,size.y-lower[1]-96))],paddingBottomRight:lower,maxZoom,animate:!reducedMotion.matches};
+}
 function focusOutings(items) {
   atHome=false;selectionAutoFit=false;setSheetStage(0,false);clearTimeout(sheetFitTimer);map.closePopup();
-  renderOutingMarkers(items);map.fitBounds(L.latLngBounds(items.map(x=>[x.lat,x.lon])),{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:items.length===1?17:16,animate:!reducedMotion.matches});
+  renderOutingMarkers(items);map.fitBounds(L.latLngBounds(items.map(x=>[x.lat,x.lon])),outingBoundsOptions(items.length===1?17:16));
 }
 exploreTools.addEventListener('input',e=>{if(e.target.matches('[data-outing-search]')){outingQuery=e.target.value;outingLimit=30;outingPlanLimit=3;clearTimeout(outingSearchTimer);outingSearchTimer=setTimeout(()=>{if(mode==='explore'&&exploreLayer==='outing')renderOutingCards();},180);}});
 exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-region]')){const m=muniByCode.get(e.target.value);if(m)select(m,false);else {clearSelection();atHome=true;fitHome();}exploreTools.querySelector('[data-outing-filters]')?.focus({preventScroll:true});}});
