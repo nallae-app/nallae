@@ -1068,3 +1068,12 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
   :root[data-course-welcome="true"] .topbar { padding-bottom:10px; }
   :root[data-course-welcome="true"] .panel { top:84px;bottom:8px; }
 }
+
+/* Settings are global; opening them never needs a different map mode. */
+.controls .global-settings { flex:none;width:44px;min-width:44px;padding:10px; }
+.controls .global-settings svg { width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round; }
+.settings-row.settings-theme { flex-direction:column;align-items:stretch;gap:8px; }
+#settings-dialog #btn-theme { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;justify-items:stretch;gap:6px;width:100%;height:auto;padding:0;background:transparent;position:static; }
+#settings-dialog #btn-theme button { min-width:44px;min-height:44px;padding:8px 6px;border:1px solid var(--border-sgg);border-radius:12px;background:var(--surface);color:var(--text);font-size:14px; }
+#settings-dialog #btn-theme button[aria-pressed="true"] { border-color:var(--brand);background:var(--selection-fill);color:var(--brand);font-weight:750; }
+@media(max-width:359px){.topbar .controls{gap:4px}.topbar .controls .global-settings{padding:8px;}}

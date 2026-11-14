@@ -7,12 +7,12 @@ const code = readFileSync(new URL('../../web/overseas-map.js', import.meta.url),
 const settle = () => new Promise(resolve => setImmediate(resolve));
 const style = { version: 8, sources: {}, layers: [] };
 
-function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = false, renderer = null, cities, safeCenter, visibleArea, boundsRadius = 3 } = {}) {
+function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = false, renderer = null, cities, safeCenter, visibleArea, boundsRadius = 3, persistentCoast = false, coastResponse, initialTheme = 'light' } = {}) {
   const layers = new Set(), panes = {}, requests = [], renders = [], states = [], events = {};
   let themeChange, zoom = 4, disposalCount = 0, center = { lat: 34.69, lng: 135.5 };
   let viewCenter = safeCenter, safeArea = visibleArea;
   const convertedPoints = [];
-  const groups = [], controls = [], selected = [];
+  const groups = [], controls = [], selected = [], coasts = [];
   function node() { return { style: {}, children: [], attributes: {}, hidden: false,
     setAttribute(name, value) { this.attributes[name] = value; },
     appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; },
@@ -21,7 +21,7 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
   const group = () => ({
     items: [],
     addTo() { layers.add(this); return this; },
-    clearLayers() { this.items = []; }, setStyle() {}
+    clearLayers() { this.items = []; }, setStyle(value) { this.style = value; }
   });
   const map = {
     getPane: name => panes[name],
@@ -42,14 +42,19 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
     attributionControl: { addAttribution() {}, removeAttribution() {} }
   };
   const L = {
-    layerGroup() { const g = group(); groups.push(g); return g; }, geoJSON: group, divIcon: value => value,
+    layerGroup() { const g = group(); groups.push(g); return g; },
+    geoJSON(data, options) { const g = group(); g.style = options.style; coasts.push(g); return g; },
+    divIcon: value => value,
     marker: (point, options) => ({ point, options, on(name, fn) { this[name] = fn; return this; }, addTo(g) { g.items.push(this); return this; }, setIcon() {} }),
     control() { const c = { addTo() { this.node = this.onAdd(); return this; }, remove() {} }; controls.push(c); return c; },
     maplibreGL(options) {
       const handlers = {};
+      const paintChanges = [];
+      const subscriptions = {};
+      let loaded = false, tileBusy = false, structureReady = true, paintFails = false;
       const gl = {
         _removed: false,
-        on(name, fn) { handlers[name] = fn; }, off(name) { delete handlers[name]; },
+        on(name, fn) { subscriptions[name] = (subscriptions[name] || 0) + 1; handlers[name] = fn; }, off(name) { delete handlers[name]; },
         once(name, fn) { handlers[name] = fn; },
         getCanvas: () => ({
           addEventListener() {}, removeEventListener() {},
@@ -58,10 +63,23 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
             getParameter: () => renderer
           })
         }),
-        emit(name, value) { handlers[name]?.(value); },
+        isStyleLoaded: () => loaded && !tileBusy,
+        getStyle: () => structureReady ? options.style : undefined,
+        getLayer: id => structureReady ? options.style.layers.find(layer => layer.id === id) : undefined,
+        setTileBusy(value) { tileBusy = value; },
+        setStructureReady(value) { structureReady = value; },
+        setPaintFailures(value) { paintFails = value; },
+        listenerCount: name => handlers[name] ? 1 : 0,
+        subscriptions,
+        setPaintProperty(id, property, value) {
+          if (typeof paintFails === 'function' ? paintFails(id, property, value) : paintFails) throw new Error('Style paint temporarily unavailable');
+          paintChanges.push({ id, property, value });
+          options.style.layers.find(layer => layer.id === id).paint[property] = value;
+        },
+        emit(name, value) { if (name === 'load') loaded = true; handlers[name]?.(value); },
         remove() { disposalCount++; this._removed = true; }
       };
-      renders.push({ options, gl });
+      renders.push({ options, gl, paintChanges });
       return {
         vector: true, gl,
         addTo() {
@@ -74,7 +92,7 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
     }
   };
   const document = {
-    baseURI: 'https://local.test/nallae/', documentElement: { dataset: { theme: 'light' } },
+    baseURI: 'https://local.test/nallae/', documentElement: { dataset: { theme: initialTheme } },
     createElement: node
   };
   const window = {
@@ -88,6 +106,7 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
     fetch: async (url, options) => {
       requests.push({ url: String(url), options });
       if (String(url).startsWith(document.baseURI)) {
+        if (coastResponse) return coastResponse(url, options);
         return { ok: true, json: async () => ({ type: 'FeatureCollection', features: [] }) };
       }
       return styleResponse ? styleResponse(url, options) : { ok: true, json: async () => style };
@@ -96,13 +115,13 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
   const api = window.JippiOverseasMap.create({
     map, L, cities: cities || [{ id: 'osaka', nameKo: '오사카', nameLocal: '大阪', lat: 34.69, lon: 135.5 }],
     onStatus: value => states.push(value.state), onCitySelect: id => selected.push(id),
-    getVisibleArea: visibleArea ? () => safeArea : undefined
+    getVisibleArea: visibleArea ? () => safeArea : undefined, persistentCoast
   });
   t.after(() => api.destroy());
   return {
-    api, layers, requests, renders, states, groups, controls, selected, convertedPoints,
+    api, layers, requests, renders, states, groups, controls, selected, convertedPoints, coasts,
     external: () => requests.filter(request => !request.url.startsWith(document.baseURI)),
-    theme() { document.documentElement.dataset.theme = 'dark'; themeChange?.(); },
+    theme(value = 'dark') { document.documentElement.dataset.theme = value; themeChange?.(); },
     zoom(value) { zoom = value; events.zoomend?.(); },
     center(lat, lng) { center = { lat, lng }; events.moveend?.(); },
     safeCenter(lat, lng) { viewCenter = { lat, lng }; events.moveend?.(); },
@@ -268,4 +287,169 @@ test('explicit travel overview exposes real city coordinates without changing th
   f.api.setVisible(true, { basemap: false });
   assert.equal(f.groups[0].items.length, 0);
   assert.equal(f.layers.has(f.groups[1]), false);
+});
+
+test('theme changes keep a successful GL layer and its geometry even when another style request would fail', async t => {
+  const colors = { version: 8, sources: { openmaptiles: { type: 'vector', url: 'https://tiles.test/planet' } }, layers: [
+    { id: 'water', type: 'fill', 'source-layer': 'water', paint: { 'fill-color': '#102030' } },
+    { id: 'road', type: 'line', 'source-layer': 'transportation', paint: { 'line-color': ['match', ['get', 'class'], 'major', '#999999', '#AAAAAA'] } }
+  ] };
+  let failNetwork = false;
+  const f = fixture(t, { initialTheme: 'dark', styleResponse: async () => ({ ok: !failNetwork, json: async () => colors }) });
+  f.api.setVisible(true, { basemap: true }); f.api.enableBasemap(); await settle();
+  const render = f.renders[0]; render.gl.emit('load');
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#0E2135');
+  const activeLayers = [...f.layers], marker = f.groups[0].items[0], requestCount = f.requests.length;
+  failNetwork = true;
+  f.theme('light'); await settle();
+  assert.equal(f.renders.length, 1); assert.equal(f.disposalCount, 0);
+  assert.equal(f.states.at(-1), 'ready'); assert.equal(f.requests.length, requestCount);
+  assert.deepEqual([...f.layers], activeLayers); assert.equal(f.groups[0].items[0], marker);
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#102030');
+  assert.equal(render.options.style.sources.openmaptiles.url, 'https://tiles.test/planet');
+  assert.equal(JSON.stringify(render.options.style.layers[1].paint['line-color']), JSON.stringify(colors.layers[1].paint['line-color']));
+  f.theme('dark'); await settle();
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#0E2135');
+  assert.equal(colors.layers[0].paint['fill-color'], '#102030', 'supplied style/cache remains unmodified');
+});
+
+test('a theme switch while a style is pending neither aborts it nor creates another request', async t => {
+  let finish;
+  const f = fixture(t, { styleResponse: () => new Promise(resolve => { finish = resolve; }) });
+  f.api.setVisible(true, { basemap: true }); f.api.enableBasemap(); await settle();
+  const request = f.external()[0];
+  f.theme('dark'); await settle();
+  assert.equal(request.options.signal.aborted, false); assert.equal(f.external().length, 1);
+  finish({ ok: true, json: async () => ({ version: 8, sources: {}, layers: [
+    { id: 'water', type: 'fill', 'source-layer': 'water', paint: { 'fill-color': '#ABCDEF' } }
+  ] }) });
+  await settle(); f.renders[0].gl.emit('load');
+  assert.equal(f.renders.length, 1); assert.equal(f.states.at(-1), 'ready');
+  assert.equal(f.renders[0].options.style.layers[0].paint['fill-color'], '#0E2135', 'latest theme applies when the existing request finishes');
+});
+
+test('persistent local coast survives inactive modes and recolors without contacting an external provider', async t => {
+  const f = fixture(t, { persistentCoast: true });
+  await settle();
+  const coast = f.coasts[0], requests = f.requests.length;
+  assert.equal(f.layers.has(coast), true); assert.equal(f.layers.size, 1);
+  f.api.setVisible(true, { basemap: false }); f.api.setVisible(false, { basemap: false });
+  assert.equal(f.layers.has(coast), true); assert.equal(f.layers.size, 1);
+  f.theme('dark'); await settle();
+  assert.equal(f.coasts[0], coast); assert.equal(coast.style.fillColor, '#263c50');
+  assert.equal(f.requests.length, requests); assert.equal(f.external().length, 0);
+  assert.equal(f.states.at(-1), 'hidden');
+  f.api.destroy(); assert.equal(f.layers.size, 0);
+});
+
+test('persistent coast finishing after a mode change is retained instead of aborted', async t => {
+  let finish;
+  const f = fixture(t, { persistentCoast: true, coastResponse: () => new Promise(resolve => { finish = resolve; }) });
+  const request = f.requests[0];
+  f.api.setVisible(true, { basemap: false }); f.api.setVisible(false, { basemap: false });
+  assert.equal(request.options.signal.aborted, false);
+  f.theme('dark');
+  finish({ ok: true, json: async () => ({ type: 'FeatureCollection', features: [] }) });
+  await settle();
+  assert.equal(f.coasts.length, 1); assert.equal(f.layers.has(f.coasts[0]), true);
+  assert.equal(f.coasts[0].style.fillColor, '#263c50'); assert.equal(f.layers.size, 1);
+});
+
+test('persistent coast returns when foreign GL is removed, while city controls remain hidden', async t => {
+  const f = fixture(t, { persistentCoast: true });
+  f.api.setVisible(true, { basemap: true }); f.api.enableBasemap(); await settle();
+  f.renders[0].gl.emit('load');
+  const coast = f.coasts[0]; assert.equal(f.layers.has(coast), false);
+  f.api.setVisible(false, { basemap: false });
+  assert.equal(f.disposalCount, 1); assert.equal(f.layers.has(coast), true);
+  assert.equal(f.layers.has(f.groups[0]), false); assert.equal(f.layers.has(f.groups[1]), false);
+  assert.equal(f.layers.size, 1);
+});
+
+test('dark-first and light-first share one canonical rich style, including POIs and airport labels', async t => {
+  const richStyle = { version: 8, sources: { openmaptiles: { type: 'vector', url: 'https://tiles.test/planet' } }, layers: [
+    { id: 'label_city', type: 'symbol', 'source-layer': 'place', layout: { 'text-field': ['get', 'name'] }, paint: { 'text-color': '#222222' } },
+    { id: 'label_poi', type: 'symbol', 'source-layer': 'poi', layout: { 'text-field': ['get', 'name'] }, paint: { 'text-color': '#333333' } },
+    { id: 'label_airport', type: 'symbol', 'source-layer': 'aerodrome_label', layout: { 'text-field': ['get', 'name'] }, paint: { 'text-color': '#444444' } }
+  ] };
+  const fixtures = ['light', 'dark'].map(initialTheme => fixture(t, {
+    initialTheme,
+    styleResponse: async url => ({ ok: true, json: async () => String(url).endsWith('/dark')
+      ? { ...richStyle, layers: richStyle.layers.slice(0, 1) } : richStyle })
+  }));
+  for (const [i, f] of fixtures.entries()) {
+    f.api.setVisible(true, { basemap: true }); f.api.enableBasemap(); await settle();
+    assert.equal(f.external()[0].url, 'https://tiles.openfreemap.org/styles/liberty');
+    const render = f.renders[0];
+    assert.equal(render.options.style.layers.filter(layer => layer.type === 'symbol' && layer.layout['text-field']).length, 3);
+    assert.ok(render.options.style.layers.some(layer => layer.id === 'label_poi'));
+    assert.ok(render.options.style.layers.some(layer => layer.id === 'label_airport'));
+    render.gl.emit('load');
+    const requests = f.requests.length;
+    f.theme(i === 0 ? 'dark' : 'light'); await settle();
+    assert.equal(f.requests.length, requests); assert.equal(f.renders.length, 1);
+    assert.equal(f.disposalCount, 0); assert.equal(f.states.at(-1), 'ready');
+  }
+  const structure = f => f.renders[0].options.style.layers.map(layer => ({ id: layer.id, type: layer.type, sourceLayer: layer['source-layer'], layout: layer.layout }));
+  assert.equal(JSON.stringify(structure(fixtures[0])), JSON.stringify(structure(fixtures[1])));
+});
+
+const paintableStyle = { version: 8, sources: {}, layers: [
+  { id: 'water', type: 'fill', 'source-layer': 'water', paint: { 'fill-color': '#DFEAED' } },
+  { id: 'road', type: 'line', 'source-layer': 'transportation', paint: { 'line-color': '#FFFFFF' } }
+] };
+const paintFixture = t => fixture(t, { styleResponse: async () => ({ ok: true, json: async () => paintableStyle }) });
+
+test('busy tiles after initial load do not delay theme painting or require another load event', async t => {
+  const f = paintFixture(t);
+  f.api.setVisible(true, { basemap: true }); f.api.enableBasemap(); await settle();
+  const render = f.renders[0], gl = render.gl; gl.emit('load'); gl.setTileBusy(true);
+  assert.equal(gl.isStyleLoaded(), false);
+  const requests = f.requests.length;
+  f.theme('dark');
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#0E2135');
+  assert.equal(gl.listenerCount('idle'), 0); assert.equal(f.disposalCount, 0);
+  f.theme('light');
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#DFEAED');
+  assert.equal(f.requests.length, requests); assert.equal(f.renders.length, 1);
+});
+
+test('unready style structure retries once per renderer and removes subscriptions after success', async t => {
+  const f = paintFixture(t);
+  f.api.setVisible(true, { basemap: true }); f.api.enableBasemap(); await settle();
+  const render = f.renders[0], gl = render.gl; gl.emit('load'); gl.setStructureReady(false);
+  f.theme('dark'); f.theme('dark'); gl.emit('idle');
+  assert.equal(gl.subscriptions['style.load'], 1); assert.equal(gl.subscriptions.idle, 1);
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#DFEAED');
+  gl.setStructureReady(true); gl.emit('style.load');
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#0E2135');
+  assert.equal(gl.listenerCount('style.load'), 0); assert.equal(gl.listenerCount('idle'), 0);
+  assert.equal(f.states.at(-1), 'ready'); assert.equal(f.disposalCount, 0);
+});
+
+test('partial paint failure is not marked complete and switching back restores successful partial writes too', async t => {
+  const f = paintFixture(t);
+  f.api.setVisible(true, { basemap: true }); f.api.enableBasemap(); await settle();
+  const render = f.renders[0], gl = render.gl; gl.emit('load');
+  gl.setPaintFailures(id => id === 'road'); f.theme('dark');
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#0E2135');
+  assert.equal(render.options.style.layers[1].paint['line-color'], '#FFFFFF');
+  f.theme('light');
+  assert.equal(render.options.style.layers[0].paint['fill-color'], '#DFEAED');
+  gl.setPaintFailures(false); gl.emit('idle');
+  assert.equal(gl.listenerCount('idle'), 0); assert.equal(gl.listenerCount('style.load'), 0);
+  const writes = render.paintChanges.length; f.theme('light');
+  assert.equal(render.paintChanges.length, writes);
+});
+
+test('pending theme retries are removed on GL disposal and cannot repaint an old renderer', async t => {
+  const f = paintFixture(t);
+  f.api.setVisible(true, { basemap: true }); f.api.enableBasemap(); await settle();
+  const render = f.renders[0], gl = render.gl; gl.emit('load'); gl.setPaintFailures(true);
+  f.theme('dark'); assert.equal(gl.listenerCount('idle'), 1);
+  f.api.setVisible(false);
+  assert.equal(gl.listenerCount('idle'), 0); assert.equal(gl.listenerCount('style.load'), 0);
+  const writes = render.paintChanges.length;
+  gl.setPaintFailures(false); gl.emit('idle'); gl.emit('style.load');
+  assert.equal(render.paintChanges.length, writes); assert.equal(f.layers.size, 0);
 });

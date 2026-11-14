@@ -7,6 +7,7 @@
   'use strict';
   const ATTRIBUTION = '<a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a> · <a href="https://openmaptiles.org/" target="_blank" rel="noopener">© OpenMapTiles</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>';
   const LABEL_ZOOM = 6;
+  const CANONICAL_STYLE = 'liberty';
   const TIMEOUT = 12000;
   const SCRIPT_BASE = new URL('.', document.currentScript?.src || document.baseURI);
   let vendorPromise = null;
@@ -63,7 +64,6 @@
         layer.layout = { ...layer.layout, visibility: 'none' };
       }
       if (layer.type !== 'symbol' || !layer.layout || !layer.layout['text-field']) continue;
-      if(document.documentElement.dataset.theme==='dark'){layer.paint={...layer.paint,'text-color':'#b7c4d3','text-halo-color':'#101b2b','text-halo-width':1.2};}
       if(layer['source-layer']==='transportation_name'&&/name/i.test(layer.id||'')&&!/ref|shield/i.test(layer.id||''))layer.layout['text-field']=nativeName();
       if (layer['source-layer'] === 'place') {
         const allowed = ['all', outsideDomestic, ['!=', ['get', 'class'], 'island'], ['!=', ['get', 'class'], 'country']];
@@ -83,6 +83,7 @@
   function create(options) {
     const { map, L, onCitySelect, onStatus } = options || {};
     if (!map || !L) throw new Error('A Leaflet map and L are required');
+    const persistentCoast = options.persistentCoast === true;
     const cities = (options.cities || []).map(normalizeCity).filter(Boolean);
     const byId = new Map(cities.map(city => [city.id, city]));
     let visible = false, destroyed = false, basemapEnabled = false, basemapAllowed = false, generation = 0, layer = null, gl = null;
@@ -90,6 +91,8 @@
     const styleCache = new Map();
     let coastLayer = null, coastData = null, coastController = null, coastTimer = null;
     let contextCanvas = null, contextLostHandler = null, glErrorHandler = null;
+    let vectorBaseTheme = null, vectorBaseLayers = null, paintedTheme = null;
+    let themeRetry = null;
     const cityMarkers = [], countryMarkers = [];
     let citySignature = null;
     const group = L.layerGroup(), fallback = L.layerGroup();
@@ -244,8 +247,72 @@
     map.on('zoomend moveend resize', updateLabels);
 
     function coastStyle(){return document.documentElement.dataset.theme==='dark'?{color:'#4b6477',weight:0.8,fillColor:'#263c50',fillOpacity:1}:{color:'#a5ad9b',weight:0.8,fillColor:'#e7e7d8',fillOpacity:1};}
+    function vectorThemeColors(theme, write) {
+      const dark = theme === 'dark';
+      const palette = dark
+        ? { land:'#263F51', water:'#0E2135', park:'#29483F', building:'#324C5C', road:'#607B8A', border:'#49616E', text:'#B7C4D3', halo:'#101B2B', accent:'#FFB65C' }
+        : { land:'#F8F4E9', water:'#DFEAED', park:'#E1E8D8', building:'#DDDDCF', road:'#FFFFFF', border:'#B8C6BF', text:'#455765', halo:'#F8F4E9', accent:'#A7440C' };
+      for (const layer of vectorBaseLayers) {
+        for (const [property, original] of Object.entries(layer.paint || {})) {
+          let color;
+          if (property === 'background-color') color = palette.land;
+          else if (property === 'fill-color') color = layer['source-layer'] === 'water' ? palette.water
+            : /park|landcover|landuse/.test(layer['source-layer'] || '') ? palette.park
+              : layer['source-layer'] === 'building' ? palette.building : palette.land;
+          else if (property === 'fill-outline-color' || property === 'circle-stroke-color') color = palette.border;
+          else if (property === 'line-color') color = /water/.test(layer['source-layer'] || '') ? palette.water
+            : /casing|outline|border|rail/.test(layer.id) ? palette.border : palette.road;
+          else if (property === 'text-color' || property === 'icon-color') color = palette.text;
+          else if (property === 'text-halo-color') color = palette.halo;
+          else if (property === 'circle-color') color = palette.accent;
+          else continue;
+          // The base is always canonical Liberty/light, never the startup theme.
+          write(layer.id, property, theme === vectorBaseTheme ? original : color);
+        }
+      }
+    }
+    function clearThemeRetry() {
+      if (!themeRetry) return;
+      themeRetry.renderer.off('style.load', themeRetry.handler);
+      themeRetry.renderer.off('idle', themeRetry.handler);
+      themeRetry = null;
+    }
+    function retryThemeWhenReady() {
+      if (!gl || themeRetry) return;
+      const renderer = gl, token = generation;
+      const handler = () => {
+        if (destroyed || !visible || !basemapAllowed || !basemapEnabled || gl !== renderer || token !== generation) {
+          clearThemeRetry(); return;
+        }
+        paintVectorTheme();
+      };
+      themeRetry = { renderer, handler };
+      renderer.on('style.load', handler);
+      renderer.on('idle', handler);
+    }
+    function paintVectorTheme() {
+      if (!gl || !vectorBaseLayers) return;
+      const theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : CANONICAL_STYLE;
+      if (paintedTheme === theme) { clearThemeRetry(); return; }
+      const changes = [];
+      vectorThemeColors(theme, (id, property, color) => changes.push({ id, property, color }));
+      // isStyleLoaded also waits for busy tiles/images. Paint needs only the
+      // style/layers, so a pan or tile fetch must not delay a theme change.
+      try {
+        if (!gl.getStyle()?.layers || changes.some(change => !gl.getLayer(change.id))) {
+          retryThemeWhenReady(); return;
+        }
+      } catch (_) { retryThemeWhenReady(); return; }
+      let failed = false;
+      for (const change of changes) {
+        try { gl.setPaintProperty(change.id, change.property, change.color); }
+        catch (_) { failed = true; }
+      }
+      if (failed) { paintedTheme = null; retryThemeWhenReady(); }
+      else { paintedTheme = theme; clearThemeRetry(); }
+    }
     async function showCoast() {
-      if (!visible || destroyed || lastStatus === 'ready') return;
+      if ((!visible && !persistentCoast) || destroyed || (lastStatus === 'ready' && gl)) return;
       if (coastLayer) { coastLayer.setStyle(coastStyle());if (!map.hasLayer(coastLayer)) coastLayer.addTo(map); return; }
       if (coastController) return;
       const request = new AbortController(); coastController = request;
@@ -256,7 +323,7 @@
           if (!response.ok) throw new Error('Local coast unavailable');
           coastData = await response.json();
         }
-        if (!visible || destroyed || request.signal.aborted || lastStatus === 'ready') return;
+        if ((!visible && !persistentCoast) || destroyed || request.signal.aborted || (lastStatus === 'ready' && gl)) return;
         coastLayer = L.geoJSON(coastData, { pane: coastPaneName, interactive: false,
           style: coastStyle() }).addTo(map);
       } catch (_) {
@@ -268,6 +335,7 @@
 
     function clearTimer() { if (timeout !== null) { clearTimeout(timeout); timeout = null; } }
     function removeVector() {
+      clearThemeRetry();
       if (contextCanvas && contextLostHandler) contextCanvas.removeEventListener('webglcontextlost', contextLostHandler);
       if (gl && glErrorHandler) gl.off('error', glErrorHandler);
       contextCanvas = null; contextLostHandler = null; glErrorHandler = null;
@@ -281,6 +349,7 @@
         }
       }
       layer = null; gl = null;
+      vectorBaseTheme = null; vectorBaseLayers = null; paintedTheme = null;
       pane.replaceChildren();
       map.attributionControl?.removeAttribution(ATTRIBUTION);
     }
@@ -297,19 +366,26 @@
       status('loading', '해외 배경지도를 불러오는 중이에요.');
       controller = new AbortController();
       const requestController = controller;
-      const theme = document.documentElement?.dataset.theme === 'dark' ? 'dark' : 'liberty';
       timeout = setTimeout(() => showFallback(token), TIMEOUT);
       try {
         await ensureVendor(L);
         if (!visible || !basemapAllowed || destroyed || token !== generation || requestController.signal.aborted) return;
-        if (!styleCache.has(theme)) {
-          const response = await fetch('https://tiles.openfreemap.org/styles/' + theme, { signal: requestController.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
+        if (!styleCache.has(CANONICAL_STYLE)) {
+          const response = await fetch('https://tiles.openfreemap.org/styles/' + CANONICAL_STYLE, { signal: requestController.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
           if (!response.ok) throw new Error('Vector style unavailable');
-          styleCache.set(theme, localizeStyle(await response.json(), cities, options.domesticGeometry));
+          styleCache.set(CANONICAL_STYLE, localizeStyle(await response.json(), cities, options.domesticGeometry));
         }
         if (!visible || !basemapAllowed || destroyed || token !== generation || requestController.signal.aborted) return;
+        vectorBaseTheme = CANONICAL_STYLE;
+        vectorBaseLayers = JSON.parse(JSON.stringify(styleCache.get(CANONICAL_STYLE).layers));
+        const rendererStyle = JSON.parse(JSON.stringify(styleCache.get(CANONICAL_STYLE)));
+        const layersById = new Map(rendererStyle.layers.map(item => [item.id, item]));
+        const initialPaintTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : CANONICAL_STYLE;
+        // Apply paint before the first frame while keeping the same rich label/POI
+        // structure for both startup themes. No dark-specific style is downloaded.
+        vectorThemeColors(initialPaintTheme, (id, property, color) => { layersById.get(id).paint[property] = color; });
         layer = L.maplibreGL({
-          style: styleCache.get(theme), pane: paneName, interactive: false, attributionControl: false,
+          style: rendererStyle, pane: paneName, interactive: false, attributionControl: false,
           canvasContextAttributes: { failIfMajorPerformanceCaveat: true },
           localIdeographFontFamily: 'sans-serif', renderWorldCopies: false,
           transformRequest: url => ({ url, credentials: 'omit' })
@@ -317,6 +393,7 @@
         layer.addTo(map);
         gl = layer.getMaplibreMap();
         if (!gl) throw new Error('Vector renderer unavailable');
+        paintedTheme = initialPaintTheme;
         // This particular Android emulator software driver reports a healthy context
         // but produces an empty composed frame. Do not block ordinary software GPUs.
         let unsupportedEmulator = false;
@@ -347,6 +424,7 @@
           if (!visible || !basemapAllowed || destroyed || token !== generation || !gl) return;
           loaded = true;
           clearTimer();
+          paintVectorTheme();
           if (coastLayer && map.hasLayer(coastLayer)) map.removeLayer(coastLayer);
           // Local country labels stay authoritative even when vector tiles work.
           status('ready', '확대하면 제공되는 한국어 지명을 현지어와 함께 보여줘요.');
@@ -360,6 +438,7 @@
       if (destroyed) return;
       if (visible === nextVisible && basemapAllowed === nextAllowed) {
         if (visible) updateLabels();
+        else if (persistentCoast) void showCoast();
         return;
       }
       visible = nextVisible; basemapAllowed = nextAllowed; generation++;
@@ -371,11 +450,14 @@
         if (basemapEnabled && basemapAllowed) void loadVector(generation);
       } else {
         clearTimer(); controller?.abort(); controller = null;
-        coastController?.abort(); coastController = null; clearTimeout(coastTimer); coastTimer = null;
-        if (coastLayer && map.hasLayer(coastLayer)) map.removeLayer(coastLayer);
+        if (!persistentCoast) {
+          coastController?.abort(); coastController = null; clearTimeout(coastTimer); coastTimer = null;
+          if (coastLayer && map.hasLayer(coastLayer)) map.removeLayer(coastLayer);
+        }
         map.removeLayer(group); map.removeLayer(fallback);
         if (edgeNode) { edgeNode.hidden = true; edgeNode.replaceChildren(); }
         status('hidden', '');
+        if (persistentCoast) void showCoast();
       }
     }
     function enableBasemap() {
@@ -390,10 +472,11 @@
     function disableBasemap(){if(destroyed)return;basemapEnabled=false;generation++;clearTimer();controller?.abort();controller=null;removeVector();status('preview','상세지도를 껐어요. 도시와 코스는 계속 볼 수 있어요.');if(visible)void showCoast();}
     const themeObserver = typeof global.MutationObserver === 'function' ? new global.MutationObserver(() => {
       coastLayer?.setStyle(coastStyle());
-      if (!visible || !basemapAllowed || !basemapEnabled || destroyed) return;
-      generation++; clearTimer(); controller?.abort(); controller = null; removeVector();
-      status('loading', '화면에 맞는 배경지도를 불러오는 중이에요.');
-      void showCoast(); void loadVector(generation);
+      if (destroyed) return;
+      // Theme changes are presentation only: no consent, camera, layer ownership,
+      // network restart or status changes. Keep the successful renderer in place.
+      if ((visible || persistentCoast) && !(lastStatus === 'ready' && gl)) void showCoast();
+      if (visible && basemapAllowed && basemapEnabled) paintVectorTheme();
     }) : null;
     if (themeObserver && document.documentElement) themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     function focusCity(cityId) {
@@ -408,10 +491,13 @@
     function destroy() {
       if (destroyed) return;
       setVisible(false); destroyed = true; generation++;
+      coastController?.abort(); coastController = null; clearTimeout(coastTimer); coastTimer = null;
+      if (coastLayer && map.hasLayer(coastLayer)) map.removeLayer(coastLayer);
       themeObserver?.disconnect();
       map.off('zoomend moveend resize', updateLabels); group.clearLayers(); fallback.clearLayers();
       edgeControl?.remove();
     }
+    if (persistentCoast) void showCoast();
     return Object.freeze({ setVisible, focusCity, enableBasemap, disableBasemap, destroy });
   }
   global.JippiOverseasMap = Object.freeze({ create });

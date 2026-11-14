@@ -47,23 +47,25 @@ const iconPaths = {
   '정책':'M6 3h9l4 4v14H6V3ZM14 3v5h5M9 12h7m-7 4h7'
 };
 const icon = (cat) => '<svg class="category-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (iconPaths[cat] || iconPaths['생활']) + '"/></svg>';
-const themeButton = document.getElementById('btn-theme');
+const themeButtons = [...document.querySelectorAll('[data-theme-choice]')];
 function applyTheme() {
-  const mode = root.dataset.themeMode;
-  root.dataset.theme = mode === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : mode;
+  const themeMode = root.dataset.themeMode;
+  const theme = themeMode === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : themeMode;
+  root.dataset.theme = theme;
   const favicon = document.getElementById('app-favicon');
-  if (favicon) favicon.href = 'icons/favicon-' + root.dataset.theme + '-32.png';
-  const name = {light:'라이트',dark:'다크',system:'시스템'}[mode];
-  const shape = {light:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',dark:'<path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/>',system:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4M12 7v7m0-7a3.5 3.5 0 0 1 0 7"/>'}[mode];
-  themeButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + shape + '</svg><span>' + name + '</span>';
-  themeButton.setAttribute('aria-label', '화면 테마: ' + name + '. 누르면 다음 설정');
+  if (favicon) favicon.href = 'icons/favicon-' + theme + '-32.png';
+  themeButtons.forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.themeChoice===themeMode)));
+  document.querySelectorAll('meta[name="theme-color"]').forEach(meta=>meta.setAttribute('content',theme==='dark'?'#0B1B33':'#FFF7E8'));
 }
-themeButton.addEventListener('click', () => {
-  const modes = ['system','light','dark'];
-  root.dataset.themeMode = modes[(modes.indexOf(root.dataset.themeMode) + 1) % 3];
-  try { localStorage.setItem('nallae-theme', root.dataset.themeMode); } catch (_) {}
+function chooseTheme(themeMode) {
+  if(!['system','light','dark'].includes(themeMode))return;
+  root.dataset.themeMode=themeMode;
+  try { localStorage.setItem('nallae-theme',themeMode); } catch (_) {}
+  // An explicitly chosen setting supersedes a one-off preview link on reload.
+  try { const url=new URL(location.href);if(url.searchParams.has('theme')){url.searchParams.delete('theme');history.replaceState(null,'',url.href);} } catch (_) {}
   applyTheme();
-});
+}
+themeButtons.forEach(button=>button.addEventListener('click',()=>chooseTheme(button.dataset.themeChoice)));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 applyTheme();
 
@@ -1182,12 +1184,12 @@ function setSheetStage(stage, remember = true) {
   else { panel.style.removeProperty('height'); panel.classList.remove('sheet-scroll'); }
   if (mobileSheet.matches && stage === 0) {
     sheetFitTimer = setTimeout(() => {
-      if (!mobileSheet.matches || sheetStage !== 0 || sheetDrag) return;
-      if (selection) {
+      if (!mobileSheet.matches || sheetStage !== 0 || sheetDrag || overseasView || (savedView && outingTheme==='travel')) return;
+      if (selection && selectionAutoFit) {
         const bounds = L.latLngBounds([]);
         selection.codes.forEach(code => bounds.extend(muniByCode.get(code).layer.getBounds()));
         map.fitBounds(bounds, { paddingTopLeft:leftPad(), paddingBottomRight:bottomPad(), maxZoom:11, animate:false });
-      } else if (atHome && homeBounds) fitHome();
+      } else if (!selection && atHome && homeBounds) fitHome();
     }, reducedMotion.matches ? 0 : 320);
   }
   feedTouchAction();
@@ -2492,7 +2494,7 @@ function loadTravel(){
   overseasError=false;
   overseasRequest=fetchJsonData('data/overseas-courses.json').then(JippiTravel.validate).then(data=>{
     overseasData=data;
-    travelMap=JippiOverseasMap.create({map,L,cities:data.cities,getVisibleArea:()=>mapSafeArea(),getPadding:()=>({paddingTopLeft:leftPad(),paddingBottomRight:[bottomPad()[0],Math.min(bottomPad()[1],200)]}),onCitySelect:openTravelCity,onStatus:status=>{travelStatus=status;document.querySelectorAll('[data-travel-basemap]').forEach(x=>x.textContent=travelBasemapButtonText());document.querySelectorAll('[data-travel-status]').forEach(x=>x.textContent=status.message||'');}});
+    travelMap=JippiOverseasMap.create({map,L,cities:data.cities,persistentCoast:true,getVisibleArea:()=>mapSafeArea(),getPadding:()=>({paddingTopLeft:leftPad(),paddingBottomRight:[bottomPad()[0],Math.min(bottomPad()[1],200)]}),onCitySelect:openTravelCity,onStatus:status=>{travelStatus=status;document.querySelectorAll('[data-travel-basemap]').forEach(x=>x.textContent=travelBasemapButtonText());document.querySelectorAll('[data-travel-status]').forEach(x=>x.textContent=status.message||'');}});
     syncTravelMap();
     if(mode==='explore'&&exploreLayer==='outing'&&!selection&&!nextPlanId&&!savedView&&!overseasView&&atHome&&!exploreChoiceChanged)fitHome();
     if(overseasView){travelMapContext=true;atHome=false;selectionAutoFit=false;overseasCityId=overseasCityId||data.cities[0].id;travelMap.focusCity(overseasCityId);}
@@ -2533,7 +2535,7 @@ function focusTravelCourse(id){
 }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.hasAttribute('data-travel-open')){locationRequestId++;overseasView=true;savedView=false;overseasCityId=overseasCityId||overseasData?.cities[0]?.id||'';mode='explore';exploreLayer='outing';applyMode();if(mobileSheet.matches)setSheetStage(2,false);resetSelectedFeed();if(!overseasData)loadTravel();else if(overseasCityId){travelMapContext=true;atHome=false;selectionAutoFit=false;travelMap?.focusCity(overseasCityId);}return;}
+  if(b.hasAttribute('data-travel-open')){locationRequestId++;exploreChoiceChanged=true;travelMapContext=true;atHome=false;selectionAutoFit=false;overseasView=true;savedView=false;overseasCityId=overseasCityId||overseasData?.cities[0]?.id||'';mode='explore';exploreLayer='outing';applyMode();if(mobileSheet.matches)setSheetStage(2,false);resetSelectedFeed();if(!overseasData)loadTravel();else if(overseasCityId){travelMapContext=true;atHome=false;selectionAutoFit=false;travelMap?.focusCity(overseasCityId);}return;}
   if(b.hasAttribute('data-travel-domestic')){locationRequestId++;overseasView=false;savedView=false;outingTheme='date';travelPins.clearLayers();travelMapContext=false;syncTravelMap();applyMode();atHome=!selection;selection?fitSelection():fitHome();resetSelectedFeed();return;}
   if(b.dataset.travelCity){openTravelCity(b.dataset.travelCity);return;}
   if(b.dataset.travelMap){focusTravelCourse(b.dataset.travelMap);return;}
