@@ -7,14 +7,16 @@ const code = readFileSync(new URL('../../web/overseas-map.js', import.meta.url),
 const settle = () => new Promise(resolve => setImmediate(resolve));
 const style = { version: 8, sources: {}, layers: [] };
 
-function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = false, renderer = null, cities, safeCenter, visibleArea, boundsRadius = 3, persistentCoast = false, coastResponse, initialTheme = 'light' } = {}) {
+function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = false, renderer = null, cities, safeCenter, visibleArea, boundsRadius = 3, persistentCoast = false, coastResponse, initialTheme = 'light', obstacles = [], mapOrigin = { left: 0, top: 0 } } = {}) {
   const layers = new Set(), panes = {}, requests = [], renders = [], states = [], events = {};
   let themeChange, zoom = 4, disposalCount = 0, center = { lat: 34.69, lng: 135.5 };
   let viewCenter = safeCenter, safeArea = visibleArea;
+  let obstacleRects = obstacles;
   const convertedPoints = [];
   const groups = [], controls = [], selected = [], coasts = [];
   function node() { return { style: {}, children: [], attributes: {}, hidden: false,
     setAttribute(name, value) { this.attributes[name] = value; },
+    getBoundingClientRect: () => ({ width: 176, height: 44 }),
     appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; },
     addEventListener(name, fn) { this[name] = fn; }
   }; }
@@ -30,6 +32,7 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
     getCenter: () => center, getBounds: () => ({ contains: ([lat, lon]) => Math.abs(lat - center.lat) < boundsRadius && Math.abs(lon - center.lng) < boundsRadius }),
     containerPointToLatLng(point) { convertedPoints.push(point); return viewCenter || center; },
     getSize: () => ({ x: 412, y: 800 }),
+    getContainer: () => ({ getBoundingClientRect: () => mapOrigin }),
     on(names, fn) { for (const name of names.split(' ')) events[name] = fn; },
     off(names) { for (const name of names.split(' ')) delete events[name]; },
     removeLayer(layer) {
@@ -115,7 +118,8 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
   const api = window.JippiOverseasMap.create({
     map, L, cities: cities || [{ id: 'osaka', nameKo: '오사카', nameLocal: '大阪', lat: 34.69, lon: 135.5 }],
     onStatus: value => states.push(value.state), onCitySelect: id => selected.push(id),
-    getVisibleArea: visibleArea ? () => safeArea : undefined, persistentCoast
+    getVisibleArea: visibleArea ? () => safeArea : undefined, persistentCoast,
+    getObstacles: () => obstacleRects
   });
   t.after(() => api.destroy());
   return {
@@ -126,6 +130,7 @@ function fixture(t, { styleResponse, refuseContext = false, brokenAdapter = fals
     center(lat, lng) { center = { lat, lng }; events.moveend?.(); },
     safeCenter(lat, lng) { viewCenter = { lat, lng }; events.moveend?.(); },
     area(rect) { safeArea = rect; events.resize?.(); },
+    obstacles(rects) { obstacleRects = rects; events.resize?.(); },
     get disposalCount() { return disposalCount; }
   };
 }
@@ -452,4 +457,49 @@ test('pending theme retries are removed on GL disposal and cannot repaint an old
   const writes = render.paintChanges.length;
   gl.setPaintFailures(false); gl.emit('idle'); gl.emit('style.load');
   assert.equal(render.paintChanges.length, writes); assert.equal(f.layers.size, 0);
+});
+
+test('east exploration hint clears actual floating controls, using map-relative coordinates', async t => {
+  const f = fixture(t, { safeCenter: { lat: 35.1, lng: 129 },
+    visibleArea: { left: 0, right: 400, top: 80, bottom: 500 }, mapOrigin: { left: 20, top: 30 },
+    obstacles: [{ left: 364, right: 408, top: 124, bottom: 218 }] });
+  f.api.setVisible(true, { basemap: false }); f.zoom(7); await settle();
+  const control = f.controls[0].node;
+  assert.equal(control.hidden, false); assert.equal(control.style.justifyContent, 'flex-end');
+  assert.equal(control.style.top, '196px', 'toolbar bottom converted to 188 map pixels, plus 8px clearance');
+  assert.match(control.children[0].textContent, /日本/);
+  control.children[0].click(); assert.deepEqual(f.selected, ['osaka']);
+  f.obstacles([{ left: 20, right: 64, top: 120, bottom: 214 }]);
+  assert.equal(control.style.top, '90px', 'an obstacle on the other side does not push the east control down');
+  assert.equal(f.external().length, 0);
+});
+
+test('edge control uses the clear opposite side when needed, and hides if neither side has room', async t => {
+  const f = fixture(t, { safeCenter: { lat: 35.1, lng: 129 },
+    visibleArea: { left: 0, right: 400, top: 80, bottom: 220 },
+    obstacles: [{ left: 344, right: 388, top: 94, bottom: 188 }] });
+  f.api.setVisible(true, { basemap: false }); f.zoom(7); await settle();
+  const control = f.controls[0].node;
+  assert.equal(control.hidden, false); assert.equal(control.style.justifyContent, 'flex-start');
+  assert.equal(control.style.top, '90px'); assert.match(control.children[0].textContent, /日本/);
+  assert.match(control.children[0].attributes['aria-label'], /지리적 위치 표식이 아닌/);
+  f.obstacles([{ left: 0, right: 400, top: 90, bottom: 190 }]);
+  assert.equal(control.hidden, true);
+  assert.equal(f.groups[0].items.length, 0, 'no geographic city marker is moved to make room for controls');
+});
+
+test('Incheon west-coast exploration reveals China while Seoul and the national zoom remain quiet', async t => {
+  const f = fixture(t, { safeCenter: { lat: 37.4, lng: 126.63 }, cities: [
+    { id: 'shanghai', nameKo: '상하이', nameLocal: '上海', lat: 31.2, lon: 121.5 }
+  ] });
+  f.api.setVisible(true, { basemap: false }); f.zoom(7); await settle();
+  const control = f.controls[0].node;
+  assert.equal(control.hidden, false); assert.match(control.children[0].textContent, /中国/);
+  control.children[0].click(); assert.deepEqual(f.selected, ['shanghai']);
+  f.safeCenter(37.56, 126.98);
+  assert.equal(control.hidden, true, 'Seoul does not show a west-coast hint');
+  f.safeCenter(37.4, 126.63); f.zoom(6.25);
+  assert.equal(control.hidden, true, 'the initial national zoom remains uncluttered');
+  assert.equal(f.layers.has(f.groups[1]), false);
+  assert.equal(f.external().length, 0);
 });

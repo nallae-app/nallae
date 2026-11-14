@@ -5,7 +5,7 @@
     {
       "id": "v2:[\"outing-a6a7e0dd9d050777\",\"outing-b5cfd6c1cb3a0f0c\"]",
       "city": "부산",
-      "title": "책방골목, 그리고 공원",
+      "title": "책 사이로, 공원 곁으로",
       "reason": "헌책 구경 뒤, 공원으로 이어 보는 두 곳.",
       "sourceType": "editorial-pair",
       "stops": [
@@ -42,7 +42,16 @@
       "legMeters": [
         727
       ],
-      "withFood": false
+      "withFood": false,
+      "cover": {
+        "src": "images/courses/bosu-books.webp",
+        "alt": "보수동책방골목 공식 자료의 쌓인 책들",
+        "author": "하이픈그룹",
+        "publisher": "부산관광공사",
+        "year": 2024,
+        "sourceUrl": "https://www.visitbusan.net/archive/dataSearch/view.nm?dataSid=METADATA011630",
+        "licenseUrl": "https://www.kogl.or.kr/info/license.do"
+      }
     },
     {
       "id": "v2:[\"outing-7271e0be9fe8e2f8\",\"outing-d3dea7c9d8ac9a23\"]",

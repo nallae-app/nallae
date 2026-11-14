@@ -183,7 +183,7 @@
       if (!visible || destroyed || foreignCenter()) return;
       const center = visibleCenter(), zoom = map.getZoom();
       if (!center || zoom < 6.75 || zoom > 8) return;
-      const west = center.lng >= 124.1 && center.lng <= 126.2 && center.lat >= 33 && center.lat <= 39;
+      const west = center.lng >= 124.1 && center.lng <= 126.8 && center.lat >= 33 && center.lat <= 39;
       const east = !west && center.lng >= 128 && center.lng <= 132.3 && center.lat >= 32 && center.lat <= 36.5;
       const city = west ? cities.find(c => /shanghai|상하이/i.test(c.id + c.nameKo))
         : east ? cities.find(c => /osaka|오사카/i.test(c.id + c.nameKo)) : null;
@@ -200,6 +200,33 @@
         top: (area.top + 10) + 'px', width: (area.right - area.left - 16) + 'px',
         display: 'flex', justifyContent: west ? 'flex-start' : 'flex-end', pointerEvents: 'none' });
       edgeNode.hidden = false;
+      const measured = button.getBoundingClientRect?.();
+      const width = measured?.width || 176, height = Math.max(44, measured?.height || 44);
+      if (width > area.right - area.left - 16) { edgeNode.hidden = true; return; }
+      const origin = map.getContainer?.().getBoundingClientRect?.() || { left: 0, top: 0 };
+      const blockers = typeof options.getObstacles === 'function' ? options.getObstacles() : [];
+      const obstacles = (Array.isArray(blockers) ? blockers : [])
+        .filter(rect => rect && [rect.left, rect.right, rect.top, rect.bottom].every(Number.isFinite))
+        .map(rect => ({ left: rect.left - origin.left, right: rect.right - origin.left,
+          top: rect.top - origin.top, bottom: rect.bottom - origin.top }))
+        .sort((a, b) => a.top - b.top);
+      for (const alignLeft of [west, !west]) {
+        const x = alignLeft ? area.left + 8 : area.right - 8 - width;
+        let y = area.top + 10;
+        for (const rect of obstacles) {
+          if (x < rect.right + 8 && x + width > rect.left - 8 && y < rect.bottom + 8 && y + height > rect.top - 8) {
+            y = rect.bottom + 8;
+          }
+        }
+        if (y + height <= area.bottom - 8) {
+          edgeNode.style.top = y + 'px';
+          edgeNode.style.justifyContent = alignLeft ? 'flex-start' : 'flex-end';
+          return;
+        }
+      }
+      // This is a screen exploration control, not a displaced geographic marker.
+      // If neither edge has a clear 44px target, leave the map unobstructed.
+      edgeNode.hidden = true;
     }
     function updateLabels() {
       if (!visible || destroyed) return;

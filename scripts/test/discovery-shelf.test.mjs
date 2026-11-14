@@ -42,14 +42,46 @@ test('활성 도시와 저장 상태만 렌더하며 원본/저장 상태는 바
   const d=copy(),p=d.items[1];p.title='<img src=x onerror="bad()">';p.city='서울<script>bad()</script>';p.reason='" & 방문 수 없음';p.stops[0].name="공원 <이름> '문자'";
   const before=JSON.stringify(d),saved=new Set([p.id]);const html=render({catalog:d,activeIndex:1,saved});
   assert.equal(JSON.stringify(d),before);assert.equal(saved.size,1);
-  assert.ok(!html.includes('<img'));assert.ok(!html.includes('<script>'));
+  assert.ok(!html.includes('<img src=x'));assert.ok(!html.includes('<script>'));
   assert.ok(html.includes('&lt;img'));assert.ok(html.includes('&amp;'));assert.ok(html.includes('&#39;문자&#39;'));
   assert.match(html,/data-discover-open="1"/);assert.match(html,/data-discover-save="1" aria-pressed="true"/);
   assert.ok(!html.includes('data-discover-map'));assert.match(html,/data-outing-choose/);
   assert.ok(!html.includes(catalog.items[0].stops[0].name));
-  assert.equal((html.match(/role="tabpanel"/g)||[]).length,1);
-  assert.equal((html.match(/aria-selected="true"/g)||[]).length,1);
-  assert.match(html,/직선 약 789m/);assert.match(html,/거리로 묶은 두 곳/);
+  assert.ok(!html.includes('role="tablist"'));assert.ok(!html.includes('role="tabpanel"'));
+  assert.match(html,/data-discover-city-picker="1"/);
+  assert.match(html,/직선 789m/);assert.match(html,/두 지점의 직선 연결 · 실제 길 아님/);
   assert.match(render({catalog,activeIndex:-1}),/data-discover-open="0"/);
   assert.match(render({catalog,saved:[catalog.items[0].id]}),/aria-pressed="true"/);
+});
+
+
+test('사진 표지는 안전한 로컬 자산과 출처 메타데이터만 허용하며 원본 저장 구조는 보존한다',()=>{
+  const d=copy(),p=d.items[0];
+  assert.equal(p.title,'책 사이로, 공원 곁으로');
+  const html=render({catalog:d});
+  assert.match(html,/src="images\/courses\/bosu-books\.webp"/);
+  assert.match(html,/data-discover-photo-source="0"/);
+  assert.match(html,/부산관광공사/);assert.match(html,/하이픈그룹/);
+  assert.equal(ctx.NallaeDiscovery.snapshotPlan(p,'2026-11-14T00:00:00Z').id,p.id);
+  for(const [key,value] of [['src','https://example.com/x.webp'],['src','images/courses/../x.webp'],['src','images/courses/x.webp" onerror="bad()'],['sourceUrl','javascript:alert(1)'],['licenseUrl','data:text/html,x'],['year','2024'],['author','']]){
+    const bad=copy();bad.items[0].cover[key]=value;assert.equal(validate(bad),null);assert.equal(render({catalog:bad}),'');
+  }
+  const external=copy();external.items[0].stops[0].sourceUrl='javascript:alert(1)';assert.equal(validate(external),null);
+  d.items[0].cover.author='<script>bad()</script>';d.items[0].cover.alt='" onerror="bad()';
+  const escaped=render({catalog:d});assert.ok(!escaped.includes('<script>'));assert.match(escaped,/&lt;script&gt;/);assert.match(escaped,/alt="&quot; onerror=&quot;bad\(\)"/);
+});
+
+test('사진 없는 도시는 좌표의 북쪽 방향과 동일 축척을 보존한 두 점만 표시한다',()=>{
+  for(const index of [1,2]){
+    const p=catalog.items[index],html=render({catalog,activeIndex:index});
+    assert.ok(!html.includes('discover-cover-photo'));assert.ok(!html.includes('data-discover-photo-source'));
+    assert.match(html,/북쪽 ↑/);assert.match(html,/점선은 실제 길이 아닙니다/);
+    const positions=[...html.matchAll(/transform="translate\(([-\d.]+) ([-\d.]+)\)"/g)].map(m=>[+m[1],+m[2]]);
+    assert.equal(positions.length,2);
+    const [a,b]=p.stops,dx=(b.lon-a.lon)*Math.cos((a.lat+b.lat)/2*Math.PI/180),dy=b.lat-a.lat;
+    const sx=positions[1][0]-positions[0][0],sy=positions[0][1]-positions[1][1];
+    assert.equal(Math.sign(sx),Math.sign(dx));assert.equal(Math.sign(sy),Math.sign(dy));
+    assert.ok(Math.abs(sx*dy-sy*dx)<.0001,'두 축은 동일한 축척이어야 한다');
+    for(const [x,y] of positions){assert.ok(x>=54&&x<=306);assert.ok(y>=39&&y<=95);}
+  }
 });

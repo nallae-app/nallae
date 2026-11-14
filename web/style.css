@@ -839,7 +839,7 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .travel-map-entry { display:flex; align-items:center; justify-content:center; min-height:44px; padding:10px 12px; border:1px solid var(--border-sgg); border-radius:12px; color:var(--brand); font-size:13px; font-weight:700; text-decoration:none; }
 
 /* Korea-first discovery. Keep the approved Jippi logo assets unchanged. */
-:root[data-theme="light"] { --sea:#DFEAED; --land:#F8F4E9; --surface:#FFFEFA; --surface-muted:#F2F0E9; --border-sgg:#D5DCD5; --border-sido:#93A79E; --shadow:0 8px 28px #162B3810; }
+:root[data-theme="light"] { --sea:#D2E3E9; --land:#F8F4E9; --surface:#FFFEFA; --surface-muted:#F2F0E9; --border-sgg:#D5DCD5; --border-sido:#93A79E; --shadow:0 8px 28px #162B3810; }
 :root[data-theme="dark"] { --sea:#0E2135; --land:#263F51; --surface:#13283C; --surface-muted:#1C354A; --border-sgg:#365365; --border-sido:#6C8A99; --shadow:0 8px 28px #0002; }
 .region-label-anchor { pointer-events:none; width:0!important; height:0!important; }
 .region-label { left:0; top:0; transform:translate(-50%,-50%); font-size:12px; font-weight:650; line-height:18px; letter-spacing:-.035em; text-shadow:0 1px 2px var(--land),0 0 3px var(--land); }
@@ -984,9 +984,9 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
 .discover-detail-list .outing-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .discover-detail-list .outing-actions button { flex:1; min-height:44px; }
 .discover-detail::backdrop { background:#0B1B3370; backdrop-filter:blur(2px); }
-:root[data-course-welcome="true"][data-theme="dark"] .leaflet-munis-pane path { fill:#E7E3D6!important; fill-opacity:1!important; stroke:#BFC4B6!important; transition:none; }
+:root[data-course-welcome="true"][data-theme="dark"] .leaflet-munis-pane path { fill:#42606C!important; fill-opacity:1!important; stroke:#526E77!important; transition:none; }
 :root[data-course-welcome="true"][data-theme="dark"] .leaflet-provs-pane path { stroke:#8C9F97!important; transition:none; }
-:root[data-course-welcome="true"][data-theme="dark"] .region-label { color:#183247; text-shadow:0 1px 2px #F8F4E9; }
+:root[data-course-welcome="true"][data-theme="dark"] .region-label { color:#E4ECE9; text-shadow:0 1px 2px #26434D; }
 @media(max-width:759px) {
   :root[data-course-welcome="true"] .panel { border-radius:25px 25px 0 0; }
   :root[data-course-welcome="true"] .panel-handle { height:20px; }
@@ -1018,7 +1018,7 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
 }
 
 /* At national scale, province lines carry the map instead of hundreds of tiny borders. */
-:root[data-course-welcome="true"][data-theme="dark"]:not([data-map-detail="local"]) .leaflet-munis-pane path { stroke:#E7E3D6!important; stroke-opacity:1!important; stroke-width:.6!important; }
+:root[data-course-welcome="true"][data-theme="dark"]:not([data-map-detail="local"]) .leaflet-munis-pane path { stroke:#526E77!important; stroke-opacity:1!important; stroke-width:.6!important; }
 :root[data-course-welcome="true"][data-theme="dark"] .leaflet-provs-pane path { stroke-width:.8!important; stroke-opacity:.65!important; }
 
 /* The same paper card carries selected and saved domestic courses. */
@@ -1049,7 +1049,7 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
 }
 
 /* Paper cartography stays consistent while browsing and saving domestic courses. */
-:root[data-theme="dark"]:is([data-navigation="courses"],[data-navigation="saved"]) .region-label { color:#183247;text-shadow:0 1px 2px #F8F4E9; }
+:root[data-theme="dark"]:is([data-navigation="courses"],[data-navigation="saved"]) .region-label { color:#E4ECE9;text-shadow:0 1px 2px #26434D; }
 :root[data-theme="dark"]:is([data-navigation="courses"],[data-navigation="saved"]) .leaflet-provs-pane path { stroke:#8C9F97!important;stroke-opacity:.65!important; }
 .discover-detail { --surface:#FFF6E4;--surface-muted:#F1E8D7;--text:#14293F;--text-muted:#5D686A;--border-sgg:#DDD3C0;--brand:#9A410E;--selection-fill:#F8E5BA; }
 
@@ -1077,3 +1077,16 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
 #settings-dialog #btn-theme button { min-width:44px;min-height:44px;padding:8px 6px;border:1px solid var(--border-sgg);border-radius:12px;background:var(--surface);color:var(--text);font-size:14px; }
 #settings-dialog #btn-theme button[aria-pressed="true"] { border-color:var(--brand);background:var(--selection-fill);color:var(--brand);font-weight:750; }
 @media(max-width:359px){.topbar .controls{gap:4px}.topbar .controls .global-settings{padding:8px;}}
+
+/* Global settings belongs to the header; map actions belong to the map. */
+.topbar .global-settings { display:flex; align-items:center; justify-content:center; flex:none; width:44px; min-width:44px; min-height:44px; padding:10px; border:1px solid var(--border-sgg); border-radius:50%; background:var(--surface); color:var(--text); box-shadow:none; }
+.topbar .global-settings svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.map-controls.controls { position:fixed; top:var(--map-controls-top,100px); right:max(12px,env(safe-area-inset-right)); left:auto; display:flex; flex-direction:column; align-items:stretch; gap:6px; z-index:950; pointer-events:auto; }
+.map-controls.controls button { display:flex; align-items:center; justify-content:center; width:44px; min-height:44px; min-width:44px; height:44px; padding:10px; border:1px solid var(--border-sgg); border-radius:50%; background:var(--surface); color:var(--text); box-shadow:0 3px 12px #102A3B12; font:inherit; font-size:12px; line-height:18px; }
+.map-controls.controls button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.map-controls.controls svg { width:18px; height:18px; flex:none; }
+@media(max-width:759px) {
+  :root[data-map-controls-placement="header"] .map-controls.controls { top:var(--map-controls-top,max(12px,env(safe-area-inset-top))); right:calc(max(16px,env(safe-area-inset-right)) + 52px); flex-direction:row; z-index:1001; }
+  :root[data-map-controls-placement="header"] .map-controls.controls button { width:44px; min-width:44px; padding:10px; box-shadow:none; }
+  :root[data-map-controls-placement="header"] .map-controls.controls button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+}
