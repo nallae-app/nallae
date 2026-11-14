@@ -39,7 +39,7 @@ b,strong,h1,h2 { font-weight:600; }
 a { color:var(--brand); }
 :focus-visible { outline:3px solid var(--brand); outline-offset:3px; }
 [hidden] { display:none!important; }
-#map { position:fixed; inset:0; background:var(--sea); }
+#map { position:fixed; inset:0; background:var(--sea); touch-action:none; }
 .leaflet-container { background:var(--sea); font-family:inherit; }
 .leaflet-control-attribution { background:var(--surface)!important; color:var(--text-muted)!important; font-size:10px; }
 .leaflet-control-attribution a { color:var(--text-muted)!important; }

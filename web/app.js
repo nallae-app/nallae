@@ -77,6 +77,63 @@ const locateBtn = document.getElementById('btn-locate');
 document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-dialog').showModal());
 const toastEl = document.getElementById('toast');
 const map = L.map('map', { zoomControl: false, minZoom: 3, maxZoom: 18, zoomSnap: 0.25 });
+/* MAP_GESTURE_GUARD_START */
+(() => {
+  const surface = document.getElementById('map');
+  if (!surface) return;
+  const editable = 'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]';
+  let contacts = [], mapGesture = false;
+  const element = target => target?.nodeType === 3 ? target.parentElement : target;
+  const isEditable = target => Boolean(element(target)?.closest?.(editable));
+  const inApp = target => {
+    const node = element(target);
+    return Boolean(node && (surface.contains(node) || node.closest?.('.topbar,.controls,#panel')));
+  };
+  const onMap = target => {
+    const node = element(target);
+    return Boolean(node && surface.contains(node) && !isEditable(node) && !node.closest?.('.leaflet-control,.leaflet-popup'));
+  };
+  const owns = targets => targets.length >= 2 && targets.some(onMap)
+    && targets.every(target => inApp(target) && !isEditable(target));
+  const cancelDefault = event => { if (event.cancelable) event.preventDefault(); };
+  const track = event => {
+    contacts = Array.from(event.touches || []);
+    mapGesture = owns(contacts.map(touch => touch.target));
+  };
+  const touch = event => {
+    track(event);
+    // Cancel only the browser's page zoom. Leaflet still receives the event and
+    // performs its own map pinch; never stop propagation or cancel a single drag.
+    if (mapGesture) cancelDefault(event);
+  };
+  const reset = () => { contacts = []; mapGesture = false; };
+  const listenerOptions = { capture: true, passive: false };
+  document.addEventListener('touchstart', touch, listenerOptions);
+  document.addEventListener('touchmove', touch, listenerOptions);
+  document.addEventListener('touchend', track, { capture: true, passive: true });
+  document.addEventListener('touchcancel', reset, { capture: true, passive: true });
+  document.addEventListener('gesturestart', event => {
+    if (isEditable(event.target) || contacts.some(touch => isEditable(touch.target))) { mapGesture = false; return; }
+    if (!mapGesture) {
+      const targets = contacts.map(touch => touch.target);
+      // A gesture event can precede its second touch snapshot. Do not infer that
+      // unknown contact: it may belong to an input or another reading surface.
+      mapGesture = owns(targets);
+    }
+    if (mapGesture) cancelDefault(event);
+  }, listenerOptions);
+  document.addEventListener('gesturechange', event => {
+    if (isEditable(event.target)) { mapGesture = false; return; }
+    if (mapGesture) cancelDefault(event);
+  }, listenerOptions);
+  document.addEventListener('gestureend', event => {
+    if (mapGesture) cancelDefault(event);
+    reset();
+  }, listenerOptions);
+  window.addEventListener('blur', reset);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) reset(); });
+})();
+/* MAP_GESTURE_GUARD_END */
 map.attributionControl.setPrefix(false)
   .addAttribution('행정구역 © 통계청 SGIS(공공누리 1유형) · <a href="https://github.com/vuski/admdongkor" target="_blank" rel="noopener">admdongkor</a>');
 map.createPane('munis').style.zIndex = 400;
