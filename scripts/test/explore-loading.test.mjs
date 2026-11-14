@@ -97,3 +97,13 @@ test('식당 좌표 응답 실패에도 준비된 공원·관광 코스를 날�
   assert.equal(h.renders.length,1);assert.equal(h.renders[0].layer,'outing');assert.equal(h.renders[0].locations,0);
   h.requests.get('weather').resolve({sgg:{}});await job;assert.equal(h.renders.length,1);
 });
+
+test('코스 재시도는 실패한 식당 자료만 요청하고 성공 후 실패를 지우며 현재 스크롤을 보존한다',async()=>{
+  const h=setup();h.ctx.exploreReady=true;h.ctx.outingIndex={total:1};h.ctx.placesData=null;h.ctx.placeLocations=null;
+  h.ctx.exploreFailed=new Set(['places','place-locations','weather']);h.ctx.feedEl.scrollTop=146;
+  const retry=app.match(/function retryOutingCore\([^]*?\n}/)?.[0];assert.ok(retry);vm.runInContext(retry,h.ctx);
+  const job=h.ctx.retryOutingCore();assert.deepEqual([...h.requests.keys()].sort(),['place-locations','places']);
+  h.requests.get('places').resolve({items:[{id:'restaurant'}]});h.requests.get('place-locations').resolve({items:{restaurant:{lat:37.65,lon:127.06}}});await job;
+  assert.equal(h.ctx.exploreFailed.has('places'),false);assert.equal(h.ctx.exploreFailed.has('place-locations'),false);assert.equal(h.ctx.exploreFailed.has('weather'),true);
+  assert.equal(h.ctx.feedEl.scrollTop,146);assert.equal(h.renders.length,1);assert.equal(h.renders[0].places,1);assert.equal(h.renders[0].locations,1);
+});

@@ -1869,6 +1869,17 @@ function updateBeforeOuting() {
   const summary=feedEl.querySelector('[data-before-outing]');if(!summary)return;
   const html=beforeOutingContent();if(summary.innerHTML!==html)summary.innerHTML=html;
 }
+function outingCoreFailureNote() {
+  if(savedView||outingTheme!=='date')return '';
+  const failed=['places','place-locations'].filter(key=>exploreFailed.has(key));if(!failed.length)return '';
+  const names=failed.length===2?'식당 목록·위치':failed[0]==='places'?'식당 목록':'식당 위치';
+  const message=!placesData||!placeLocations?names+' 자료를 받지 못해 공원·관광지로 코스를 찾아요.':names+' 자료를 새로 받지 못했어요. 이전 자료를 사용해요.';
+  return '<li class="explore-source" role="status">'+message+' <button type="button" data-outing-core-retry>식당 자료 다시 받기</button></li>';
+}
+function retryOutingCore() {
+  const failed=['places','place-locations'].filter(key=>exploreFailed.has(key));
+  return failed.length?loadExploreData(failed):Promise.resolve();
+}
 function renderOutingCards() {
   if(outingTheme==='restaurants') {outingPlans=[];outingShown=[];renderOutingMarkers([]);const xs=allPlaceItems().filter(x=>savedPlaces.has(x.id));feedEl.innerHTML='<li class="explore-source">저장한 맛집 '+xs.length+'곳 · 현재 지역과 관계없이 보여요.</li>'+xs.map(x=>'<li class="festival-card"><h3>'+escapeHtml(x.name)+'</h3><p>'+escapeHtml(x.address)+'</p>'+addressLink(x.address)+'</li>').join('')+(xs.length?'':'<li class="empty">맛집 화면에서 가보고 싶은 식당을 저장해 보세요.</li>');return;}
   if(outingTheme==='plans') {
@@ -1886,7 +1897,7 @@ function renderOutingCards() {
   outingShown=items;
   const pending=selection&&[...selection.codes].some(c=>outingPending.has(c));
   const failed=selection&&[...selection.codes].filter(c=>outingErrors.has(c));
-  const note=(pending?'<li class="explore-source" role="status">주변 장소를 불러오고 있어요…</li>':'')+(failed?.length?'<li class="explore-source">일부 지역 자료를 받지 못했어요. <button type="button" data-outing-retry>다시 받기</button></li>':'');
+  const note=outingCoreFailureNote()+(pending?'<li class="explore-source" role="status">주변 장소를 불러오고 있어요…</li>':'')+(failed?.length?'<li class="explore-source">일부 지역 자료를 받지 못했어요. <button type="button" data-outing-retry>다시 받기</button></li>':'');
   const empty='<li class="empty">'+(!selection&&outingTheme==='park'?'공원은 위에서 둘러볼 동네를 골라 주세요.':outingTheme==='saved'?'아직 저장한 곳이 없어요. 마음에 드는 장소를 모아보세요.':'조건에 맞는 장소 자료가 없어요. 검색어 또는 지역을 바꿔보세요.')+'</li>';
   if(outingTheme==='date') {
     const foods=allPlaceItems().map(x=>({...x,...placeLocation(x)}));
@@ -1942,6 +1953,7 @@ exploreTools.addEventListener('click',e=>{const dialog=exploreTools.querySelecto
 feedEl.addEventListener('click',e=>{
   if(mode!=='explore'||exploreLayer!=='outing')return;const b=e.target.closest('button');if(!b)return;
   if(b.dataset.beforeOutingLayer){exploreChoiceChanged=true;savedView=false;exploreLayer=b.dataset.beforeOutingLayer;if(exploreLayer==='festival')festivalPeriod='all';applyMode();feedEl.scrollTop=0;return;}
+  if(b.hasAttribute('data-outing-core-retry')){b.disabled=true;b.textContent='다시 받는 중…';retryOutingCore();return;}
   if(b.hasAttribute('data-plan-next')){toggleNextOuting(b.dataset.planNext);return;}
   if(b.hasAttribute('data-next-outing-open')){openNextOuting();return;}
   if(b.hasAttribute('data-outing-near'))locateBtn.click();
