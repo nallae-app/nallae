@@ -803,10 +803,10 @@ function syncCategories() {
 chipsEl.addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
-  if (mode === 'explore') { if (b.dataset.layer) { exploreChoiceChanged=true;exploreLayer=b.dataset.layer; try { localStorage.setItem('nallae-explore-layer',exploreLayer); } catch (_) {} map.closePopup(); feedEl.scrollTop=0; renderExplore(); fitSheet(); } return; }
+  if (mode === 'explore') { if (b.dataset.layer) { exploreChoiceChanged=true;exploreLayer=b.dataset.layer; try { localStorage.setItem('nallae-explore-layer',exploreLayer); } catch (_) {} map.closePopup(); renderExplore(); fitSheet(); resetSelectedFeed(); } return; }
   category = b.dataset.cat || null;
   chipsEl.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-  renderFeed();
+  renderFeed(); resetSelectedFeed();
 });
 const favoriteKey = 'nallae-favorites-v1';
 let favorites = [], startCode = null, chosenCode = null;
@@ -1078,6 +1078,28 @@ function feedTouchAction() {
   const top = panel.classList.contains('sheet-scroll') ? panel.scrollTop : feedEl.scrollTop;
   feedEl.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && top <= 0);
   panel.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && top <= 0 && panel.classList.contains('sheet-scroll'));
+}
+// 명시적으로 다른 화면/분류를 고를 때만 호출한다. 작은 전체 시트는 panel이,
+// 그 외에는 feed가 스크롤하므로 양쪽을 비워 새 화면의 첫 정보를 보여 준다.
+function resetSelectedFeed() {
+  panel.scrollTop = 0;
+  feedEl.scrollTop = 0;
+  feedTouchAction();
+}
+// 소식 ↔ 생활 전환의 읽던 위치는 화면별로 보관한다. 코스·날씨·주차의
+// 서로 다른 목록 위치를 같은 생활 모드 슬롯에 덮어쓰지 않는다.
+const selectedFeedPositions = new Map();
+function selectedFeedKey() {
+  return mode === 'news' ? 'news' : exploreLayer + ':' + (savedView ? 'saved:' + outingTheme : 'browse');
+}
+function rememberSelectedFeed() {
+  selectedFeedPositions.set(selectedFeedKey(), { panel:panel.scrollTop, feed:feedEl.scrollTop });
+}
+function restoreSelectedFeed() {
+  const position = selectedFeedPositions.get(selectedFeedKey());
+  panel.scrollTop = position?.panel || 0;
+  feedEl.scrollTop = position?.feed || 0;
+  feedTouchAction();
 }
 function setSheetStage(stage, remember = true) {
   if (stage > 0) cancelRoutePicking();
@@ -1849,7 +1871,7 @@ function placeCard(x) {
 feedEl.addEventListener('click',e=>{const b=e.target.closest('[data-place-map]');if(!b)return;const x=allPlaceItems().find(x=>x.id===b.dataset.placeMap),p=x&&placeLocation(x);if(!p)return;atHome=false;selectionAutoFit=false;setSheetStage(0);clearTimeout(sheetFitTimer);map.setView([p.lat,p.lon],17,{animate:false});renderPlaceMarkers();placeMarkerById.get(x.id)?.openPopup();});
 exploreTools.addEventListener('input',e=>{ if(e.target.matches('[data-places-search]')) { placesQuery=e.target.value; placesLimit=40; renderPlaceCards(); } });
 exploreTools.addEventListener('click',e=>{ const b=e.target.closest('[data-places-source]'); if(!b) return; placesSource=b.dataset.placesSource; placesLimit=40; renderExplore(); });
-exploreTools.addEventListener('click',e=>{if(!e.target.closest('[data-more-food]'))return;exploreLayer='food';try{localStorage.setItem('nallae-explore-layer','food');}catch(_){}renderExplore();});
+exploreTools.addEventListener('click',e=>{if(!e.target.closest('[data-more-food]'))return;exploreLayer='food';try{localStorage.setItem('nallae-explore-layer','food');}catch(_){}renderExplore();resetSelectedFeed();});
 exploreTools.addEventListener('click',e=>{if(e.target.closest('[data-places-saved]')){placesOnlySaved=!placesOnlySaved;placesShowAll=true;placesLimit=40;renderExplore();}});
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-places-scope]');if(!b)return;placesShowAll=b.dataset.placesScope==='all';placesLimit=40;renderExplore();});
 feedEl.addEventListener('click',e=>{
@@ -2080,14 +2102,14 @@ exploreTools.addEventListener('click',e=>{if(e.target.closest('[data-outing-date
 exploreTools.addEventListener('click',e=>{const dialog=exploreTools.querySelector('.outing-filters-dialog');if(e.target.closest('[data-outing-filters]'))openOutingFilters();if(e.target.closest('[data-outing-filters-close]'))dialog?.close();});
 feedEl.addEventListener('click',e=>{
   if(mode!=='explore'||exploreLayer!=='outing')return;const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.beforeOutingLayer){exploreChoiceChanged=true;savedView=false;exploreLayer=b.dataset.beforeOutingLayer;if(exploreLayer==='festival')festivalPeriod='all';applyMode();feedEl.scrollTop=0;return;}
+  if(b.dataset.beforeOutingLayer){exploreChoiceChanged=true;savedView=false;exploreLayer=b.dataset.beforeOutingLayer;if(exploreLayer==='festival')festivalPeriod='all';applyMode();resetSelectedFeed();return;}
   if(b.hasAttribute('data-outing-core-retry')){b.disabled=true;b.textContent='다시 받는 중…';retryOutingCore();return;}
   if(b.hasAttribute('data-plan-next')){toggleNextOuting(b.dataset.planNext);return;}
   if(b.hasAttribute('data-next-outing-open')){openNextOuting();return;}
   if(b.hasAttribute('data-outing-near'))locateBtn.click();
   if(b.hasAttribute('data-outing-choose'))openOutingFilters();
-  if(b.hasAttribute('data-outing-saved-plans')){outingTheme='plans';renderOutings();fitSheet();}
-  if(b.hasAttribute('data-outing-all')){outingTheme='';renderOutings();fitSheet();}
+  if(b.hasAttribute('data-outing-saved-plans')){outingTheme='plans';renderOutings();fitSheet();resetSelectedFeed();}
+  if(b.hasAttribute('data-outing-all')){outingTheme='';renderOutings();fitSheet();resetSelectedFeed();}
   if(b.hasAttribute('data-outing-more')){outingLimit+=30;renderOutingCards();}
   if(b.hasAttribute('data-plans-more')){outingPlanLimit=6;renderOutingCards();}
   if(b.hasAttribute('data-community-retry'))loadCommunity();
@@ -2145,7 +2167,7 @@ feedEl.addEventListener('click',e=>{
 });
 
 let festivals = [], festivalUpdated = null, festivalFailed = false, festivalLoaded = false, festivalPeriod='all';
-let festivalMarkers = L.layerGroup(), celebrated = false, newsScroll = 0, festivalScroll = 0;
+let festivalMarkers = L.layerGroup(), celebrated = false;
 try { celebrated = sessionStorage.getItem('nallae-celebrated') === '1'; } catch (_) {}
 const dayNumber = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? Date.parse(value + 'T00:00:00+09:00') / 86400000 : NaN;
 const today = () => dayNumber(new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Seoul'}));
@@ -2183,7 +2205,7 @@ function updateFestivalStatus() {
 }
 exploreTools.addEventListener('click',e=>{
   const button=e.target.closest('[data-festival-period]');
-  if(button){festivalPeriod=button.dataset.festivalPeriod;renderExplore();feedEl.scrollTop=0;}
+  if(button){festivalPeriod=button.dataset.festivalPeriod;renderExplore();resetSelectedFeed();}
 });
 function renderFestivals() {
   // 상단 유머 문구는 '보고 있는 지역'(선택 지역+맞닿은 곳)에 위급·긴급 소식이 있을 때만 끈다. 카드별 억제는 따로(restrained).
@@ -2271,15 +2293,15 @@ function applyMode() {
   syncCategories(); renderFeed(); fitSheet();
 }
 document.querySelectorAll('[data-mode-choice]').forEach(b=>b.addEventListener('click',()=>{
+  rememberSelectedFeed();
   exploreChoiceChanged=true;savedView=false;
   if (mode === b.dataset.modeChoice) {
-    if(mode==='explore'&&['places','outing'].includes(exploreLayer)) { const utilities=availableLayers().filter(x=>!['places','outing'].includes(x[0]));exploreLayer=utilities.find(x=>x[0]===lastUtilityLayer)?.[0]||utilities[0]?.[0]||exploreLayer;applyMode(); }
+    if(mode==='explore'&&['places','outing'].includes(exploreLayer)) { const utilities=availableLayers().filter(x=>!['places','outing'].includes(x[0]));exploreLayer=utilities.find(x=>x[0]===lastUtilityLayer)?.[0]||utilities[0]?.[0]||exploreLayer;applyMode();resetSelectedFeed(); }
     return;
   }
-  if (mode === 'news') newsScroll=feedEl.scrollTop; else festivalScroll=feedEl.scrollTop;
   mode=b.dataset.modeChoice;
   try { localStorage.setItem('nallae-mode',mode); } catch (_) {}
-  applyMode(); feedEl.scrollTop=mode==='news' ? newsScroll : festivalScroll;
+  applyMode(); restoreSelectedFeed();
 }));
 map.on('moveend zoomend',renderFestivalMarkers);
 document.querySelector('[data-open-places]').addEventListener('click',()=>{
@@ -2287,7 +2309,7 @@ document.querySelector('[data-open-places]').addEventListener('click',()=>{
   if(!placesData){toast('식당 자료를 불러오는 중이에요. 잠시 후 다시 눌러 주세요.');return;}
   mode='explore';exploreLayer='places';
   try{localStorage.setItem('nallae-mode',mode);localStorage.setItem('nallae-explore-layer',exploreLayer);}catch(_){}
-  applyMode();feedEl.scrollTop=0;if(mobileSheet.matches&&sheetStage===0)setSheetStage(1);
+  applyMode();if(mobileSheet.matches&&sheetStage===0)setSheetStage(1);resetSelectedFeed();
 });
 document.querySelector('[data-open-outings]').addEventListener('click',()=>{
   if(mode==='explore'&&exploreLayer==='outing'&&!savedView&&outingTheme==='date'){if(mobileSheet.matches)setSheetStage(2,false);return;}
@@ -2295,13 +2317,13 @@ document.querySelector('[data-open-outings]').addEventListener('click',()=>{
   if(!outingIndex){toast('놀거리 자료를 불러오는 중이에요.');loadExploreData(['outings/index']);return;}
   mode='explore';exploreLayer='outing';
   try{localStorage.setItem('nallae-mode',mode);localStorage.setItem('nallae-explore-layer',exploreLayer);}catch(_){}
-  applyMode();feedEl.scrollTop=0;if(mobileSheet.matches)setSheetStage(2,false);
+  applyMode();if(mobileSheet.matches)setSheetStage(2,false);resetSelectedFeed();
 });
-document.querySelector('[data-open-saved]').addEventListener('click',()=>{if(savedView&&mode==='explore'&&exploreLayer==='outing'){if(mobileSheet.matches)setSheetStage(2,false);return;}exploreChoiceChanged=true;savedView=true;outingTheme='plans';outingQuery='';mode='explore';exploreLayer='outing';applyMode();feedEl.scrollTop=0;if(mobileSheet.matches)setSheetStage(2,false);});
-document.querySelector('[data-open-utilities]').addEventListener('click',()=>{savedView=false;exploreChoiceChanged=true;mode='explore';const layers=availableLayers().filter(x=>!['places','outing'].includes(x[0]));exploreLayer=layers.find(x=>x[0]===lastUtilityLayer)?.[0]||layers[0]?.[0]||'weather';applyMode();feedEl.scrollTop=0;});
+document.querySelector('[data-open-saved]').addEventListener('click',()=>{if(savedView&&mode==='explore'&&exploreLayer==='outing'){if(mobileSheet.matches)setSheetStage(2,false);return;}exploreChoiceChanged=true;savedView=true;outingTheme='plans';outingQuery='';mode='explore';exploreLayer='outing';applyMode();if(mobileSheet.matches)setSheetStage(2,false);resetSelectedFeed();});
+document.querySelector('[data-open-utilities]').addEventListener('click',()=>{savedView=false;exploreChoiceChanged=true;mode='explore';const layers=availableLayers().filter(x=>!['places','outing'].includes(x[0]));exploreLayer=layers.find(x=>x[0]===lastUtilityLayer)?.[0]||layers[0]?.[0]||'weather';applyMode();resetSelectedFeed();});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-quick-region]');if(b){const m=muniByCode.get(b.dataset.quickRegion);if(m){exploreTools.querySelector('.outing-filters-dialog')?.close();select(m,false);}}});
 exploreTools.addEventListener('change',e=>{if(e.target.matches('[data-outing-stop-count]')){outingStopCount=Number(e.target.value)===3?3:2;outingTheme='date';outingPlanLimit=3;renderOutingCards();}});
-exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-saved-tab]');if(b){outingTheme=b.dataset.savedTab;renderOutings();}});
+exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-saved-tab]');if(b){outingTheme=b.dataset.savedTab;renderOutings();resetSelectedFeed();}});
 exploreTools.addEventListener('input',e=>{if(!e.target.matches('[data-outing-region-search]'))return;const q=e.target.value.replace(/\s/g,'').toLowerCase();const list=exploreTools.querySelector('.outing-region-results');list.innerHTML=q?munis.filter(m=>label(m).replace(/\s/g,'').toLowerCase().includes(q)).slice(0,12).map(m=>'<button type="button" data-quick-region="'+m.code+'">'+escapeHtml(label(m))+'</button>').join('')||'<p>해당 동네를 찾지 못했어요.</p>':'';});
 fetchJsonData('data/regions.json', { cache: 'default' })
   .then((topo) => {
