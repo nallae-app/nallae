@@ -96,7 +96,24 @@
       "legMeters": [
         789
       ],
-      "withFood": false
+      "withFood": false,
+      "cover": {
+        "src": "images/regions/seoul-cheonggyecheon.webp",
+        "width": 900,
+        "height": 600,
+        "author": "lumoplank",
+        "publisher": "Wikimedia Commons",
+        "year": 2024,
+        "dateLabel": "2024년 9월 28일 이전 촬영",
+        "alt": "서울 청계천의 물길과 산책로, 아치형 다리와 도심 건물",
+        "placeName": "청계천",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cheonggyecheon,_Seoul_-_Cheonggyecheon2321.jpg",
+        "licenseName": "CC0 1.0 Universal",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "objectPosition": "50% 65%",
+        "kind": "region",
+        "regionCode": "11"
+      }
     },
     {
       "id": "v2:[\"outing-085ab660db3928fe\",\"outing-8f760593315a6935\"]",

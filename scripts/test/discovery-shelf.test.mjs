@@ -89,6 +89,7 @@ test('사진 없는 도시는 좌표의 북쪽 방향과 동일 축척을 보존
  test('첫 장소 사진의 연결은 장소 ID로 검증하며 코스 순서나 실제 장소를 사진에 맞춰 바꾸지 않는다',()=>{
   for(let index=0;index<catalog.items.length;index++){
     const item=catalog.items[index];if(!item.cover)continue;
+    if(item.cover.kind==='region'){assert.equal(item.cover.regionCode,item.stops[0].sgg.slice(0,2));assert.notEqual(item.cover.placeId,item.stops[0].id);continue;}
     assert.equal(item.cover.placeId,item.stops[0].id);
     assert.ok(fs.existsSync(new URL('../../web/'+item.cover.src,import.meta.url)));
     const html=render({catalog,activeIndex:index});
@@ -97,4 +98,11 @@ test('사진 없는 도시는 좌표의 북쪽 방향과 동일 축척을 보존
     assert.match(html,/discover-cover-photo/);assert.match(html,/class="discover-photo-fallback" hidden/);assert.match(html,/사진을 불러오지 못했어요/);
     const mismatch=copy();mismatch.items[index].cover.placeId=item.stops[1].id;assert.equal(validate(mismatch),null);
   }
+});
+
+test('지역 풍경은 코스 첫 장소로 표시하지 않으며 다른 시도 사진을 붙이지 않는다',()=>{
+  const d=copy(),p=d.items[1],html=render({catalog:d,activeIndex:1});
+  assert.equal(p.cover.kind,'region');assert.match(html,/서울 풍경 · 청계천/);assert.ok(!html.includes('첫 장소 · 청계천'));
+  p.cover.regionCode='26';assert.equal(validate(d),null);
+  const bad=copy();bad.items[1].cover.kind='unknown';assert.equal(validate(bad),null);
 });

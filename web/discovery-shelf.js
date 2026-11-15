@@ -9,15 +9,19 @@
     const h=Math.sin(lat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(lon/2)**2;
     return 6371000*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
   };
+  const regionCodes=new Set(['11','26','27','28','12','30','31','36','41','51','43','44','52','47','48','50']);
   const planId=stops=>'v2:'+JSON.stringify(stops.map(x=>x.id));
-  const validCover=c=>c&&Number.isInteger(c.width)&&c.width>0&&c.width<=6000&&Number.isInteger(c.height)&&c.height>0&&c.height<=6000&&/^images\/courses\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:webp|png|jpe?g)$/.test(c.src)&&[c.alt,c.author,c.publisher].every(text)&&Number.isInteger(c.year)&&c.year>=1900&&c.year<=2100&&https(c.sourceUrl)&&https(c.licenseUrl)&&(c.objectPosition===undefined||/^(?:100|[0-9]{1,2})% (?:100|[0-9]{1,2})%$/.test(c.objectPosition));
+  const validCover=c=>c&&Number.isInteger(c.width)&&c.width>0&&c.width<=6000&&Number.isInteger(c.height)&&c.height>0&&c.height<=6000&&/^images\/(?:courses|regions)\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:webp|png|jpe?g)$/.test(c.src)&&[c.alt,c.author,c.publisher].every(text)&&Number.isInteger(c.year)&&c.year>=1900&&c.year<=2100&&https(c.sourceUrl)&&https(c.licenseUrl)&&(c.dateLabel===undefined||text(c.dateLabel))&&(c.licenseName===undefined||text(c.licenseName))&&(c.objectPosition===undefined||/^(?:100|[0-9]{1,2})% (?:100|[0-9]{1,2})%$/.test(c.objectPosition));
   function validate(catalog) {
     if(catalog?.version!==1||!Array.isArray(catalog.items)||!catalog.items.length||catalog.items.length>6)return null;
     const ids=new Set();
     for(const p of catalog.items){
       if(!p||p.sourceType!=='editorial-pair'||![p.city,p.title,p.reason].every(text)||!Array.isArray(p.stops)||p.stops.length!==2)return null;
       if(p.stops.some(x=>!x||![x.id,x.name,x.address,x.district,x.sgg,x.kind,x.source,x.referenceDate].every(text)||!https(x.sourceUrl)||!point(x)||!['park','attraction'].includes(x.type)))return null;
-      if(p.cover!==undefined&&(!validCover(p.cover)||p.cover.placeId!==p.stops[0].id))return null;
+      if(p.cover!==undefined){
+        const c=p.cover,matched=c.kind==='region'?regionCodes.has(c.regionCode)&&c.regionCode===p.stops[0].sgg.slice(0,2)&&text(c.placeName):(!c.kind||c.kind==='first-stop')&&c.placeId===p.stops[0].id;
+        if(!validCover(c)||!matched)return null;
+      }
       if(p.stops[0].id===p.stops[1].id||p.stops[0].sgg!==p.stops[1].sgg||p.id!==planId(p.stops)||ids.has(p.id))return null;
       const meters=distance(...p.stops);
       if(meters<100||meters>2000||!Number.isInteger(p.meters)||Math.abs(p.meters-meters)>1||!Array.isArray(p.legMeters)||p.legMeters.length!==1||p.legMeters[0]!==p.meters||p.withFood!==false)return null;
@@ -38,7 +42,7 @@
     if(!validate(catalog))return '';
     const count=catalog.items.length,index=Number.isInteger(activeIndex)&&activeIndex>=0&&activeIndex<count?activeIndex:0;
     const p=catalog.items[index],on=isSaved(saved,p.id),meters=p.meters>=1000?(p.meters/1000).toFixed(1)+'km':p.meters+'m';
-    const cover=p.cover?'<img class="discover-cover-photo" src="'+escape(p.cover.src)+'" alt="'+escape(p.cover.alt)+'"'+(p.cover.objectPosition?' style="object-position:'+escape(p.cover.objectPosition)+'"':'')+' width="'+p.cover.width+'" height="'+p.cover.height+'" decoding="async"><span class="discover-cover-caption">첫 장소 · '+escape(p.stops[0].name)+'</span><button type="button" class="discover-photo-source" data-discover-photo-source="'+index+'" aria-label="사진 출처와 이용 조건 보기">사진: '+escape(p.cover.publisher)+' · '+escape(p.cover.author)+' <span aria-hidden="true">ⓘ</span></button>':preview(p.stops);
+    const cover=p.cover?'<img class="discover-cover-photo" src="'+escape(p.cover.src)+'" alt="'+escape(p.cover.alt)+'"'+(p.cover.objectPosition?' style="object-position:'+escape(p.cover.objectPosition)+'"':'')+' width="'+p.cover.width+'" height="'+p.cover.height+'" decoding="async"><span class="discover-cover-caption">'+escape(p.cover.kind==='region'?p.city+' 풍경 · '+p.cover.placeName+' (코스 장소 사진 아님)':'첫 장소 · '+p.stops[0].name)+'</span><button type="button" class="discover-photo-source" data-discover-photo-source="'+index+'" aria-label="사진 출처와 이용 조건 보기">사진: '+escape(p.cover.publisher)+' · '+escape(p.cover.author)+' <span aria-hidden="true">ⓘ</span></button>':preview(p.stops);
     const stops=p.stops.map((x,i)=>'<span class="discover-stop"><span class="discover-stop-number" aria-hidden="true">'+(i+1)+'</span>'+escape(x.name)+'</span>').join('<span class="discover-stop-arrow" aria-hidden="true">→</span>');
     return '<section class="discover-welcome" aria-label="다른 동네 코스 둘러보기"><div class="discover-toolbar"><button type="button" class="discover-city-picker" data-discover-city-picker="'+index+'" aria-label="둘러볼 동네 선택, 현재 '+escape(p.stops[0].district)+'">'+'둘러보기 · '+escape(p.stops[0].district)+' <span aria-hidden="true">⌄</span></button><button type="button" class="discover-local" data-outing-choose>내 동네 찾기 <span aria-hidden="true">›</span></button></div><article class="discover-card" aria-labelledby="discover-title"><div class="discover-cover'+(p.cover?'':' discover-cover-points')+'">'+cover+(p.cover?'<div class="discover-photo-fallback" hidden>'+preview(p.stops)+'<span class="discover-photo-failure" role="status">사진을 불러오지 못했어요</span></div>':'')+'</div><div class="discover-body"><div class="discover-heading"><h3 class="discover-title" id="discover-title">'+escape(p.title)+'</h3><span class="discover-distance">직선 '+meters+'</span></div><p class="discover-reason">'+escape(p.reason)+'</p><p class="discover-stops">'+stops+'</p><div class="discover-actions"><button type="button" class="discover-open" data-discover-open="'+index+'">코스 보기 <span aria-hidden="true">›</span></button><button type="button" class="discover-save" data-discover-save="'+index+'" aria-pressed="'+on+'" aria-label="'+escape(p.title)+' '+(on?'저장 해제':'저장')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h12v17l-6-4-6 4z"/></svg><span>'+(on?'저장됨':'저장')+'</span></button></div></div></article></section>';
   }

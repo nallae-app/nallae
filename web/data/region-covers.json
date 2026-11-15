@@ -1,0 +1,310 @@
+{
+  "version": 1,
+  "updated": "2026-11-15",
+  "items": [
+    {
+      "regionCode": "11",
+      "name": "서울",
+      "cover": {
+        "src": "images/regions/seoul-cheonggyecheon.webp",
+        "width": 900,
+        "height": 600,
+        "author": "lumoplank",
+        "publisher": "Wikimedia Commons",
+        "year": 2024,
+        "dateLabel": "2024년 9월 28일 이전 촬영",
+        "alt": "서울 청계천의 물길과 산책로, 아치형 다리와 도심 건물",
+        "placeName": "청계천",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cheonggyecheon,_Seoul_-_Cheonggyecheon2321.jpg",
+        "licenseName": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "objectPosition": "50% 65%"
+      }
+    },
+    {
+      "regionCode": "12",
+      "name": "전남광주",
+      "cover": {
+        "src": "images/regions/12-suncheon-bay.webp",
+        "width": 900,
+        "height": 675,
+        "author": "egg",
+        "publisher": "Flickr / Wikimedia Commons",
+        "year": 2007,
+        "alt": "전남광주 대표 장소 순천만 풍경",
+        "placeName": "순천만",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Suncheon_Bay_01.jpg",
+        "licenseName": "CC BY 2.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+        "objectPosition": "50% 50%",
+        "dateLabel": "2007년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "26",
+      "name": "부산",
+      "cover": {
+        "src": "images/regions/26-gwangan-bridge.webp",
+        "width": 900,
+        "height": 596,
+        "author": "Yonguk Kim",
+        "publisher": "Flickr / Wikimedia Commons",
+        "year": 2012,
+        "alt": "부산 대표 장소 광안대교 풍경",
+        "placeName": "광안대교",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Gwangan-Bridge_in_Busan-City.jpg",
+        "licenseName": "CC BY 2.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+        "objectPosition": "50% 50%",
+        "dateLabel": "2012년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "27",
+      "name": "대구",
+      "cover": {
+        "src": "images/regions/27-suseong-lake.webp",
+        "width": 900,
+        "height": 437,
+        "author": "Choi2451",
+        "publisher": "Wikimedia Commons",
+        "year": 2019,
+        "alt": "대구 대표 장소 수성못 풍경",
+        "placeName": "수성못",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Suseong_Lake_on_October_13rd,_2019.jpg",
+        "licenseName": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "objectPosition": "50% 50%",
+        "dateLabel": "2019년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "28",
+      "name": "인천",
+      "cover": {
+        "src": "images/regions/songdo-central-park.webp",
+        "width": 900,
+        "height": 506,
+        "author": "Ken Eckert",
+        "publisher": "Wikimedia Commons",
+        "year": 2014,
+        "alt": "송도 센트럴파크 수로와 산책로, 뒤로 보이는 송도 도심",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Songdo_Convensia_and_Central_Park_View.jpg",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "objectPosition": "50% 50%",
+        "placeName": "송도 센트럴파크",
+        "licenseName": "CC BY-SA 4.0",
+        "dateLabel": "2014년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "30",
+      "name": "대전",
+      "cover": {
+        "src": "images/regions/daejeon-expo.webp",
+        "width": 900,
+        "height": 560,
+        "author": "Bernard Gagnon",
+        "publisher": "Wikimedia Commons",
+        "year": 2022,
+        "alt": "밤 조명이 켜진 대전 엑스포다리의 두 아치와 보행로",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Expo_Bridge_in_Daejeon.jpg",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "objectPosition": "50% 50%",
+        "placeName": "엑스포다리",
+        "licenseName": "CC0 1.0",
+        "dateLabel": "2022년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "31",
+      "name": "울산",
+      "cover": {
+        "src": "images/regions/31-daewangam-park.webp",
+        "width": 900,
+        "height": 519,
+        "author": "Shinfull",
+        "publisher": "Wikimedia Commons",
+        "year": 2016,
+        "alt": "울산 대표 장소 대왕암공원 풍경",
+        "placeName": "대왕암공원",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Daewangam_Park.jpg",
+        "licenseName": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "objectPosition": "50% 50%",
+        "dateLabel": "2016년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "36",
+      "name": "세종",
+      "cover": {
+        "src": "images/regions/sejong-lake.webp",
+        "width": 900,
+        "height": 600,
+        "author": "*Youngjin",
+        "publisher": "Wikimedia Commons",
+        "year": 2019,
+        "alt": "세종호수공원의 호수와 산책 데크, 멀리 보이는 수상무대",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sejong_lake_park_190609_01.jpg",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "objectPosition": "50% 70%",
+        "placeName": "세종호수공원",
+        "licenseName": "CC BY-SA 3.0",
+        "dateLabel": "2019년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "41",
+      "name": "경기",
+      "cover": {
+        "src": "images/regions/suwon-hwaseong.webp",
+        "width": 900,
+        "height": 549,
+        "author": "Bernard Gagnon",
+        "publisher": "Wikimedia Commons",
+        "year": 2022,
+        "alt": "수원화성의 성벽과 굽이진 성곽길, 언덕의 초소",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hwaseong_Fortress_01.jpg",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "objectPosition": "50% 50%",
+        "placeName": "수원화성",
+        "licenseName": "CC0 1.0",
+        "dateLabel": "2022년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "43",
+      "name": "충북",
+      "cover": {
+        "src": "images/regions/danyang-dodamsambong.webp",
+        "width": 900,
+        "height": 675,
+        "author": "Ken Eckert",
+        "publisher": "Wikimedia Commons",
+        "year": 2012,
+        "alt": "남한강 물 위에 솟은 단양 도담삼봉과 정자",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Dodamsambong_Rocks,_near_Danyang,_Korea.jpg",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "objectPosition": "50% 50%",
+        "placeName": "단양 도담삼봉",
+        "licenseName": "CC BY-SA 4.0",
+        "dateLabel": "2012년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "44",
+      "name": "충남",
+      "cover": {
+        "src": "images/regions/gongju-gongsanseong.webp",
+        "width": 900,
+        "height": 600,
+        "author": "Bernard Gagnon",
+        "publisher": "Wikimedia Commons",
+        "year": 2022,
+        "alt": "공주 공산성의 돌담 사이로 난 누각과 길",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pavilion_in_Gongsanseong_Fortress.jpg",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "objectPosition": "50% 50%",
+        "placeName": "공주 공산성",
+        "licenseName": "CC0 1.0",
+        "dateLabel": "2022년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "47",
+      "name": "경북",
+      "cover": {
+        "src": "images/regions/47-hahoe-village.webp",
+        "width": 900,
+        "height": 600,
+        "author": "Bernard Gagnon",
+        "publisher": "Wikimedia Commons",
+        "year": 2022,
+        "alt": "경북 대표 장소 안동 하회마을 풍경",
+        "placeName": "안동 하회마을",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hahoe_Folk_Village_03.jpg",
+        "licenseName": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "objectPosition": "50% 50%",
+        "dateLabel": "2022년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "48",
+      "name": "경남",
+      "cover": {
+        "src": "images/regions/48-haegeumgang.webp",
+        "width": 900,
+        "height": 526,
+        "author": "Korea.net / Korean Culture and Information Service (Jeon Han)",
+        "publisher": "Korea.net / Korean Culture and Information Service",
+        "year": 2013,
+        "alt": "경남 대표 장소 거제 해금강 풍경",
+        "placeName": "거제 해금강",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:KOCIS_Korea_Haegeumgang_08_(10011695603).jpg",
+        "licenseName": "CC BY-SA 2.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+        "objectPosition": "50% 50%",
+        "dateLabel": "2013년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "50",
+      "name": "제주",
+      "cover": {
+        "src": "images/regions/50-seongsan-ilchulbong.webp",
+        "width": 900,
+        "height": 600,
+        "author": "Bernard Gagnon",
+        "publisher": "Wikimedia Commons",
+        "year": 2022,
+        "alt": "제주 대표 장소 성산일출봉 풍경",
+        "placeName": "성산일출봉",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Seongsan_Ilchulbong_01.jpg",
+        "licenseName": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "objectPosition": "50% 50%",
+        "dateLabel": "2022년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "51",
+      "name": "강원",
+      "cover": {
+        "src": "images/regions/gangneung-gyeongpo.webp",
+        "width": 900,
+        "height": 675,
+        "author": "Christophe95",
+        "publisher": "Wikimedia Commons",
+        "year": 2018,
+        "alt": "강릉 경포호의 물결과 멀리 보이는 산과 나무",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Gyeongpo_Lake_1.jpg",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "objectPosition": "50% 50%",
+        "placeName": "강릉 경포호",
+        "licenseName": "CC BY-SA 4.0",
+        "dateLabel": "2018년 출처 표기"
+      }
+    },
+    {
+      "regionCode": "52",
+      "name": "전북",
+      "cover": {
+        "src": "images/regions/52-jeonju-hanok.webp",
+        "width": 900,
+        "height": 600,
+        "author": "Mobius6",
+        "publisher": "Wikimedia Commons",
+        "year": 2022,
+        "alt": "전북 대표 장소 전주한옥마을 풍경",
+        "placeName": "전주한옥마을",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Jeonju_Hanok_Village_20220701_009.jpg",
+        "licenseName": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "objectPosition": "50% 50%",
+        "dateLabel": "2022년 출처 표기"
+      }
+    }
+  ]
+}

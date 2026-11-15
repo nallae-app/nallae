@@ -202,7 +202,14 @@ function scheduleLabels() {
     renderLabels();
   });
 }
+function syncRegionPreviewOutline(){
+  const code=mode==='explore'&&exploreLayer==='outing'&&!savedView&&!overseasView&&!selection?regionPreviewCode:'';
+  if(code!==regionPreviewOutlineCode){regionPreviewOutline?.remove();regionPreviewOutline=null;regionPreviewOutlineCode=code;const feature=sidos.get(code)?.feature;if(feature)regionPreviewOutline=L.geoJSON(feature,{pane:'selection',interactive:false,style:{color:token('brand'),weight:2,opacity:.9,fill:false}}).addTo(map);}
+  regionPreviewOutline?.setStyle({color:token('brand')});
+}
 function renderLabels() {
+  syncRegionPreviewOutline();
+  const previewRegion=mode==='explore'&&exploreLayer==='outing'&&!savedView&&!overseasView&&!selection?regionPreviewCode:'';
   if (outlinedRegion !== selection?.center) {
     if (selectionOutline) map.removeLayer(selectionOutline);
     outlinedRegion = selection?.center;
@@ -215,7 +222,7 @@ function renderLabels() {
   for(const marker of discoveryMarkers){const bounds=marker.getElement()?.getBoundingClientRect();if(bounds?.width)occupied.push(bounds);}
   const zoomed = map.getZoom() >= MUNI_ZOOM;
   const sorted = regionLabels.slice().sort((a,b) => {
-    const rank = r => selection?.center.code === r.code ? 0 : r.kind === "sido" ? 1 : 2;
+    const rank = r => selection?.center.code === r.code ? 0 : previewRegion?(r.kind==='sgg'&&r.code.startsWith(previewRegion)?1:r.kind==='sido'?2:3):r.kind==='sido'?1:2;
     const priority=r=>({'11':0,'26':1,'28':2,'50':3}[r.code]??4);
     return rank(a)-rank(b) || priority(a)-priority(b) || b.area-a.area || a.code.localeCompare(b.code);
   });
@@ -225,7 +232,7 @@ function renderLabels() {
     const selected = selection?.center.code === r.code;
     const wth=mode==='explore' && exploreLayer==='weather' && r.kind!=='sido' && map.getZoom()>=MUNI_ZOOM ? weatherData?.sgg?.[r.code] : null;
     const text=r.name+(Number.isFinite(wth?.t)?' '+Math.round(wth.t)+'°'+(wth.pty>0?' '+precipSymbol(wth.pty):''):'');
-    r.eligible = zoomed || r.kind === 'sido' || selected;
+    r.eligible = zoomed || r.kind === 'sido' || selected || Boolean(previewRegion&&r.kind==='sgg'&&r.code.startsWith(previewRegion));
     if (r.text !== text || r.selected !== selected || !r.width) {
       r.text = text;
       r.selected = selected;
@@ -310,7 +317,7 @@ function setupRegions(topo) {
   const sidoGeo = topojson.feature(topo, topo.objects.sido);
   sggGeo.features.forEach(f => addRegionLabel(f, "sgg"));
   sidoGeo.features.forEach(f => addRegionLabel(f, "sido"));
-  sidoGeo.features.forEach((f) => { const s = sidos.get(f.properties.code); if (s) s.short = f.properties.short; });
+  sidoGeo.features.forEach((f) => { const s = sidos.get(f.properties.code); if (s) {s.short = f.properties.short; s.feature=f;} });
   provinceLayer = L.geoJSON(sidoGeo, {
     pane: 'provs', interactive: false, style: { color: token('border-sido'), weight: 1.05, opacity:.85, fill: false },
   }).addTo(map);
@@ -366,8 +373,16 @@ function restyle(m) {
 function onRegionClick(m) {
   if(routePicking)return;
   if(overseasView){overseasView=false;travelMapContext=false;syncTravelMap();renderOutings();}
+  if(mode==='explore'&&exploreLayer==='outing'&&!savedView&&regionPreviewCode===m.sido){
+    select(m,false);if(mobileSheet.matches)setSheetStage(2,false);fitSheet();return;
+  }
   atHome = false;
   if (map.getZoom() < MUNI_ZOOM) {
+    if(mode==='explore'&&exploreLayer==='outing'&&!savedView){
+      if(selection)clearSelection();
+      locationRequestId++;regionPreviewCode=m.sido;atHome=false;selectionAutoFit=false;
+      renderOutings();if(mobileSheet.matches&&sheetStage===0)setSheetStage(1,false);fitSheet();
+    }
     moveToBounds(sidos.get(m.sido).bounds, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8 });
     return;
   }
@@ -375,6 +390,7 @@ function onRegionClick(m) {
 }
 
 function select(m, fromLocation, origin=m.center) {
+  regionPreviewCode='';
   overseasView=false;travelMapContext=false;syncTravelMap();
   locationRequestId++;
   atHome = false; selectionAutoFit = true;
@@ -393,6 +409,7 @@ function select(m, fromLocation, origin=m.center) {
 
 function clearSelection() {
   locationRequestId++;
+  regionPreviewCode='';
   const prev = selection;
   selection = null;
   scheduleLabels();
@@ -1092,9 +1109,9 @@ function sheetHeights() {
   if(dedicated&&root.dataset.courseWelcome==='true'){
     const welcome=feedEl.querySelector('.discover-shelf,.outing-welcome');
     const discover=welcome?.classList.contains('discover-shelf');
-    const body=(discover?(welcome.querySelector('.discover-welcome')?.offsetHeight||324):welcome?.offsetHeight||218)+outer(feedEl.querySelector('.next-outing'));
+    const body=(discover?(welcome.querySelector('.discover-welcome,.region-cover')?.offsetHeight||324):welcome?.offsetHeight||218)+outer(feedEl.querySelector('.next-outing'));
     const fixed=folded+extra;
-    const middle=Math.min(full,Math.max(low+180,Math.min(fixed+body+8,H*(discover?(H<620?.60:H<=740?.64:.58):.40))));
+    const middle=Math.min(full,Math.max(low+180,Math.min(fixed+body+8,H*(discover?(welcome?.classList.contains('region-photo-intro')?.64:H<620?.60:H<=740?.64:.58):.40))));
     const heights=[low,middle,full];heights.fixed=fixed;heights.fits=discover?middle-fixed>=body-2||middle===full:!feedEl.querySelector('.next-outing')||middle-fixed>=body-2||middle===full;return heights;
   }
   const cards = mode === 'news' ? firstTwoHeight() : TWO_CARDS;
@@ -1328,6 +1345,35 @@ let outingIndex=null, outingQuery='', outingTheme='date', outingLimit=30, outing
 const outingCache=new Map(), outingPending=new Set(), outingErrors=new Set(), outingMarkers=L.layerGroup().addTo(map);
 const outingPlanMemo=new Map();let outingRevision=0,outingSearchTimer,outingDataTimer;
 let discoveryCatalog=null,discoveryIndex=0,discoveryError=false,discoveryRequest=null,discoveryDialog=null,discoveryMarkers=[],discoveryMarkerId='';
+let regionPhotoCatalog=null,regionPreviewCode='',regionPhotoRequest=null,regionPhotoState='loading',regionPreviewOutline=null,regionPreviewOutlineCode='';
+function loadRegionPhotos(){
+  if(regionPhotoRequest)return regionPhotoRequest;
+  regionPhotoState='loading';
+  regionPhotoRequest=fetchJsonData('data/region-covers.json').then(data=>{
+    const catalog=JippiRegionCovers.validate(data);if(!catalog)throw Error('Invalid region photo catalog');regionPhotoCatalog=catalog;regionPhotoState='ready';
+    if(mode==='explore'&&exploreLayer==='outing'&&!savedView&&!overseasView){renderOutings();fitSheet();}
+  }).catch(()=>{regionPhotoState='error';if(regionPreviewCode&&mode==='explore'&&exploreLayer==='outing'&&!savedView&&!overseasView){renderOutings();fitSheet();}}).finally(()=>regionPhotoRequest=null);return regionPhotoRequest;
+}
+function regionCoverCard(code,compact=false){
+  const item=JippiRegionCovers.get(regionPhotoCatalog,code),province=sidos.get(code);if(!item&&(!province||compact))return '';
+  const districts=compact?[]:munis.filter(m=>m.sido===code).map(m=>({code:m.code,name:label(m)}));
+  const html=item?JippiRegionCovers.render({item,compact,districts}):JippiRegionCovers.renderUnavailable({regionCode:code,name:province.short||province.name,districts,loading:regionPhotoState==='loading'});
+  return '<li class="'+(compact?'region-photo-summary':'discover-shelf region-photo-intro')+'">'+html+'</li>';
+}
+function regionPhotoSourceDialog(code){
+  const item=JippiRegionCovers.get(regionPhotoCatalog,code);if(!item)return;const cover=item.cover;
+  discoveryUtilityDialog('사진 출처','<p>'+escapeHtml(item.name+' 풍경 · '+cover.placeName)+'</p><p>'+escapeHtml(cover.author)+' · '+escapeHtml(cover.publisher)+'</p><p>'+escapeHtml(cover.dateLabel||cover.year+'년 출처 표기')+'</p><p>'+escapeHtml(cover.licenseName)+'</p><p>지역을 소개하는 사진이며 코스 방문지와 다를 수 있어요. 크기·형식을 바꾸고 화면에 맞춰 잘라 보여요. 변경된 사진도 표시된 라이선스를 따릅니다.</p><p><a href="'+escapeAttr(cover.sourceUrl)+'" target="_blank" rel="noopener noreferrer">사진 원본 안내 ↗</a></p><p><a href="'+escapeAttr(cover.licenseUrl)+'" target="_blank" rel="noopener noreferrer">사진 이용 조건 ↗</a></p>','[data-region-photo-source="'+code+'"]');
+}
+feedEl.addEventListener('error',event=>{
+  const image=event.target;if(!image.matches?.('.region-cover-photo'))return;
+  const frame=image.closest('.region-cover-figure'),fallback=frame?.querySelector('.region-cover-fallback');if(!fallback)return;
+  image.hidden=true;fallback.hidden=false;frame.querySelector('.region-cover-credit')?.setAttribute('hidden','');
+},true);
+feedEl.addEventListener('change',event=>{
+  const control=event.target.closest('[data-region-cover-muni]');if(!control||mode!=='explore'||exploreLayer!=='outing')return;
+  const m=muniByCode.get(control.value);if(m&&m.sido===control.dataset.regionCoverMuni){select(m,false);if(mobileSheet.matches)setSheetStage(2,false);fitSheet();}
+});
+
 // A failed cover must keep the real course and its usable actions visible.
 feedEl.addEventListener('error',event=>{
   const image=event.target;if(!image.matches?.('.discover-cover-photo'))return;
@@ -1338,7 +1384,7 @@ feedEl.addEventListener('error',event=>{
 },true);
 
 function syncDiscoveryMarker(){
-  const active=mode==='explore'&&exploreLayer==='outing'&&outingTheme==='date'&&!selection&&!overseasView&&!savedView&&map.getZoom()<MUNI_ZOOM;
+  const active=mode==='explore'&&exploreLayer==='outing'&&outingTheme==='date'&&!selection&&!regionPreviewCode&&!overseasView&&!savedView&&map.getZoom()<MUNI_ZOOM;
   const items=active?discoveryCatalog?.items||[]:[];
   const key=items.map(x=>x.id).join('|')+':'+discoveryIndex;
   if(discoveryMarkerId===key)return;
@@ -2078,7 +2124,7 @@ function openDiscoveryChooser(){
 }
 function openDiscoveryPhotoSource(index){
   const cover=discoveryCatalog?.items[index]?.cover;if(!cover)return;
-  discoveryUtilityDialog('사진 출처','<p>'+escapeHtml(cover.alt)+'</p><p>'+escapeHtml(cover.publisher)+' · '+escapeHtml(cover.author)+' · '+escapeHtml(cover.year)+'년 공개자료</p><p>공공누리 제1유형. 크기·용량을 줄였으며 화면에 맞춰 일부가 잘려 보일 수 있어요.</p><p><a href="'+escapeAttr(cover.sourceUrl)+'" target="_blank" rel="noopener noreferrer">공식 원본 안내 ↗</a></p><p><a href="'+escapeAttr(cover.licenseUrl)+'" target="_blank" rel="noopener noreferrer">이용 조건 ↗</a></p>','[data-discover-photo-source]');
+  discoveryUtilityDialog('사진 출처','<p>'+escapeHtml(cover.alt)+'</p><p>'+escapeHtml(cover.publisher)+' · '+escapeHtml(cover.author)+' · '+escapeHtml(cover.dateLabel||cover.year+'년 공개자료')+'</p><p>'+escapeHtml(cover.licenseName||'공공누리 제1유형')+'. '+(cover.kind==='region'?'지역 대표 사진이며 코스 방문지와 다를 수 있어요. ':'')+'크기·용량을 줄였으며 화면에 맞춰 일부가 잘려 보일 수 있어요.</p><p><a href="'+escapeAttr(cover.sourceUrl)+'" target="_blank" rel="noopener noreferrer">공식 원본 안내 ↗</a></p><p><a href="'+escapeAttr(cover.licenseUrl)+'" target="_blank" rel="noopener noreferrer">이용 조건 ↗</a></p>','[data-discover-photo-source]');
 }
 function openDiscoveryPlan(index){
   const item=discoveryCatalog?.items[index],plan=discoveryPlan(index);if(!item||!plan)return;
@@ -2182,6 +2228,8 @@ function renderOutingCards() {
     const q=outingQuery.trim().toLocaleLowerCase();outingPlans=[...savedPlans.values()].filter(p=>!q||p.stops.some(x=>(x.name+' '+x.district).toLocaleLowerCase().includes(q)));
     feedEl.innerHTML='<li class="explore-source">저장한 코스 '+outingPlans.length+'개 · 기기에만 보관해요.</li>'+outingPlans.map((p,i)=>outingPlanCard(p,i,true)).join('')+(outingPlans.length?'':'<li class="empty">아직 저장한 코스가 없어요. 코스 화면에서 마음에 드는 데이트 코스를 저장해 보세요.</li>');renderOutingMarkers(outingPlans.flatMap(p=>p.stops));return;
   }
+  const preview=!selection&&regionPreviewCode&&regionCoverCard(regionPreviewCode);
+  if(preview){outingPlans=[];renderOutingMarkers([]);feedEl.innerHTML=nextOutingCard()+preview;return;}
   if(outingTheme==='date'&&!selection) {
     outingPlans=[];renderOutingMarkers([]);
     if(discoveryCatalog){
@@ -2209,10 +2257,10 @@ function renderOutingCards() {
     outingPlans=[...sharedPlans,...candidates.slice(0,outingPlanLimit)];
 
     const sharedHtml=contributions.map(contributionCard).join('');
-    feedEl.innerHTML=nextOutingCard()+note+(communityState==='error'?'<li class="explore-source">방문 제보를 불러오지 못했어요. <button type="button" data-community-retry>다시 받기</button></li>':'')+sharedHtml+'<li class="outing-intro"><div class="plan-intro-head"><h3>가까운 '+outingStopCount+'곳 데이트</h3><button type="button" data-outing-shuffle>다른 조합</button></div><p>직선거리로 묶은 자동 조합 · 실제 동선은 길찾기에서 확인</p></li>'+candidates.slice(0,outingPlanLimit).map((p,i)=>outingPlanCard(p,i)).join('')+(candidates.length>outingPlanLimit?'<li><button type="button" data-plans-more>코스 3개 더 보기</button></li>':'')+(!pending&&!candidates.length?'<li class="empty">이 조건에서는 '+outingStopCount+'곳 코스를 만들지 못했어요.'+(outingStopCount===3?' 서로 다른 종류의 가까운 장소가 부족해요.':'')+'<div class="outing-actions"><button type="button" data-outing-choose>조건 바꾸기</button><button type="button" data-outing-all>장소 하나씩 보기</button></div></li>':'')+beforeOutingCard()+'<li class="travel-secondary-entry">'+travelEntry()+'</li>'+contributionFooter();
+    feedEl.innerHTML=nextOutingCard()+regionCoverCard(selection.center.sido,true)+note+(communityState==='error'?'<li class="explore-source">방문 제보를 불러오지 못했어요. <button type="button" data-community-retry>다시 받기</button></li>':'')+sharedHtml+'<li class="outing-intro"><div class="plan-intro-head"><h3>가까운 '+outingStopCount+'곳 데이트</h3><button type="button" data-outing-shuffle>다른 조합</button></div><p>직선거리로 묶은 자동 조합 · 실제 동선은 길찾기에서 확인</p></li>'+candidates.slice(0,outingPlanLimit).map((p,i)=>outingPlanCard(p,i)).join('')+(candidates.length>outingPlanLimit?'<li><button type="button" data-plans-more>코스 3개 더 보기</button></li>':'')+(!pending&&!candidates.length?'<li class="empty">이 조건에서는 '+outingStopCount+'곳 코스를 만들지 못했어요.'+(outingStopCount===3?' 서로 다른 종류의 가까운 장소가 부족해요.':'')+'<div class="outing-actions"><button type="button" data-outing-choose>조건 바꾸기</button><button type="button" data-outing-all>장소 하나씩 보기</button></div></li>':'')+beforeOutingCard()+'<li class="travel-secondary-entry">'+travelEntry()+'</li>'+contributionFooter();
     renderOutingMarkers(outingPlans.flatMap(p=>p.stops));return;
   }
-  feedEl.innerHTML=note+'<li class="explore-source">'+items.length.toLocaleString('ko-KR')+'곳 · '+(selection?'선택 지점에서 직선거리 순':'지역·이름 순')+'</li>'+(items.slice(0,outingLimit).map(outingCard).join('')||(!pending?empty:''))+(items.length>outingLimit?'<li><button type="button" data-outing-more>놀거리 더 보기 ('+outingLimit+' / '+items.length+')</button></li>':'');
+  feedEl.innerHTML=(selection?regionCoverCard(selection.center.sido,true):'')+note+'<li class="explore-source">'+items.length.toLocaleString('ko-KR')+'곳 · '+(selection?'선택 지점에서 직선거리 순':'지역·이름 순')+'</li>'+(items.slice(0,outingLimit).map(outingCard).join('')||(!pending?empty:''))+(items.length>outingLimit?'<li><button type="button" data-outing-more>놀거리 더 보기 ('+outingLimit+' / '+items.length+')</button></li>':'');
   feedEl.insertAdjacentHTML('beforeend',contributionFooter());renderOutingMarkers(items);
 }
 function renderOutingMarkers(items=outingShown) {
@@ -2278,6 +2326,9 @@ exploreTools.addEventListener('click',e=>{if(e.target.closest('[data-outing-date
 exploreTools.addEventListener('click',e=>{const dialog=exploreTools.querySelector('.outing-filters-dialog');if(e.target.closest('[data-outing-filters]'))openOutingFilters();if(e.target.closest('[data-outing-filters-close]'))dialog?.close();});
 feedEl.addEventListener('click',e=>{
   if(mode!=='explore'||exploreLayer!=='outing')return;const b=e.target.closest('button');if(!b)return;
+  if(b.hasAttribute('data-region-photo-source')){regionPhotoSourceDialog(b.dataset.regionPhotoSource);return;}
+  if(b.hasAttribute('data-region-cover-home')){if(mobileSheet.matches)setSheetStage(1,false);document.getElementById('btn-all').click();return;}
+  if(b.hasAttribute('data-region-photos-retry')){b.disabled=true;b.textContent='불러오는 중…';loadRegionPhotos();return;}
   if(b.hasAttribute('data-discover-index')){const i=Number(b.dataset.discoverIndex);if(Number.isInteger(i)&&discoveryCatalog?.items[i]){discoveryIndex=i;renderOutingCards();fitSheet();feedEl.querySelector('[data-discover-index="'+i+'"]')?.focus({preventScroll:true});}return;}
   if(b.hasAttribute('data-discover-city-picker')){openDiscoveryChooser();return;}
   if(b.hasAttribute('data-discover-photo-source')){openDiscoveryPhotoSource(Number(b.dataset.discoverPhotoSource));return;}
@@ -2543,6 +2594,7 @@ function loadTravel(){
 }
 function fitTravelOverview(){map.fitBounds([[28,115],[43,143]],{paddingTopLeft:innerWidth<760?[20,110]:[390,90],paddingBottomRight:innerWidth<760?[20,Math.min(bottomPad()[1],200)]:[30,30],animate:false,maxZoom:5});}
 function openTravelCity(id){
+  regionPreviewCode='';
   locationRequestId++;
   if(!overseasData)return;
   if(!overseasData.cities.some(x=>x.id===id))return;
@@ -2573,7 +2625,7 @@ function focusTravelCourse(id){
 }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.hasAttribute('data-travel-open')){locationRequestId++;exploreChoiceChanged=true;travelMapContext=true;atHome=false;selectionAutoFit=false;overseasView=true;savedView=false;overseasCityId=overseasCityId||overseasData?.cities[0]?.id||'';mode='explore';exploreLayer='outing';applyMode();if(mobileSheet.matches)setSheetStage(2,false);resetSelectedFeed();if(!overseasData)loadTravel();else if(overseasCityId){travelMapContext=true;atHome=false;selectionAutoFit=false;travelMap?.focusCity(overseasCityId);}return;}
+  if(b.hasAttribute('data-travel-open')){regionPreviewCode='';locationRequestId++;exploreChoiceChanged=true;travelMapContext=true;atHome=false;selectionAutoFit=false;overseasView=true;savedView=false;overseasCityId=overseasCityId||overseasData?.cities[0]?.id||'';mode='explore';exploreLayer='outing';applyMode();if(mobileSheet.matches)setSheetStage(2,false);resetSelectedFeed();if(!overseasData)loadTravel();else if(overseasCityId){travelMapContext=true;atHome=false;selectionAutoFit=false;travelMap?.focusCity(overseasCityId);}return;}
   if(b.hasAttribute('data-travel-domestic')){locationRequestId++;overseasView=false;savedView=false;outingTheme='date';travelPins.clearLayers();travelMapContext=false;syncTravelMap();applyMode();atHome=!selection;selection?fitSelection():fitHome();resetSelectedFeed();return;}
   if(b.dataset.travelCity){openTravelCity(b.dataset.travelCity);return;}
   if(b.dataset.travelMap){focusTravelCourse(b.dataset.travelMap);return;}
@@ -2594,6 +2646,7 @@ fetchJsonData('data/regions.json', { cache: 'default' })
     setupRegions(topo);
     initFavorites();
     loadDiscoveryShelf();
+    loadRegionPhotos();
     if(directTravel){mode='explore';exploreLayer='outing';overseasView=false;savedView=false;}
     if (params.has('debug')) window.nallae = { map, munis, sidos };
     if (DEMO && muniByCode.has(params.get('near'))) {
