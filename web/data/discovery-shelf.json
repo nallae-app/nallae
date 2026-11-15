@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-14",
+  "updated": "2026-11-15",
   "items": [
     {
       "id": "v2:[\"outing-a6a7e0dd9d050777\",\"outing-b5cfd6c1cb3a0f0c\"]",
@@ -50,7 +50,10 @@
         "publisher": "부산관광공사",
         "year": 2024,
         "sourceUrl": "https://www.visitbusan.net/archive/dataSearch/view.nm?dataSid=METADATA011630",
-        "licenseUrl": "https://www.kogl.or.kr/info/license.do"
+        "licenseUrl": "https://www.kogl.or.kr/info/license.do",
+        "placeId": "outing-a6a7e0dd9d050777",
+        "width": 900,
+        "height": 600
       }
     },
     {
@@ -135,7 +138,20 @@
       "legMeters": [
         495
       ],
-      "withFood": false
+      "withFood": false,
+      "cover": {
+        "src": "images/courses/jeolmul-forest.webp",
+        "placeId": "outing-085ab660db3928fe",
+        "alt": "절물자연휴양림 장생의 숲 입구의 나무와 데크 산책길",
+        "author": "산림녹지과 제공",
+        "publisher": "제주특별자치도",
+        "year": 2023,
+        "sourceUrl": "https://www.jeju.go.kr/news/bodo/list.htm?act=view&seq=1433673",
+        "licenseUrl": "https://www.kogl.or.kr/info/license.do",
+        "objectPosition": "50% 75%",
+        "width": 900,
+        "height": 675
+      }
     }
   ]
 }

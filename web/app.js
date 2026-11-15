@@ -1328,6 +1328,15 @@ let outingIndex=null, outingQuery='', outingTheme='date', outingLimit=30, outing
 const outingCache=new Map(), outingPending=new Set(), outingErrors=new Set(), outingMarkers=L.layerGroup().addTo(map);
 const outingPlanMemo=new Map();let outingRevision=0,outingSearchTimer,outingDataTimer;
 let discoveryCatalog=null,discoveryIndex=0,discoveryError=false,discoveryRequest=null,discoveryDialog=null,discoveryMarkers=[],discoveryMarkerId='';
+// A failed cover must keep the real course and its usable actions visible.
+feedEl.addEventListener('error',event=>{
+  const image=event.target;if(!image.matches?.('.discover-cover-photo'))return;
+  const cover=image.closest('.discover-cover'),fallback=cover?.querySelector('.discover-photo-fallback');
+  if(!fallback)return;
+  image.hidden=true;cover.classList.add('photo-unavailable');fallback.hidden=false;
+  cover.querySelectorAll('.discover-cover-caption,.discover-photo-source').forEach(el=>el.hidden=true);
+},true);
+
 function syncDiscoveryMarker(){
   const active=mode==='explore'&&exploreLayer==='outing'&&outingTheme==='date'&&!selection&&!overseasView&&!savedView&&map.getZoom()<MUNI_ZOOM;
   const items=active?discoveryCatalog?.items||[]:[];
@@ -2069,7 +2078,7 @@ function openDiscoveryChooser(){
 }
 function openDiscoveryPhotoSource(index){
   const cover=discoveryCatalog?.items[index]?.cover;if(!cover)return;
-  discoveryUtilityDialog('사진 출처','<p>'+escapeHtml(cover.alt)+'</p><p>'+escapeHtml(cover.publisher)+' · '+escapeHtml(cover.author)+' · '+escapeHtml(cover.year)+'</p><p>공공누리 제1유형. 크기·용량을 줄였으며 화면에 맞춰 일부가 잘려 보일 수 있어요.</p><p><a href="'+escapeAttr(cover.sourceUrl)+'" target="_blank" rel="noopener noreferrer">공식 원본 안내 ↗</a></p><p><a href="'+escapeAttr(cover.licenseUrl)+'" target="_blank" rel="noopener noreferrer">이용 조건 ↗</a></p>','[data-discover-photo-source]');
+  discoveryUtilityDialog('사진 출처','<p>'+escapeHtml(cover.alt)+'</p><p>'+escapeHtml(cover.publisher)+' · '+escapeHtml(cover.author)+' · '+escapeHtml(cover.year)+'년 공개자료</p><p>공공누리 제1유형. 크기·용량을 줄였으며 화면에 맞춰 일부가 잘려 보일 수 있어요.</p><p><a href="'+escapeAttr(cover.sourceUrl)+'" target="_blank" rel="noopener noreferrer">공식 원본 안내 ↗</a></p><p><a href="'+escapeAttr(cover.licenseUrl)+'" target="_blank" rel="noopener noreferrer">이용 조건 ↗</a></p>','[data-discover-photo-source]');
 }
 function openDiscoveryPlan(index){
   const item=discoveryCatalog?.items[index],plan=discoveryPlan(index);if(!item||!plan)return;

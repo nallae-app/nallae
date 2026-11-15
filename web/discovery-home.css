@@ -57,3 +57,13 @@
 @media(max-width:359px){.discover-welcome .discover-local{padding-inline:7px}.discover-welcome .discover-toolbar{flex-wrap:wrap}.discover-welcome .discover-city-picker{flex:1;min-width:0}}
 
 @media(max-height:740px) and (min-height:620px) and (max-width:759px){.discover-welcome .discover-cover{height:90px}.discover-welcome .discover-save{padding-block:4px}}
+
+/* Identify the real first stop rather than imply the photo depicts both places. */
+.discover-welcome .discover-cover-caption{max-width:calc(100% - 24px);padding:3px 8px;border-radius:999px;background:#142532d9;color:#fffdf5;font-size:11px;line-height:18px;font-weight:600;text-shadow:none}
+
+.discover-welcome .discover-photo-source{background:transparent;font-size:11px!important;text-shadow:0 1px 3px #0b1e2a}
+
+.discover-welcome .discover-cover.photo-unavailable:after{display:none}
+.discover-welcome .discover-cover-photo[hidden],.discover-welcome .discover-photo-source[hidden],.discover-welcome .discover-cover-caption[hidden],.discover-photo-fallback[hidden]{display:none}
+.discover-photo-fallback{position:absolute;inset:0;background:var(--discover-home-preview)}
+.discover-photo-failure{position:absolute;top:6px;left:12px;color:var(--discover-home-muted);font-size:11px;line-height:18px}

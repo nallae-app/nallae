@@ -63,7 +63,7 @@ test('사진 표지는 안전한 로컬 자산과 출처 메타데이터만 허�
   assert.match(html,/data-discover-photo-source="0"/);
   assert.match(html,/부산관광공사/);assert.match(html,/하이픈그룹/);
   assert.equal(ctx.NallaeDiscovery.snapshotPlan(p,'2026-11-14T00:00:00Z').id,p.id);
-  for(const [key,value] of [['src','https://example.com/x.webp'],['src','images/courses/../x.webp'],['src','images/courses/x.webp" onerror="bad()'],['sourceUrl','javascript:alert(1)'],['licenseUrl','data:text/html,x'],['year','2024'],['author','']]){
+  for(const [key,value] of [['placeId',p.stops[1].id],['placeId','unrelated-landmark'],['src','https://example.com/x.webp'],['src','images/courses/../x.webp'],['src','images/courses/x.webp" onerror="bad()'],['sourceUrl','javascript:alert(1)'],['licenseUrl','data:text/html,x'],['year','2024'],['width',-1],['height','675'],['author',''],['objectPosition','0% 100%; background:url(x)'],['objectPosition','101% 50%']]){
     const bad=copy();bad.items[0].cover[key]=value;assert.equal(validate(bad),null);assert.equal(render({catalog:bad}),'');
   }
   const external=copy();external.items[0].stops[0].sourceUrl='javascript:alert(1)';assert.equal(validate(external),null);
@@ -73,7 +73,7 @@ test('사진 표지는 안전한 로컬 자산과 출처 메타데이터만 허�
 
 test('사진 없는 도시는 좌표의 북쪽 방향과 동일 축척을 보존한 두 점만 표시한다',()=>{
   for(const index of [1,2]){
-    const p=catalog.items[index],html=render({catalog,activeIndex:index});
+    const fixture=copy();delete fixture.items[index].cover;const p=fixture.items[index],html=render({catalog:fixture,activeIndex:index});
     assert.ok(!html.includes('discover-cover-photo'));assert.ok(!html.includes('data-discover-photo-source'));
     assert.match(html,/북쪽 ↑/);assert.match(html,/점선은 실제 길이 아닙니다/);
     const positions=[...html.matchAll(/transform="translate\(([-\d.]+) ([-\d.]+)\)"/g)].map(m=>[+m[1],+m[2]]);
@@ -83,5 +83,18 @@ test('사진 없는 도시는 좌표의 북쪽 방향과 동일 축척을 보존
     assert.equal(Math.sign(sx),Math.sign(dx));assert.equal(Math.sign(sy),Math.sign(dy));
     assert.ok(Math.abs(sx*dy-sy*dx)<.0001,'두 축은 동일한 축척이어야 한다');
     for(const [x,y] of positions){assert.ok(x>=54&&x<=306);assert.ok(y>=39&&y<=95);}
+  }
+});
+
+ test('첫 장소 사진의 연결은 장소 ID로 검증하며 코스 순서나 실제 장소를 사진에 맞춰 바꾸지 않는다',()=>{
+  for(let index=0;index<catalog.items.length;index++){
+    const item=catalog.items[index];if(!item.cover)continue;
+    assert.equal(item.cover.placeId,item.stops[0].id);
+    assert.ok(fs.existsSync(new URL('../../web/'+item.cover.src,import.meta.url)));
+    const html=render({catalog,activeIndex:index});
+    assert.ok(html.includes('첫 장소 · '+item.stops[0].name));
+    assert.ok(html.includes('width="'+item.cover.width+'" height="'+item.cover.height+'"'));
+    assert.match(html,/discover-cover-photo/);assert.match(html,/class="discover-photo-fallback" hidden/);assert.match(html,/사진을 불러오지 못했어요/);
+    const mismatch=copy();mismatch.items[index].cover.placeId=item.stops[1].id;assert.equal(validate(mismatch),null);
   }
 });
