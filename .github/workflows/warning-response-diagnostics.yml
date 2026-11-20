@@ -27,5 +27,5 @@ jobs:
           const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
           const headers=lines.filter(x=>x.startsWith('#')).map(x=>x.replace(/^#\s*/,'').split(/[,\s]+/).map(x=>x.replace(/^['\"]|['\"]$/g,'' )).filter(x=>/^[A-Z_][A-Z_0-9]{1,20}$/.test(x))).filter(x=>x.length>2);
           const rows=lines.filter(x=>!x.startsWith('#'));
-          console.log(JSON.stringify({status:res.status,bytes:buf.length,headers,rowCount:rows.length,firstRowColumns:rows[0]?.replace(/,?\s*=\s*$/,'').split(',').length||0,hasHtml:/<\s*(?:html|!doctype)/i.test(text)}));
+          console.log(JSON.stringify({status:res.status,bytes:buf.length,headers,headerLine:lines.find(x=>x.startsWith('#')&&x.includes('REG_ID')&&x.includes('WRN'))?.replace(/[^\x20-\x7e]/g,'?').slice(0,500),rowCount:rows.length,firstRowColumns:rows[0]?.replace(/,?\s*=\s*$/,'').split(',').length||0,hasHtml:/<\s*(?:html|!doctype)/i.test(text)}));
           JS
