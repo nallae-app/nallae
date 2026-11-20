@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchItems as fetchWarnings, checkedRows } from '../sources/weather-warning.mjs';
+import { fetchItems as fetchWarnings, checkedRows, parseText } from '../sources/weather-warning.mjs';
 import { fetchTemperature, toObs, sggGrids } from '../sources/temperature.mjs';
 import { fetchForecast, toDays } from '../sources/forecast.mjs';
 
@@ -27,6 +27,15 @@ test('공식 9열 특보와 선택 확장열이 있는 특보 모두 기존 경�
     assert.match(result.items[0].title,/호우주의보/);
     assert.deepEqual(result.items[0].sido,['11']);
   }
+});
+test('실측 help=1 고정폭 대시 헤더는 검증과 지명 열 파싱에 같은 정규화를 사용한다',async()=>{
+  const text='# REG_UP REG_UP_KO------------------------------- REG_ID REG_KO---------------------------------- TM_FC TM_EF WRN LVL CMD ED_TM\n'
+    +'L1100000, 서울, L1100400, 서울서북권, 202611201000, 202611201100, R, 2, 1, ,=\n#7777END';
+  const [row]=parseText(text);
+  assert.equal(row.REG_UP_KO,'서울');assert.equal(row.REG_KO,'서울서북권');
+  assert.equal(checkedRows(text).length,1);
+  const result=await fetchWarnings({key,fetchImpl:async()=>warningResponse(text)});
+  assert.equal(result.items.length,1);assert.match(result.items[0].body,/서울서북권/);
 });
 test('HTTP 200 오류 HTML·오류 텍스트·끊긴 특보 행을 무특보로 바꾸지 않는다',async()=>{
   for(const text of ['<html>Service unavailable</html>','ERROR: authentication failed','',emptyWarning+'\n# ERROR: server unavailable',emptyWarning+'\nL1100000, 서울, L1100400, 서울서북권, 202611201000']) {
