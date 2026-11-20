@@ -18,6 +18,7 @@ web/data/fuel.json
 web/data/food/
 web/data/weather.json
 web/data/forecast.json
+web/data/collection-health.json
 web/data/parking/
 web/data/parking-live.json
 
