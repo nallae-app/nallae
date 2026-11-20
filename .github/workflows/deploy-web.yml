@@ -1,0 +1,60 @@
+name: deploy-web-from-existing-data
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Find previous successful data artifact
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?status=success&branch=main&per_page=50" --jq '[.workflow_runs[] | select(.name == "collect-and-deploy" or .name == "refresh-medical")][0].id')
+          test -n "$previous_run" && test "$previous_run" != null
+          echo "run=$previous_run" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          run-id: ${{ steps.previous.outputs.run }}
+          github-token: ${{ github.token }}
+          path: previous-pages
+      - name: Restore validated dynamic data only
+        run: |
+          mkdir restored-pages
+          tar -xf previous-pages/artifact.tar -C restored-pages
+          node scripts/restore-release-data.mjs restored-pages/data web/data
+          test ! -e web/data/demo-er.json
+          test ! -e web/data/demo-pharmacy
+      - name: Install parser dependency
+        run: npm install --no-save --no-package-lock --ignore-scripts topojson-client@3.1.0
+      - name: Validate release
+        run: |
+          node --test "scripts/test/*.test.mjs"
+          node scripts/check-community.mjs
+      - name: Reject an outdated checkout
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)" = "$GITHUB_SHA"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4
