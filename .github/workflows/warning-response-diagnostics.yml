@@ -1,0 +1,31 @@
+name: warning-response-diagnostics
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Inspect warning response schema without credentials or event text
+        env:
+          KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+        run: |
+          node --input-type=module <<'JS'
+          const key=process.env.KMA_APIHUB_KEY;
+          if(!key)throw Error('Missing configured KMA key');
+          const url=new URL('https://apihub.kma.go.kr/api/typ01/url/wrn_now_data.php');
+          url.search=new URLSearchParams({fe:'f',tm:'',disp:'0',help:'1',authKey:key});
+          const res=await fetch(url,{signal:AbortSignal.timeout(20000)});
+          const buf=Buffer.from(await res.arrayBuffer());
+          let text=buf.toString('utf8');if(text.includes('�'))text=new TextDecoder('euc-kr').decode(buf);
+          text=text.replaceAll(key,'[REDACTED]');
+          const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+          const headers=lines.filter(x=>x.startsWith('#')).map(x=>x.replace(/^#\s*/,'').split(/[,\s]+/).filter(x=>/^[A-Z_][A-Z_0-9]{1,20}$/.test(x))).filter(x=>x.length>2);
+          const rows=lines.filter(x=>!x.startsWith('#'));
+          console.log(JSON.stringify({status:res.status,bytes:buf.length,headers,rowCount:rows.length,firstRowColumns:rows[0]?.replace(/,?\s*=\s*$/,'').split(',').length||0,hasHtml:/<\s*(?:html|!doctype)/i.test(text)}));
+          JS
