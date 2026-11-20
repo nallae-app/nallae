@@ -35,3 +35,10 @@ test('HTTP401·500은 접속 실패로 오인하지 않고 키나 URL을 오류�
   const offline=createCollectorFetch(async()=>{throw disconnected();},{failureThreshold:1});
   await assert.rejects(offline('https://apis.data.go.kr/a?serviceKey=private-secret'),error=>!error.message.includes('private-secret')&&!error.message.includes('serviceKey'));
 });
+test('Node 연결 AggregateError 내부의 ETIMEDOUT도 감지한다',async()=>{
+ let calls=0;
+ const fetch=createCollectorFetch(async()=>{calls++;throw new TypeError('fetch failed',{cause:new AggregateError([Object.assign(new Error('connect'),{code:'ETIMEDOUT'})])});},{failureThreshold:1});
+ await assert.rejects(fetch('https://apis.data.go.kr/a'),e=>e.code==='ETIMEDOUT');
+ await assert.rejects(fetch('https://apis.data.go.kr/b'));
+ assert.equal(calls,1);
+});
