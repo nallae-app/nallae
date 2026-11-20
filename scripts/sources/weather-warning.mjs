@@ -32,6 +32,26 @@ export function parseText(text) {
   return rows;
 }
 
+// help=1의 공식 CSV 출력열로 응답을 식별한다. 빈 문자열/오류 페이지를
+// '특보 없음'으로 해석해 replaceSource로 기존 특보를 지우지 않는다.
+// 근거: https://apihub.kma.go.kr/apiList.do?seqApi=10&seqApiSub=288
+// 실제 무특보 원문 표본은 미확보: 아래 0행 시험은 문서의 출력열로 구성한 계약 시험이다.
+export function checkedRows(text) {
+  const lines = String(text).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const header = lines.find(line => line.startsWith('#') && COLUMNS.every(column => line.replace(/^#\s*/, '').split(/[,\s]+/).includes(column)));
+  if (!header || /<\s*(?:!doctype|html|head|body|script|error|response)\b/i.test(text)
+    || lines.some(line => /^(?:#\s*)?(?:error\b|error_code\b|invalid\b|access denied\b|unauthorized\b|forbidden\b)/i.test(line)
+      || /(?:인증|접근|요청|서비스|호출).*(?:오류|거부|실패|초과)|오류\s*[:：]/.test(line))) {
+    throw new Error('기상특보 응답 형식 오류');
+  }
+  const dataLines = lines.filter(line => !line.startsWith('#'));
+  const rows = parseText(text);
+  if (rows.length !== dataLines.length || rows.some(row => !/^[LS]\d+$/.test(row.REG_ID || '') || !row.WRN || !row.LVL)) {
+    throw new Error('기상특보 자료 행 오류');
+  }
+  return rows;
+}
+
 // 발표 시각 YYYYMMDDHHMM(한국 시간) → ISO. 형식이 다르거나 불가능한 날짜(13월·32일·25시 등)면 null.
 // (예전에는 불가능한 날짜에서 toISOString()이 RangeError를 던져 수집 전체가 멈출 수 있었다)
 export const tmToIso = (tm) => {
@@ -100,15 +120,15 @@ function hash(s) {
   return (h >>> 0).toString(36);
 }
 
-export async function fetchItems({ key }) {
+export async function fetchItems({ key, fetchImpl = globalThis.fetch }) {
   if (!key) return { skipped: 'KMA_APIHUB_KEY 없음' };
   const url = new URL(ENDPOINT);
   url.search = new URLSearchParams({ fe: 'f', tm: '', disp: '0', help: '1', authKey: key });
-  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  const res = await fetchImpl(url, { signal: AbortSignal.timeout(20000) });
   if (!res.ok) throw new Error(`기상특보 HTTP ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer());
   // API허브 텍스트는 EUC-KR인 경우가 있다
   let text = buf.toString('utf8');
   if (text.includes('�')) text = new TextDecoder('euc-kr').decode(buf);
-  return { items: toItems(parseText(text)), replaceSource: true };
+  return { items: toItems(checkedRows(text)), replaceSource: true };
 }

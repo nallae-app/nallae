@@ -20,23 +20,15 @@ import * as eqk from './sources/earthquake.mjs';
 import { fetchFestivals } from './sources/festivals.mjs';
 import { fetchFuel, mergeFuel, PRODUCTS, OPINET_SIDO } from './sources/fuel.mjs';
 import { fetchFood } from './sources/food-safety.mjs';
-import { fetchTemperature, latestBase } from './sources/temperature.mjs';
+import { fetchTemperature, latestBase, sggGrids } from './sources/temperature.mjs';
 import { fetchForecast, forecastBase } from './sources/forecast.mjs';
 import { fetchParking, fetchSeoulLive } from './sources/parking.mjs';
 import { fetchPharmacies, fetchEmergency, updatePharmacy, updateEmergency } from './sources/medical.mjs';
+import { createCollectorFetch } from './lib/collector-fetch.mjs';
+import { collectionHealth, currentWeather, currentForecast } from './collection-health.mjs';
 
-// 일시적인 네트워크 오류('fetch failed')는 3초 뒤 한 번 더 시도한다
-const rawFetch = globalThis.fetch;
-globalThis.fetch = async (url, opts) => {
-  try {
-    return await rawFetch(url, opts);
-  } catch (e) {
-    if (e?.name === 'AbortError' || e?.name === 'TimeoutError') throw e;
-    await new Promise((r) => setTimeout(r, 3000));
-    const { signal, ...rest } = opts || {};
-    return rawFetch(url, { ...rest, signal: AbortSignal.timeout(20000) });
-  }
-};
+// 호출자의 전체 제한시간을 지키고, 연결되지 않는 호스트에 수백 번 재접속하지 않는다.
+globalThis.fetch = createCollectorFetch(globalThis.fetch);
 
 const OUT = 'web/data/news.json';
 const KEEP_HOURS = 72;
@@ -68,6 +60,7 @@ async function loadPrevious() {
 
 const prev = await loadPrevious();
 const now = new Date();
+const minimumWeatherRegions = Math.ceil(sggGrids().length * 0.8);
 const since = new Date(now.getTime() - KEEP_HOURS * 3600e3);
 const byId = new Map((prev?.items || []).map((it) => [it.id, it]));
 const status = {};
@@ -171,7 +164,7 @@ const WEATHER_OUT = 'web/data/weather.json';
   const prevW = await prevJson('weather.json');
   const base = latestBase(now);
   try {
-    if (!process.env.FORCE_REFRESH && prevW?.base === base.iso) {
+    if (!process.env.FORCE_REFRESH && currentWeather(prevW, base.iso, minimumWeatherRegions)) {
       fs.writeFileSync(WEATHER_OUT, JSON.stringify(prevW));
       console.log(`- 기온: 직전 파일 유지 (${prevW.base} 발표)`);
     } else {
@@ -194,7 +187,7 @@ const FORECAST_OUT = 'web/data/forecast.json';
   const prevF = await prevJson('forecast.json');
   const base = forecastBase(now);
   try {
-    if (!process.env.FORCE_REFRESH && prevF?.base === base.iso) {
+    if (!process.env.FORCE_REFRESH && currentForecast(prevF, base.iso, minimumWeatherRegions)) {
       fs.writeFileSync(FORECAST_OUT, JSON.stringify(prevF));
       console.log(`- 예보: 직전 파일 유지 (${prevF.base} 발표)`);
     } else {
@@ -285,3 +278,9 @@ try {
 // 갱신·유지·실패 기록 규칙은 scripts/sources/medical.mjs의 updatePharmacy / updateEmergency (시험: medical.test.mjs)
 await updatePharmacy({ dir: 'web/data/pharmacy', prevJson, now, force: !!process.env.FORCE_REFRESH, fetcher: (prevTotal) => fetchPharmacies({ key: process.env.DATA_GO_KR_KEY, prevTotal }) });
 await updateEmergency({ out: 'web/data/er.json', prevJson, now, force: !!process.env.FORCE_REFRESH, fetcher: (prevTotal) => fetchEmergency({ key: process.env.DATA_GO_KR_KEY, prevTotal }) });
+
+const readOutput = name => { try { return JSON.parse(fs.readFileSync(`web/data/${name}.json`,'utf8')); } catch (_) { return null; } };
+const finishedAt=new Date();
+const health=collectionHealth({news:readOutput('news'),weather:readOutput('weather'),forecast:readOutput('forecast'),weatherBase:latestBase(finishedAt).iso,forecastBase:forecastBase(finishedAt).iso,minimumRegions:minimumWeatherRegions,now:finishedAt,commit:process.env.GITHUB_SHA||null});
+fs.writeFileSync('web/data/collection-health.json',JSON.stringify(health));
+console.log('핵심 수집 확인',JSON.stringify(health.sources));
