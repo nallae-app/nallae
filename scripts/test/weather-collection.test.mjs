@@ -12,11 +12,21 @@ const response = items => ({ok:true,text:async()=>JSON.stringify({response:{head
 const obs = [{category:'T1H',obsrValue:'7'}];
 const forecast = [{category:'POP',fcstDate:'20261120',fcstTime:'1200',fcstValue:'0'}];
 // help=1 공식 CSV 출력열에 근거한 구성 표본. 실측 무특보 응답이라고 주장하지 않는다.
-const emptyWarning = '#START7777\n# REG_UP, REG_UP_KO, REG_ID, REG_KO, TM_FC, TM_EF, WRN, LVL, CMD, ED_TM\n#7777END';
+const emptyWarning = '#START7777\n# REG_UP, REG_UP_KO, REG_ID, REG_KO, TM_FC, TM_EF, WRN, LVL, CMD\n#7777END';
 const warningResponse = text => ({ok:true,arrayBuffer:async()=>new TextEncoder().encode(text).buffer});
 
 test('공식 출력열을 갖춘 0행 특보 CSV만 정상 빈 목록으로 교체한다',async()=>{
   assert.deepEqual(await fetchWarnings({key,fetchImpl:async()=>warningResponse(emptyWarning)}),{items:[],replaceSource:true});
+});
+test('공식 9열 특보와 선택 확장열이 있는 특보 모두 기존 경보를 정상 갱신한다',async()=>{
+  const row='L1100000, 서울, L1100400, 서울서북권, 202611201000, 202611201100, R, 2, 1';
+  for(const [columns,extra] of [['', ''],[', ED_TM', ','],[', ED_TM, EXTRA', ',, value']]) {
+    const text=emptyWarning.replace('CMD\n','CMD'+columns+'\n').replace('#7777END',row+extra+'\n#7777END');
+    const result=await fetchWarnings({key,fetchImpl:async()=>warningResponse(text)});
+    assert.equal(result.replaceSource,true);assert.equal(result.items.length,1);
+    assert.match(result.items[0].title,/호우주의보/);
+    assert.deepEqual(result.items[0].sido,['11']);
+  }
 });
 test('HTTP 200 오류 HTML·오류 텍스트·끊긴 특보 행을 무특보로 바꾸지 않는다',async()=>{
   for(const text of ['<html>Service unavailable</html>','ERROR: authentication failed','',emptyWarning+'\n# ERROR: server unavailable',emptyWarning+'\nL1100000, 서울, L1100400, 서울서북권, 202611201000']) {
