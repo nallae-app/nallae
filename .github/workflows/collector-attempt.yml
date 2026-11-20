@@ -11,6 +11,10 @@ on:
       force:
         type: boolean
         default: false
+    outputs:
+      core_fresh:
+        description: 'All core sources have the latest available data'
+        value: ${{ jobs.deploy.outputs.core_fresh }}
     secrets:
       SAFETYDATA_KEY:
         required: false
@@ -31,6 +35,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ${{ inputs.runner }}
+    outputs:
+      core_fresh: ${{ steps.health.outputs.core_fresh }}
     timeout-minutes: 10
     environment:
       name: github-pages
@@ -82,6 +88,12 @@ jobs:
           git fetch --depth=1 origin data
           git show origin/data:news.json > web/data/news.json
           node -e "const j=require('./web/data/news.json'); console.log('news.json', j.updated, j.items.length + '건', JSON.stringify(j.sources))"
+
+      - name: Report validated core collection status
+        id: health
+        if: steps.plan.outputs.run == 'true' && vars.COLLECTOR != 'server'
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; const j=JSON.parse(fs.readFileSync('web/data/collection-health.json','utf8')); fs.appendFileSync(process.env.GITHUB_OUTPUT,'core_fresh='+String(j.coreFresh===true && j.commit===process.env.GITHUB_SHA)+'\n');"
 
       - uses: actions/configure-pages@v5
         if: steps.plan.outputs.run == 'true'

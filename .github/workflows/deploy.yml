@@ -46,7 +46,7 @@ jobs:
       SEOUL_KEY: ${{ secrets.SEOUL_KEY }}
   recovery:
     needs: primary
-    if: ${{ !cancelled() && vars.COLLECTOR != 'server' }}
+    if: ${{ !cancelled() && vars.COLLECTOR != 'server' && (needs.primary.result != 'success' || needs.primary.outputs.core_fresh != 'true') }}
     uses: ./.github/workflows/collector-attempt.yml
     with:
       runner: macos-latest
