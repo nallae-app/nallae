@@ -26,12 +26,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          previous_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?status=success&branch=main&per_page=50" --jq '[.workflow_runs[] | select(.name == "collect-and-deploy" or .name == "refresh-medical")][0].id')
-          test -n "$previous_run" && test "$previous_run" != null
-          echo "run=$previous_run" >> "$GITHUB_OUTPUT"
+          # primary 실패 뒤 recovery가 배포에 성공한 run도 포함한다.
+          # 작업이 성공했어도 계획상 배포를 건너뛴 경우는 자료 원본으로 고르지 않는다.
+          runs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?status=completed&branch=main&per_page=50" --jq '.workflow_runs[] | select(.name == "collect-and-deploy" or .name == "refresh-medical") | .id')
+          found=false
+          for previous_run in $runs; do
+            jobs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${previous_run}/jobs?filter=latest&per_page=100")
+            artifacts=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${previous_run}/artifacts?per_page=100")
+            candidates=$(jq -r '[.jobs[] | select(.conclusion == "success") | select(.name == "deploy" or .name == "primary / deploy" or .name == "recovery / deploy") | select(any(.steps[]?; .conclusion == "success" and (.name | contains("actions/deploy-pages@"))))] | sort_by(.completed_at) | reverse | .[] | if .name == "recovery / deploy" then "github-pages-recovery" else "github-pages" end' <<< "$jobs")
+            for artifact in $candidates; do
+              if jq -e --arg name "$artifact" 'any(.artifacts[]; .name == $name and .expired == false and .size_in_bytes > 0)' <<< "$artifacts" > /dev/null; then
+                echo "run=$previous_run" >> "$GITHUB_OUTPUT"
+                echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
+                found=true
+                break 2
+              fi
+            done
+          done
+          test "$found" = true
       - uses: actions/download-artifact@v4
         with:
-          name: github-pages
+          name: ${{ steps.previous.outputs.artifact }}
           run-id: ${{ steps.previous.outputs.run }}
           github-token: ${{ github.token }}
           path: previous-pages

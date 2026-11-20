@@ -1,0 +1,99 @@
+name: collector-attempt
+on:
+  workflow_call:
+    inputs:
+      runner:
+        type: string
+        required: true
+      recovery:
+        type: boolean
+        default: false
+      force:
+        type: boolean
+        default: false
+    secrets:
+      SAFETYDATA_KEY:
+        required: false
+      KMA_APIHUB_KEY:
+        required: false
+      DATA_GO_KR_KEY:
+        required: false
+      OPINET_KEY:
+        required: false
+      FOODSAFETY_KEY:
+        required: false
+      SEOUL_KEY:
+        required: false
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  deploy:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Decide whether recovery collection is needed
+        id: plan
+        env:
+          RECOVERY_ATTEMPT: ${{ inputs.recovery && 'true' || 'false' }}
+          PAGES_BASE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: node scripts/collection-health.mjs plan
+
+      # 수집기에 필요한 것만 설치 (sharp·puppeteer 같은 개발 도구는 받지 않는다)
+      - name: Install collector deps
+        if: steps.plan.outputs.run == 'true'
+        run: npm install --no-save --no-package-lock --ignore-scripts topojson-client@3.1.0
+
+      - name: Test parsers
+        if: steps.plan.outputs.run == 'true'
+        run: node --test "scripts/test/*.test.mjs"
+
+      - name: Validate approved contributions
+        if: steps.plan.outputs.run == 'true'
+        run: node scripts/check-community.mjs
+
+      - name: Collect news
+        if: steps.plan.outputs.run == 'true' && vars.COLLECTOR != 'server'
+        env:
+          SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
+          KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          OPINET_KEY: ${{ secrets.OPINET_KEY }}
+          FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
+          SEOUL_KEY: ${{ secrets.SEOUL_KEY }}
+          FORCE_REFRESH: ${{ inputs.force && '1' || '' }}
+          BRIEF_DEBUG: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
+          PREV_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data/news.json
+        run: node scripts/collect.mjs
+
+      - name: Use news from server (data branch)
+        if: steps.plan.outputs.run == 'true' && vars.COLLECTOR == 'server'
+        run: |
+          git fetch --depth=1 origin data
+          git show origin/data:news.json > web/data/news.json
+          node -e "const j=require('./web/data/news.json'); console.log('news.json', j.updated, j.items.length + '건', JSON.stringify(j.sources))"
+
+      - uses: actions/configure-pages@v5
+        if: steps.plan.outputs.run == 'true'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.plan.outputs.run == 'true'
+        with:
+          name: ${{ inputs.recovery && 'github-pages-recovery' || 'github-pages' }}
+          path: web
+
+      - id: deployment
+        if: steps.plan.outputs.run == 'true'
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: ${{ inputs.recovery && 'github-pages-recovery' || 'github-pages' }}

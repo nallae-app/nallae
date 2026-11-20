@@ -31,57 +31,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    # 서버 수집 모드에서는 예약 실행을 건너뛴다 (서버가 배포를 요청한다)
+  primary:
     if: github.event_name != 'schedule' || vars.COLLECTOR != 'server'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      # 수집기에 필요한 것만 설치 (sharp·puppeteer 같은 개발 도구는 받지 않는다)
-      - name: Install collector deps
-        run: npm install --no-save --no-package-lock --ignore-scripts topojson-client@3.1.0
-
-      - name: Test parsers
-        run: node --test "scripts/test/*.test.mjs"
-
-      - name: Validate approved contributions
-        run: node scripts/check-community.mjs
-
-      - name: Collect news
-        if: vars.COLLECTOR != 'server'
-        env:
-          SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
-          KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
-          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
-          OPINET_KEY: ${{ secrets.OPINET_KEY }}
-          FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
-          SEOUL_KEY: ${{ secrets.SEOUL_KEY }}
-          FORCE_REFRESH: ${{ inputs.force && '1' || '' }}
-          BRIEF_DEBUG: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
-          PREV_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data/news.json
-        run: node scripts/collect.mjs
-
-      - name: Use news from server (data branch)
-        if: vars.COLLECTOR == 'server'
-        run: |
-          git fetch --depth=1 origin data
-          git show origin/data:news.json > web/data/news.json
-          node -e "const j=require('./web/data/news.json'); console.log('news.json', j.updated, j.items.length + '건', JSON.stringify(j.sources))"
-
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web
-
-      - id: deployment
-        uses: actions/deploy-pages@v4
+    uses: ./.github/workflows/collector-attempt.yml
+    with:
+      runner: ubuntu-latest
+      force: ${{ inputs.force || false }}
+    secrets:
+      SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
+      KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+      DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+      OPINET_KEY: ${{ secrets.OPINET_KEY }}
+      FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
+      SEOUL_KEY: ${{ secrets.SEOUL_KEY }}
+  recovery:
+    needs: primary
+    if: ${{ !cancelled() && vars.COLLECTOR != 'server' }}
+    uses: ./.github/workflows/collector-attempt.yml
+    with:
+      runner: macos-latest
+      recovery: true
+      force: ${{ inputs.force || false }}
+    secrets:
+      SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
+      KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+      DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+      OPINET_KEY: ${{ secrets.OPINET_KEY }}
+      FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
+      SEOUL_KEY: ${{ secrets.SEOUL_KEY }}
