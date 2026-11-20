@@ -1561,13 +1561,14 @@ function erCard(x) {
     +'<p class="card-address">'+escapeHtml(x.address)+'</p><div class="care-actions">'+(telLink(x.erPhone,'응급실 전화')||'<span class="place-checked">응급실 전화 미제공</span>')+(telLink(x.phone,'대표 전화')||(x.erPhone?'':'<span class="place-checked">대표 전화 미제공 · 위급하면 119</span>'))+(careHas(x)?'<button type="button" data-care-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<span class="place-checked">지도 위치 없음 · 주소로 찾아보세요</span>')+routeLink(careHas(x)?x:{address:x.address})+'</div></li>';
 }
 function careRegionPrompt(what) { return '<li class="empty">지도에서 시·군·구를 고르면 그 동네 '+what+'을 보여드려요'+(favorites.length?'<div class="explore-toggle">'+favorites.map(r=>'<button type="button" data-care-region="'+escapeHtml(r.code)+'">'+escapeHtml(r.name)+'</button>').join('')+'</div>':'')+'</li>'; }
+const CARE_DISCLAIMER='지삐는 의료기기가 아니며, 어떠한 질환도 진단·치료·치유·예방하지 않습니다. 의학적 조언·진단·치료가 필요하면 의사 등 의료 전문가와 상담하세요.';
 const CARE_URGENT='<div class="care-urgent" role="note"><p><strong>생명이 위급하면 바로 119</strong>에 전화하세요.</p><a class="care-119" href="tel:119">119 전화</a></div>';
 // 실패 기록의 고정 문구(수집기가 만든 것)만 보고 '준비 중'과 '받지 못함'을 나눈다. 원문은 화면에 그대로 보이지 않는다.
 const careWaiting=raw=>/활용신청|등록되지 않은 키|접근 거부/.test(raw?.lastFailure?.error||'');
 function renderCareUnavailable(er) {
   const key=er?'er':'pharmacy/index', raw=careRaw[key], what=er?'응급실 운영 기관':'약국';
   careShown=[]; renderCareMarkers();
-  exploreTools.innerHTML=(er?CARE_URGENT:'')+'<p class="care-note">'+(er?'가까운 응급실은 119에 전화해 안내받을 수 있어요.':'운영시간이 바뀔 수 있으니 방문 전 전화로 확인하세요.')+'</p>';
+  exploreTools.innerHTML=(er?CARE_URGENT:'')+'<p class="care-note">'+(er?'가까운 응급실은 119에 전화해 안내받을 수 있어요.':'운영시간이 바뀔 수 있으니 방문 전 전화로 확인하세요.')+'</p>'+sourceDisclosure('의료정보 이용 안내',CARE_DISCLAIMER);
   const when=raw?.lastFailure?.at?' (마지막 시도 '+careDate(raw.lastFailure.at)+')':'';
   const msg=!exploreReady?what+' 자료를 불러오는 중이에요.'
     : careWaiting(raw)?what+' 정보는 공공데이터 이용 승인을 기다리는 중이라 아직 보여드릴 수 없어요'+when+'.'
@@ -1597,7 +1598,7 @@ function renderCare() {
     +sourceDisclosure((data.fixture?'시험 자료(가상) · ':'')+(er?'응급실 운영 기관':'약국 등록 운영시간')+' · 국립중앙의료원 · '+day+' 수집',
       (er?'국립중앙의료원 전국 응급의료기관 정보(공공데이터포털)에서 응급실운영여부가 \'운영\'인 기관만 보여줘요. 실시간 병상·수용 정보가 아니며, 순서는 이름순이고 추천 순서가 아니에요.'
         :'국립중앙의료원 전국 약국 정보(공공데이터포털)에 등록된 요일별·공휴일 운영시간이에요. 지금 문을 열었는지(임시휴무 등)는 알 수 없어요.')
-      +' · 수집 '+day+(left?' · 주소·좌표로 지역을 정하지 못했거나 운영 여부가 확인되지 않은 '+left+'곳은 목록에 없어요':'')+fail+' · 지도 점은 등록 좌표이며 입구를 뜻하지 않아요');
+      +' · 수집 '+day+(left?' · 주소·좌표로 지역을 정하지 못했거나 운영 여부가 확인되지 않은 '+left+'곳은 목록에 없어요':'')+fail+' · 지도 점은 등록 좌표이며 입구를 뜻하지 않아요. '+CARE_DISCLAIMER);
   if(!code){feedEl.innerHTML=careRegionPrompt(er?'응급실 운영 기관':'약국');renderCareMarkers();return;}
   const counts=data.counts||{}, name=escapeHtml(label(selection.center));
   let items;
