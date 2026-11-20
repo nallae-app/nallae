@@ -19,25 +19,31 @@ export function forecastBase(now = new Date()) {
 export function toDays(items, today) {
   const tomorrow = new Date(new Date(`${today}T12:00:00Z`).getTime() + 86400e3).toISOString().slice(0, 10);
   const days = {};
-  for (const i of items) {
+  for (const i of Array.isArray(items) ? items : []) {
+    if (!i || typeof i.fcstDate !== 'string' || !/^\d{8}$/.test(i.fcstDate) || !['string','number'].includes(typeof i.fcstValue) || String(i.fcstValue).trim() === '') continue;
     const date = `${i.fcstDate.slice(0, 4)}-${i.fcstDate.slice(4, 6)}-${i.fcstDate.slice(6)}`;
     if (date !== today && date !== tomorrow) continue;
     const v = Number(i.fcstValue);
-    if (!Number.isFinite(v) || v <= -900) continue;
+    if (!Number.isFinite(v)) continue;
+    const valid = ['TMN','TMX'].includes(i.category) ? v >= -60 && v <= 60
+      : i.category === 'POP' ? v >= 0 && v <= 100
+      : i.category === 'SKY' ? i.fcstTime === '1200' && [1,3,4].includes(v)
+      : i.category === 'PTY' && [0,1,2,3,4,5,6,7].includes(v);
+    if (!valid) continue;
     const d = (days[date] ??= {});
     if (i.category === 'TMN') d.tmn = v;
     else if (i.category === 'TMX') d.tmx = v;
     else if (i.category === 'POP') d.pop = Math.max(d.pop ?? 0, v); // 하루 중 가장 높은 강수확률
     else if (i.category === 'PTY' && v > 0) d.pty = d.pty || v;     // 비·눈이 한 번이라도 예보되면
+    else if (i.category === 'PTY') d.pty ??= 0;
     else if (i.category === 'SKY' && i.fcstTime === '1200') d.sky = v; // 낮 12시 하늘(1 맑음, 3 구름많음, 4 흐림)
   }
   return days;
 }
 
-export async function fetchForecast({ key, base = forecastBase() }) {
+export async function fetchForecast({ key, now = new Date(), base = forecastBase(now), grids = sggGrids(), fetchImpl = globalThis.fetch }) {
   if (!key) return { skipped: 'DATA_GO_KR_KEY 없음' };
-  const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-  const grids = sggGrids();
+  const today = new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
   const cells = new Map();
   for (const g of grids) cells.set(`${g.nx},${g.ny}`, null);
   let failed = 0, lastErr = '';
@@ -47,19 +53,26 @@ export async function fetchForecast({ key, base = forecastBase() }) {
       const [nx, ny] = cell.split(',');
       const url = `${ENDPOINT}?serviceKey=${encodeURIComponent(key)}&pageNo=1&numOfRows=1000&dataType=JSON&base_date=${base.date}&base_time=${base.time}&nx=${nx}&ny=${ny}`;
       try {
-        const j = JSON.parse(await (await fetch(url, { signal: AbortSignal.timeout(20000) })).text());
+        const res = await fetchImpl(url, { signal: AbortSignal.timeout(20000) });
+        if (!res.ok) throw new Error(`예보 HTTP ${res.status}`);
+        const j = JSON.parse(await res.text());
         const head = j.response?.header;
         if (head?.resultCode !== '00') throw new Error(`${head?.resultCode} ${head?.resultMsg}`);
-        cells.set(cell, toDays(j.response.body.items.item || [], today));
+        const days = toDays(j.response?.body?.items?.item, today);
+        if (!Object.keys(days).length) throw new Error('유효한 오늘·내일 예보 없음');
+        cells.set(cell, days);
       } catch (e) {
         failed++;
         lastErr = String(e.message || e).replaceAll(key, '***').slice(0, 120);
       }
     }));
+    // 본문 지연/빈 응답도 포함해, 이미 최종 허용치를 넘었으면 다음 배치를 생략한다.
+    if (failed > keys.length * 0.2) throw new Error(`예보 격자 ${failed}/${keys.length}곳 실패 (${lastErr})`);
   }
   if (failed > keys.length * 0.2) throw new Error(`예보 격자 ${failed}/${keys.length}곳 실패 (${lastErr})`);
   const sgg = {};
   for (const g of grids) { const d = cells.get(`${g.nx},${g.ny}`); if (d && Object.keys(d).length) sgg[g.code] = d; }
+  if (!grids.length || Object.keys(sgg).length < grids.length * 0.8) throw new Error(`예보 유효 지역 ${Object.keys(sgg).length}/${grids.length}곳으로 부족`);
   console.log(`  예보: 격자 ${keys.length}곳 호출, 실패 ${failed}${failed ? ` (${lastErr})` : ''}`);
   return { sgg, base: base.iso };
 }

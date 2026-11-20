@@ -37,15 +37,15 @@ export function sggGrids() {
 
 /** 초단기실황 항목들 → { t, rn, reh, wsd, pty } */
 export function toObs(items) {
-  const v = Object.fromEntries(items.map((i) => [i.category, Number(i.obsrValue)]));
+  if (!Array.isArray(items)) return null;
+  const v = Object.fromEntries(items.filter(i => i && ['string','number'].includes(typeof i.obsrValue) && String(i.obsrValue).trim() !== '').map((i) => [i.category, Number(i.obsrValue)]));
   if (!Number.isFinite(v.T1H) || v.T1H < -60 || v.T1H > 60) return null; // 결측(-999 등)
   const ok = (x) => (Number.isFinite(x) && x > -900 ? x : undefined);
   return { t: v.T1H, rn: ok(v.RN1), reh: ok(v.REH), wsd: ok(v.WSD), pty: ok(v.PTY) };
 }
 
-export async function fetchTemperature({ key, base = latestBase() }) {
+export async function fetchTemperature({ key, base = latestBase(), grids = sggGrids(), fetchImpl = globalThis.fetch }) {
   if (!key) return { skipped: 'DATA_GO_KR_KEY 없음' };
-  const grids = sggGrids();
   const cells = new Map(); // 'nx,ny' → 관측값 (격자가 겹치는 시·군·구는 한 번만 부른다)
   for (const g of grids) cells.set(`${g.nx},${g.ny}`, null);
   let failed = 0, lastErr = '';
@@ -55,21 +55,27 @@ export async function fetchTemperature({ key, base = latestBase() }) {
       const [nx, ny] = cell.split(',');
       const url = `${ENDPOINT}?serviceKey=${encodeURIComponent(key)}&pageNo=1&numOfRows=10&dataType=JSON&base_date=${base.date}&base_time=${base.time}&nx=${nx}&ny=${ny}`;
       try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+        const res = await fetchImpl(url, { signal: AbortSignal.timeout(15000) });
+        if (!res.ok) throw new Error(`기온 HTTP ${res.status}`);
         const text = await res.text();
         const j = JSON.parse(text); // 키 오류 등은 XML로 와서 여기서 실패한다
         const head = j.response?.header;
         if (head?.resultCode !== '00') throw new Error(`${head?.resultCode} ${head?.resultMsg}`);
-        cells.set(cell, toObs(j.response.body.items.item || []));
+        const observation = toObs(j.response?.body?.items?.item);
+        if (!observation) throw new Error('유효한 기온 관측 없음');
+        cells.set(cell, observation);
       } catch (e) {
         failed++;
         lastErr = String(e.message || e).replaceAll(key, '***').slice(0, 120);
       }
     }));
+    // 이 배치까지의 실패만으로 최종 허용치를 넘으면 나머지 격자를 호출하지 않는다.
+    if (failed > keys.length * 0.2) throw new Error(`기온 격자 ${failed}/${keys.length}곳 실패 (${lastErr})`);
   }
   if (failed > keys.length * 0.2) throw new Error(`기온 격자 ${failed}/${keys.length}곳 실패 (${lastErr})`);
   const sgg = {};
   for (const g of grids) { const o = cells.get(`${g.nx},${g.ny}`); if (o) sgg[g.code] = o; }
+  if (!grids.length || Object.keys(sgg).length < grids.length * 0.8) throw new Error(`기온 유효 지역 ${Object.keys(sgg).length}/${grids.length}곳으로 부족`);
   console.log(`  기온: 격자 ${keys.length}곳 호출, 실패 ${failed}${failed ? ` (${lastErr})` : ''}`);
   return { sgg, base: base.iso };
 }
