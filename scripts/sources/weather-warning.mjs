@@ -12,6 +12,8 @@ const INDEX = JSON.parse(fs.readFileSync(new URL('../data/regions-index.json', i
 const WRN = { W: '강풍', R: '호우', C: '한파', D: '건조', O: '폭풍해일', N: '지진해일', V: '풍랑', T: '태풍', S: '대설', Y: '황사', H: '폭염', F: '안개' };
 const LVL = { 1: '예비특보', 2: '주의보', 3: '경보', 예비: '예비특보', 주의: '주의보', 경보: '경보' };
 const COLUMNS = ['REG_UP', 'REG_UP_KO', 'REG_ID', 'REG_KO', 'TM_FC', 'TM_EF', 'WRN', 'LVL', 'CMD', 'ED_TM'];
+// 공식 특보현황 출력은 CMD까지 9열이다. 기존 파서의 ED_TM은 선택 확장열이다.
+const REQUIRED_COLUMNS = COLUMNS.filter(column => column !== 'ED_TM');
 
 /** API허브 typ01 텍스트 응답 → 행 객체. '#' 줄에 열 이름이 있으면 그걸 쓴다. */
 export function parseText(text) {
@@ -38,7 +40,7 @@ export function parseText(text) {
 // 실제 무특보 원문 표본은 미확보: 아래 0행 시험은 문서의 출력열로 구성한 계약 시험이다.
 export function checkedRows(text) {
   const lines = String(text).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-  const header = lines.find(line => line.startsWith('#') && COLUMNS.every(column => line.replace(/^#\s*/, '').split(/[,\s]+/).includes(column)));
+  const header = lines.find(line => line.startsWith('#') && REQUIRED_COLUMNS.every(column => line.replace(/^#\s*/, '').split(/[,\s]+/).includes(column)));
   if (!header || /<\s*(?:!doctype|html|head|body|script|error|response)\b/i.test(text)
     || lines.some(line => /^(?:#\s*)?(?:error\b|error_code\b|invalid\b|access denied\b|unauthorized\b|forbidden\b)/i.test(line)
       || /(?:인증|접근|요청|서비스|호출).*(?:오류|거부|실패|초과)|오류\s*[:：]/.test(line))) {
