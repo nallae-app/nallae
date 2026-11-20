@@ -1,0 +1,40 @@
+name: public-api-network-diagnostics
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  network:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 3
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compare DNS TLS Node and curl without credentials
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import dns from 'node:dns/promises';
+          import tls from 'node:tls';
+          import net from 'node:net';
+          import {execFile} from 'node:child_process';
+          import {promisify} from 'node:util';
+          const exec=promisify(execFile);
+          const targets=[['control','https://nallae-app.github.io/nallae/data/app-release.json'],['sms','https://www.safetydata.go.kr/V2/api/DSSP-IF-00247'],['warning','https://apihub.kma.go.kr/api/typ01/url/wrn_now_data.php'],['weather','https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst']];
+          const handshake=(host,family)=>new Promise(resolve=>{let done=false;const start=Date.now();const socket=tls.connect({host,port:443,servername:host,family,autoSelectFamily:false,rejectUnauthorized:true});const finish=result=>{if(done)return;done=true;socket.destroy();resolve({...result,ms:Date.now()-start});};socket.setTimeout(5000,()=>finish({ok:false,error:'timeout'}));socket.on('secureConnect',()=>finish({ok:true,family:socket.remoteFamily}));socket.on('error',e=>finish({ok:false,error:e.code||e.name}));});
+          const tcp=host=>new Promise(resolve=>{const start=Date.now(),s=net.connect({host,port:443});let done=false;const end=result=>{if(done)return;done=true;s.destroy();resolve({...result,ms:Date.now()-start});};s.setTimeout(5000,()=>end({ok:false,error:'timeout'}));s.on('connect',()=>end({ok:true}));s.on('error',e=>end({ok:false,error:e.code||e.name}));});
+          for(const [name,url] of targets){
+           const host=new URL(url).hostname,out={name,host};
+           try{out.dns=(await dns.lookup(host,{all:true})).map(x=>({address:x.address,family:x.family}));}catch(e){out.dnsError=e.code||e.name;}
+           out.tcp=await tcp(host);
+           const [v4,v6]=await Promise.all([handshake(host,4),handshake(host,6)]);out.tls4=v4;out.tls6=v6;
+           const start=Date.now();try{const r=await fetch(url,{signal:AbortSignal.timeout(8000)});out.node={status:r.status,ms:Date.now()-start};await r.body?.cancel();}catch(e){out.node={error:e.cause?.code||e.name,ms:Date.now()-start};}
+           try{const r=await exec('curl',['-4','--silent','--show-error','--connect-timeout','5','--max-time','8','--output','/dev/null','--write-out','%{http_code} %{time_connect} %{time_appconnect}',url],{timeout:10000});out.curl4=r.stdout;}catch(e){out.curl4={code:e.code,result:e.stdout?.trim(),error:e.stderr?.slice(0,160)};}
+           console.log(JSON.stringify(out));
+          }
+          NODE
