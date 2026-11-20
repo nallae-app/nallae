@@ -1,14 +1,19 @@
 import { setTimeout as delay } from 'node:timers/promises';
 
-const CONNECTION_ERRORS = new Set(['UND_ERR_CONNECT_TIMEOUT','UND_ERR_SOCKET','ECONNRESET','ECONNREFUSED','ENETUNREACH','EHOSTUNREACH','ENOTFOUND','EAI_AGAIN']);
-const codeOf = error => error?.cause?.code || error?.code;
+const CONNECTION_ERRORS = new Set(['UND_ERR_CONNECT_TIMEOUT','UND_ERR_SOCKET','ECONNRESET','ECONNREFUSED','ENETUNREACH','EHOSTUNREACH','ENOTFOUND','EAI_AGAIN','ETIMEDOUT','ENETDOWN']);
+const codeOf = error => {
+  if (!error) return undefined;
+  if (CONNECTION_ERRORS.has(error.code)) return error.code;
+  for (const nested of [error.cause, ...(error.errors || [])]) { const code=codeOf(nested); if (code) return code; }
+  return undefined;
+};
 function unavailable(host, code = 'COLLECTOR_HOST_UNREACHABLE') {
   // 요청 URL·헤더·인증키는 오류 메시지에도 포함하지 않는다.
   const error = new Error(`공공 API 연결 실패 (${host})`);
   error.code = code;
   return error;
 }
-export function createCollectorFetch(rawFetch, {failureThreshold=3, cooldownMs=60000, retryDelayMs=300, now=Date.now, wait=(ms,signal)=>delay(ms,undefined,{signal})} = {}) {
+export function createCollectorFetch(rawFetch, {failureThreshold=8, cooldownMs=60000, retryDelayMs=300, now=Date.now, wait=(ms,signal)=>delay(ms,undefined,{signal})} = {}) {
   const hosts = new Map();
   return async (input, options = {}) => {
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
