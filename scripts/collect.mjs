@@ -280,6 +280,7 @@ await updatePharmacy({ dir: 'web/data/pharmacy', prevJson, now, force: !!process
 await updateEmergency({ out: 'web/data/er.json', prevJson, now, force: !!process.env.FORCE_REFRESH, fetcher: (prevTotal) => fetchEmergency({ key: process.env.DATA_GO_KR_KEY, prevTotal }) });
 
 const readOutput = name => { try { return JSON.parse(fs.readFileSync(`web/data/${name}.json`,'utf8')); } catch (_) { return null; } };
-const health=collectionHealth({news:readOutput('news'),weather:readOutput('weather'),forecast:readOutput('forecast'),weatherBase:latestBase(now).iso,forecastBase:forecastBase(now).iso,minimumRegions:minimumWeatherRegions,now,commit:process.env.GITHUB_SHA||null});
+const finishedAt=new Date();
+const health=collectionHealth({news:readOutput('news'),weather:readOutput('weather'),forecast:readOutput('forecast'),weatherBase:latestBase(finishedAt).iso,forecastBase:forecastBase(finishedAt).iso,minimumRegions:minimumWeatherRegions,now:finishedAt,commit:process.env.GITHUB_SHA||null});
 fs.writeFileSync('web/data/collection-health.json',JSON.stringify(health));
 console.log('핵심 수집 확인',JSON.stringify(health.sources));
