@@ -10,7 +10,7 @@
   };
   const regionCodes = (center,neighbors,origin=center.center) => new Set([center.code,...neighbors.filter(m=>distance(origin,m.center)<=NEARBY_METERS).map(m=>m.code)]);
   const relevantRegions = (item,codes,regions) => {
-    const exact=new Set(item.sgg||[]), wide=new Set(item.src==='eqk'?[]:item.sido||[]);
+    const exact=new Set(item.sgg||[]), wide=new Set(item.sido||[]);
     return regions.filter(m=>codes.has(m.code)&&(exact.has(m.code)||wide.has(m.sido)));
   };
   const weekend = (date=new Date()) => {

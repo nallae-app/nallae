@@ -1,13 +1,14 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-const VERSION = 'nallae-v92';
+importScripts('release-scope.js?v=93');
+const VERSION = 'nallae-v93';
 const SHELL = [
-  './', 'index.html', 'style.css', 'discovery-home.css', 'region-covers.css', 'region-covers.js', 'data/region-covers.json', 'images/regions/seoul-cheonggyecheon.webp', 'images/courses/bosu-books.webp', 'images/courses/jeolmul-forest.webp', 'fonts/pretendard/pretendard-subset.css', 'fonts/wanted-sans/brand.css', 'fonts/wanted-sans/WantedSansVariable.woff2', 'app.js', 'release-update.js', 'discovery-shelf.js', 'data/discovery-shelf.json', 'overseas-courses.js', 'overseas-map.js', 'data/overseas-courses.json', 'data/world-land.json', 'local-scope.js', 'discovery.js', 'community.js', 'community-ui.js', 'nearby-fuel.js', 'manifest.webmanifest',
+  './', 'index.html', 'style.css', 'discovery-home.css', 'region-covers.css', 'region-covers.js', 'data/region-covers.json', 'images/regions/seoul-cheonggyecheon.webp', 'images/courses/bosu-books.webp', 'images/courses/jeolmul-forest.webp', 'fonts/pretendard/pretendard-subset.css', 'fonts/wanted-sans/brand.css', 'fonts/wanted-sans/WantedSansVariable.woff2', 'app.js', 'release-update.js', 'discovery-shelf.js', 'data/discovery-shelf.json', 'overseas-courses.js', 'overseas-map.js', 'data/overseas-courses.json', 'data/world-land.json', 'release-scope.js', 'local-scope.js', 'discovery.js', 'community.js', 'community-ui.js', 'nearby-fuel.js', 'manifest.webmanifest',
   'vendor/leaflet.min.css', 'vendor/leaflet.min.js', 'vendor/topojson-client.min.js',
   'data/regions.json', 'icons/logo-header.png', 'icons/logo-header-dark.png', 'icons/icon-192.png',
   'icons/apple-touch-icon-v2.png', 'icons/icon-192.png?v=2', 'icons/icon-512.png?v=2', 'icons/maskable-512.png?v=2',
   'icons/favicon-light-32.png', 'icons/favicon-dark-32.png',
   'about.html', 'privacy.html', 'doc.css',
-].map(path=>/\.(?:js|css)$/.test(path)&&!path.startsWith('vendor/')?path+'?v=92':path);
+].map(path=>/\.(?:js|css)$/.test(path)&&!path.startsWith('vendor/')?path+'?v=93':path);
 
 self.addEventListener('install', (e) => {
   // GitHub Pages는 max-age=600을 보낸다. 기본 요청이면 새 버전 캐시에 10분 묵은 이전 파일이 담길 수 있어 HTTP 캐시를 건너뛴다.
@@ -16,12 +17,23 @@ self.addEventListener('install', (e) => {
 
 // 새 껍데기로 바꿔도 마지막 정상 동네 자료는 보존한다.
 const dynamicData = url => url.origin === location.origin && /\/data\/.+\.json$/.test(url.pathname) && !url.pathname.endsWith('/data/regions.json');
+const newsData = url => /\/data\/(?:demo-)?news\.json$/i.test(url.pathname);
+const retiredData = url => {
+  let pathname=url.pathname;try {pathname=decodeURIComponent(pathname);} catch (_) {}
+  return /\/data\/(?:demo-)?(?:er\.json|pharmacy(?:\.json|\/.*)?|earthquakes?\.json|warnings?\.json|disaster[^/]*\.json|sms\.json)$/i.test(pathname);
+};
+async function scopedNewsResponse(response) {
+  const data=await response.json(), scope=self.JippiReleaseScope || globalThis.JippiReleaseScope;
+  const items=Array.isArray(data.items)?data.items.filter(item=>scope?.isAllowedNewsItem(item)):[];
+  const sources=data.contentScope===scope?.version && data.sources?.brief ? {brief:data.sources.brief}:{};
+  return new Response(JSON.stringify({updated:data.updated,contentScope:scope?.version,sources,items}),{status:200,headers:{'content-type':'application/json; charset=utf-8'}});
+}
 async function cachedData(request) {
   const keys = (await caches.keys()).filter(k => /^nallae-v\d+$/.test(k) && Number(k.slice(8)) <= Number(VERSION.slice(8)))
     .sort((a,b) => Number(b.slice(8)) - Number(a.slice(8)));
   for (const key of keys) {
     const hit = await (await caches.open(key)).match(request);
-    if (hit?.ok) return hit;
+    if (hit?.ok) return newsData(new URL(request.url)) ? scopedNewsResponse(hit) : hit;
   }
   return Response.error();
 }
@@ -30,6 +42,14 @@ self.addEventListener('activate', (e) => {
     const current = await caches.open(VERSION);
     const older = (await caches.keys()).filter(k => /^nallae-v\d+$/.test(k) && Number(k.slice(8)) < Number(VERSION.slice(8)))
       .sort((a,b) => Number(b.slice(8)) - Number(a.slice(8)));
+    // 폐기된 기능 자료는 저장공간 오류 때도 옛 정상 장소 자료와 구분해 지운다.
+    for (const key of [VERSION,...older]) {
+      const cache=await caches.open(key);
+      for (const request of await cache.keys()) {
+        const url=new URL(request.url);
+        if (retiredData(url) || (key!==VERSION && newsData(url))) await cache.delete(request);
+      }
+    }
     for (const key of older) {
       let migrated = true;
       try {
@@ -50,6 +70,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+
+  if(retiredData(url)){e.respondWith(Promise.resolve(new Response('This dataset is no longer provided.',{status:410})));return;}
 
   // A release check must never report an older cached version as the latest.
   if(url.pathname.endsWith('/data/app-release.json')){e.respondWith(fetch(e.request,{cache:'no-store'}));return;}
@@ -79,6 +101,7 @@ self.addEventListener('fetch', (e) => {
     const timeout = setTimeout(() => controller.abort(), 8000);
     const network = fetch(e.request, { signal: controller.signal }).then(async (res) => {
         if (!res.ok) throw new Error('data unavailable');
+        if(newsData(url))res=await scopedNewsResponse(res);
         const copy = res.clone();
         try { await (await caches.open(VERSION)).put(e.request, copy); } catch (_) {}
         // 헤더 뒤 본문 수신이 멈춘 경우에도 중단된 응답 대신 정상 캐시로 돌아간다.
