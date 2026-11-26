@@ -9,12 +9,13 @@
   // 생활 행사와 함께 소개되는 보건정책·질환 관리도 제공 범위에서 제외한다.
   const healthPolicy = /심장병|심혈관|당뇨|암\s*예방|재활|정신|영양|식이\s*요법|비만|운동\s*처방|혈당|건강\s*(?:관리|증진)|금연|식중독|치과|한의|한방|간호|요양|헌혈|난임|임신|산후|중독|마약|열사병|온열|저체온|진드기|모기|말라리아|뇌염/;
   const emergencyPolicy = /폭우|가뭄|낙뢰|우박|정전|단수|누출|유출|방사능|원전|싱크홀|땅꺼짐|지반침하|실종|수색/;
+  const firstAidEducation = /자동심장충격|제세동|\bAED\b|심정지|구조호흡|인공호흡|천식|심장|뇌졸중|뇌경색|기도폐쇄|하임리히|중풍/i;
   function isAllowedNewsItem(item) {
     if (!item || item.contentScope !== version || item.src !== 'brief' || !categories.has(item.cat) || typeof item.title !== 'string' || !item.title.trim()) return false;
     if (!localLifeTopic.test(item.title.normalize('NFKC'))) return false;
     const text = [item.title, item.body, item.description, item.summary, item.content, item.source, item.providerText].filter(x => typeof x === 'string').join(' ');
     const normalized = text.normalize('NFKC');
-    return !excluded.test(normalized) && !healthPolicy.test(normalized) && !emergencyPolicy.test(normalized);
+    return !excluded.test(normalized) && !healthPolicy.test(normalized) && !emergencyPolicy.test(normalized) && !firstAidEducation.test(normalized);
   }
   root.JippiReleaseScope = Object.freeze({version, isAllowedNewsItem});
 })(globalThis);
