@@ -16,10 +16,6 @@ on:
         description: 'All core sources have the latest available data'
         value: ${{ jobs.deploy.outputs.core_fresh }}
     secrets:
-      SAFETYDATA_KEY:
-        required: false
-      KMA_APIHUB_KEY:
-        required: false
       DATA_GO_KR_KEY:
         required: false
       OPINET_KEY:
@@ -71,8 +67,6 @@ jobs:
       - name: Collect news
         if: steps.plan.outputs.run == 'true' && vars.COLLECTOR != 'server'
         env:
-          SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
-          KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
@@ -87,7 +81,11 @@ jobs:
         run: |
           git fetch --depth=1 origin data
           git show origin/data:news.json > web/data/news.json
-          node -e "const j=require('./web/data/news.json'); console.log('news.json', j.updated, j.items.length + '건', JSON.stringify(j.sources))"
+          node scripts/sanitize-published-data.mjs web/data
+
+      - name: Enforce published data scope
+        if: steps.plan.outputs.run == 'true'
+        run: node scripts/sanitize-published-data.mjs web/data
 
       - name: Report validated core collection status
         id: health

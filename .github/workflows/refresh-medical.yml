@@ -1,77 +1,12 @@
-# 승인 반영 후 의료 자료만 갱신. 다른 수집 산출물은 직전 성공 배포 artifact에서 그대로 보존한다.
+# 종료된 의료·재난 기능의 수집/배포를 재실행하지 않는다.
 name: refresh-medical
 on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: false
 jobs:
-  deploy:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Find last successful Pages data
-        id: previous
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # primary 실패 뒤 recovery가 배포에 성공한 run도 포함한다.
-          # 작업이 성공했어도 계획상 배포를 건너뛴 경우는 자료 원본으로 고르지 않는다.
-          runs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?status=completed&branch=main&per_page=50" --jq '.workflow_runs[] | select(.name == "collect-and-deploy" or .name == "refresh-medical") | .id')
-          found=false
-          for previous_run in $runs; do
-            jobs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${previous_run}/jobs?filter=latest&per_page=100")
-            artifacts=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${previous_run}/artifacts?per_page=100")
-            candidates=$(jq -r '[.jobs[] | select(.conclusion == "success") | select(.name == "deploy" or .name == "primary / deploy" or .name == "recovery / deploy") | select(any(.steps[]?; .conclusion == "success" and (.name | contains("actions/deploy-pages@"))))] | sort_by(.completed_at) | reverse | .[] | if .name == "recovery / deploy" then "github-pages-recovery" else "github-pages" end' <<< "$jobs")
-            for artifact in $candidates; do
-              if jq -e --arg name "$artifact" 'any(.artifacts[]; .name == $name and .expired == false and .size_in_bytes > 0)' <<< "$artifacts" > /dev/null; then
-                echo "run=$previous_run" >> "$GITHUB_OUTPUT"
-                echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
-                found=true
-                break 2
-              fi
-            done
-          done
-          test "$found" = true
-      - uses: actions/download-artifact@v4
-        with:
-          name: ${{ steps.previous.outputs.artifact }}
-          run-id: ${{ steps.previous.outputs.run }}
-          github-token: ${{ github.token }}
-          path: previous-pages
-      - name: Restore previous data unchanged
-        run: |
-          mkdir restored-pages
-          tar -xf previous-pages/artifact.tar -C restored-pages
-          test -f restored-pages/data/news.json
-          cp -a restored-pages/data/. web/data/
-          test ! -e web/data/demo-er.json
-          test ! -e web/data/demo-pharmacy
-      - name: Install collector dependency
-        run: npm install --no-save --no-package-lock --ignore-scripts topojson-client@3.1.0
-      - name: Test medical parsers
-        run: node --test scripts/test/medical.test.mjs
-      - name: Refresh medical sources only
-        env:
-          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
-        run: node scripts/collect-medical.mjs
-      - name: Verify other data is unchanged
-        run: diff -qr --exclude=pharmacy --exclude=er.json restored-pages/data web/data
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Retired data source
+        run: echo "This data source has been retired. Use collect-and-deploy for ordinary weather and local-life data."
