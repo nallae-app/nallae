@@ -1,339 +1,87 @@
 {
- "updated": "2026-10-21T06:37:20.653Z",
+ "updated": "2026-11-26T13:53:55.390Z",
+ "contentScope": "local-life-v1",
  "demo": true,
+ "sources": {
+  "brief": {
+   "ok": true,
+   "count": 6,
+   "at": "2026-11-26T13:53:55.390Z"
+  }
+ },
  "items": [
-  {
-   "id": "sms-demo0",
-   "src": "sms",
-   "cat": "재난",
-   "title": "합정동 상가 화재 발생. 인근 주민은 창문을 닫고 연기 흡입에 주의 바랍니다.",
-   "body": "[마포구청] 합정동 상가 화재 발생. 인근 주민은 창문을 닫고 연기 흡입에 주의 바랍니다.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "화재",
-   "time": "2026-10-21T06:34:20.000Z",
-   "sgg": [
-    "11440"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
-  },
-  {
-   "id": "eqk-20261021153400",
-   "src": "eqk",
-   "cat": "재난",
-   "kind": "지진조기경보",
-   "urgency": "urgent",
-   "urgencyBasis": "지진 발표 구분: 지진조기경보",
-   "title": "규모 3.1 지진 — 경북 포항시 북구",
-   "body": "최대진도 Ⅲ",
-   "time": "2026-10-21T06:34:00.000Z",
-   "lat": 36.08,
-   "lon": 129.37,
-   "mag": 3.1,
-   "sgg": [
-    "47113"
-   ],
-   "sido": [],
-   "source": "기상청 지진조기경보 (데모)",
-   "license": "공공누리 1유형",
-   "url": "https://www.weather.go.kr/w/eqk-vol/search/korea.do"
-  },
-  {
-   "id": "sms-demo6",
-   "src": "sms",
-   "cat": "재난",
-   "title": "지진해일 경보 발령. 서귀포시 해안가 주민은 즉시 높은 곳으로 대피하시기 바랍니다.",
-   "body": "[행정안전부] 지진해일 경보 발령. 서귀포시 해안가 주민은 즉시 높은 곳으로 대피하시기 바랍니다.",
-   "level": "위급재난",
-   "urgency": "critical",
-   "urgencyBasis": "재난문자 발송 구분: 위급재난",
-   "kind": "지진해일",
-   "time": "2026-10-21T06:31:20.000Z",
-   "sgg": [
-    "50130"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
-  },
-  {
-   "id": "eqk-20261021153000",
-   "src": "eqk",
-   "cat": "재난",
-   "kind": "국내지진통보",
-   "urgency": "normal",
-   "urgencyBasis": "지진 발표 구분: 국내지진통보",
-   "title": "규모 2.6 지진 — 전북 군산시 어청도 남서쪽 85km 해역",
-   "body": "최대진도 Ⅰ · 지진피해 없을 것으로 예상됨",
-   "time": "2026-10-21T06:30:00.000Z",
-   "lat": 35.56,
-   "lon": 125.34,
-   "mag": 2.6,
-   "sgg": [],
-   "sido": [],
-   "source": "기상청 국내지진통보 (데모)",
-   "license": "공공누리 1유형",
-   "url": "https://www.weather.go.kr/w/eqk-vol/search/korea.do"
-  },
-  {
-   "id": "sms-demo1",
-   "src": "sms",
-   "cat": "재난",
-   "title": "공장 화재로 다량의 연기 발생. 주민은 외출을 자제하시기 바랍니다.",
-   "body": "[화성시청] 공장 화재로 다량의 연기 발생. 주민은 외출을 자제하시기 바랍니다.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "화재",
-   "time": "2026-10-21T06:28:20.000Z",
-   "sgg": [
-    "41593",
-    "41591",
-    "41597",
-    "41595"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
-  },
   {
    "id": "demo-brief-0",
    "src": "brief",
    "cat": "정책",
    "onMap": false,
-   "urgency": "normal",
-   "urgencyBasis": "정책·보도자료",
+   "contentScope": "local-life-v1",
    "title": "국토부, 수원시 영통구 신분당선 연장 기본계획 고시",
-   "time": "2026-10-21T06:25:20.653Z",
+   "time": "2026-11-26T13:41:55.390Z",
    "sgg": [
     "41117"
    ],
    "sido": [],
-   "source": "데모 데이터 (데모)",
+   "source": "데모 데이터",
    "url": "https://www.korea.kr/"
-  },
-  {
-   "id": "sms-demo2",
-   "src": "sms",
-   "cat": "재난",
-   "title": "산불 발생. 인근 주민은 마을회관으로 대피 바랍니다.",
-   "body": "[강릉시청] 산불 발생. 인근 주민은 마을회관으로 대피 바랍니다.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "산불",
-   "time": "2026-10-21T06:23:20.000Z",
-   "sgg": [
-    "51150"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
-  },
-  {
-   "id": "wrn-건조경보-202610211519-1ffk1e5",
-   "src": "wrn",
-   "level": "경보",
-   "urgency": "urgent",
-   "urgencyBasis": "기상특보 단계: 경보",
-   "cat": "기상",
-   "title": "건조경보 발효 — 강원 강릉시, 강원 속초시",
-   "body": "특보 구역: 강릉평지, 속초평지",
-   "time": "2026-10-21T06:19:00.000Z",
-   "sgg": [
-    "51150",
-    "51210"
-   ],
-   "sido": [],
-   "source": "기상청 기상특보 (데모)",
-   "license": "공공누리 1유형",
-   "url": "https://www.weather.go.kr/w/special-report/overall.do"
-  },
-  {
-   "id": "sms-demo3",
-   "src": "sms",
-   "cat": "재난",
-   "title": "이안류 발생 우려로 해수욕장 입수를 통제합니다.",
-   "body": "[해운대구청] 이안류 발생 우려로 해수욕장 입수를 통제합니다.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "기타",
-   "time": "2026-10-21T06:15:20.000Z",
-   "sgg": [
-    "26350"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
-  },
-  {
-   "id": "sms-demo4",
-   "src": "sms",
-   "cat": "교통",
-   "title": "잠실대교 남단 교통사고로 2개 차로 통제 중. 우회 바랍니다.",
-   "body": "[송파구청] 잠실대교 남단 교통사고로 2개 차로 통제 중. 우회 바랍니다.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "교통",
-   "time": "2026-10-21T06:10:20.000Z",
-   "sgg": [
-    "11710"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
-  },
-  {
-   "id": "sms-demo5",
-   "src": "sms",
-   "cat": "재난",
-   "title": "경북 포항시 북구 북쪽 9km 지역 규모 4.6 지진 발생. 낙하물에 주의하고 여진에 대비하세요.",
-   "body": "[기상청] 경북 포항시 북구 북쪽 9km 지역 규모 4.6 지진 발생. 낙하물에 주의하고 여진에 대비하세요.",
-   "level": "긴급재난",
-   "urgency": "urgent",
-   "urgencyBasis": "재난문자 발송 구분: 긴급재난",
-   "kind": "지진",
-   "time": "2026-10-21T06:04:20.000Z",
-   "sgg": [
-    "47111",
-    "47113"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
   },
   {
    "id": "demo-brief-1",
    "src": "brief",
    "cat": "정책",
    "onMap": false,
-   "urgency": "normal",
-   "urgencyBasis": "정책·보도자료",
+   "contentScope": "local-life-v1",
    "title": "서울 성동구 성수동 준공업지역 정비계획 발표",
-   "time": "2026-10-21T06:00:20.653Z",
+   "time": "2026-11-26T13:16:55.390Z",
    "sgg": [
     "11200"
    ],
    "sido": [],
-   "source": "데모 데이터 (데모)",
+   "source": "데모 데이터",
    "url": "https://www.korea.kr/"
   },
   {
-   "id": "sms-demo7",
-   "src": "sms",
-   "cat": "사건",
-   "title": "실종자를 찾습니다. 70세 남성, 165cm, 회색 점퍼.",
-   "body": "[수성구청] 실종자를 찾습니다. 70세 남성, 165cm, 회색 점퍼.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "실종",
-   "time": "2026-10-21T05:56:20.000Z",
-   "sgg": [
-    "27260"
-   ],
+   "id": "demo-brief-2",
+   "src": "brief",
+   "cat": "정책",
+   "onMap": false,
+   "contentScope": "local-life-v1",
+   "title": "분당신도시 선도지구 재건축 특별정비계획 수립",
+   "time": "2026-11-26T12:51:55.390Z",
+   "sgg": [],
    "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
-  },
-  {
-   "id": "sms-demo8",
-   "src": "sms",
-   "cat": "기상",
-   "title": "호우로 하천 범람 우려. 하천 산책로 출입을 금지합니다.",
-   "body": "[제주시청] 호우로 하천 범람 우려. 하천 산책로 출입을 금지합니다.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "호우",
-   "time": "2026-10-21T05:49:20.000Z",
-   "sgg": [
-    "50110"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
-  },
-  {
-   "id": "wrn-호우주의보-202610211447-oyj45c",
-   "src": "wrn",
-   "level": "주의보",
-   "urgency": "normal",
-   "urgencyBasis": "기상특보 단계: 주의보",
-   "cat": "기상",
-   "title": "호우주의보 발효 — 제주 제주시, 제주 서귀포시",
-   "body": "특보 구역: 제주시북부, 서귀포시남부",
-   "time": "2026-10-21T05:47:00.000Z",
-   "sgg": [
-    "50110",
-    "50130"
-   ],
-   "sido": [],
-   "source": "기상청 기상특보 (데모)",
-   "license": "공공누리 1유형",
-   "url": "https://www.weather.go.kr/w/special-report/overall.do"
-  },
-  {
-   "id": "sms-demo9",
-   "src": "sms",
-   "cat": "재난",
-   "title": "용봉동 일대 정전 발생. 복구 중입니다.",
-   "body": "[북구청] 용봉동 일대 정전 발생. 복구 중입니다.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "정전",
-   "time": "2026-10-21T05:42:20.000Z",
-   "sgg": [
-    "12300"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
+   "source": "데모 데이터",
+   "url": "https://www.korea.kr/"
   },
   {
    "id": "demo-brief-3",
    "src": "brief",
    "cat": "정책",
    "onMap": false,
-   "urgency": "normal",
-   "urgencyBasis": "정책·보도자료",
+   "contentScope": "local-life-v1",
    "title": "전주시 한옥마을 야간 개장 연장 운영",
-   "time": "2026-10-21T05:07:20.653Z",
+   "time": "2026-11-26T12:23:55.390Z",
    "sgg": [
     "52111",
     "52113"
    ],
    "sido": [],
-   "source": "데모 데이터 (데모)",
+   "source": "데모 데이터",
    "url": "https://www.korea.kr/"
-  },
-  {
-   "id": "sms-demo10",
-   "src": "sms",
-   "cat": "재난",
-   "title": "탕정면 일대 단수 예정 안내 (14:00~18:00).",
-   "body": "[아산시청] 탕정면 일대 단수 예정 안내 (14:00~18:00).",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "기타",
-   "time": "2026-10-21T04:27:20.000Z",
-   "sgg": [
-    "44200"
-   ],
-   "sido": [],
-   "source": "행정안전부 긴급재난문자 (데모)"
   },
   {
    "id": "demo-brief-4",
    "src": "brief",
    "cat": "정책",
    "onMap": false,
-   "urgency": "normal",
-   "urgencyBasis": "정책·보도자료",
+   "contentScope": "local-life-v1",
    "title": "창원시 성산구 S-BRT 2단계 개통",
-   "time": "2026-10-21T04:07:20.653Z",
+   "time": "2026-11-26T11:23:55.390Z",
    "sgg": [
     "48123"
    ],
    "sido": [],
-   "source": "데모 데이터 (데모)",
+   "source": "데모 데이터",
    "url": "https://www.korea.kr/"
   },
   {
@@ -341,33 +89,15 @@
    "src": "brief",
    "cat": "정책",
    "onMap": false,
-   "urgency": "normal",
-   "urgencyBasis": "정책·보도자료",
+   "contentScope": "local-life-v1",
    "title": "아산시 탕정 산업단지 2단계 분양 공고",
-   "time": "2026-10-21T03:17:20.653Z",
+   "time": "2026-11-26T10:33:55.390Z",
    "sgg": [
     "44200"
    ],
    "sido": [],
-   "source": "데모 데이터 (데모)",
+   "source": "데모 데이터",
    "url": "https://www.korea.kr/"
-  },
-  {
-   "id": "sms-demo11",
-   "src": "sms",
-   "cat": "기상",
-   "title": "초미세먼지 주의보 발령. 실외 활동을 자제하세요.",
-   "body": "[인천광역시] 초미세먼지 주의보 발령. 실외 활동을 자제하세요.",
-   "level": "안전안내",
-   "urgency": "normal",
-   "urgencyBasis": "재난문자 발송 구분: 안전안내",
-   "kind": "미세먼지",
-   "time": "2026-10-21T01:37:20.000Z",
-   "sgg": [],
-   "sido": [
-    "28"
-   ],
-   "source": "행정안전부 긴급재난문자 (데모)"
   }
  ]
 }
