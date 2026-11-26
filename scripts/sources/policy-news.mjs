@@ -54,7 +54,7 @@ export function parse(xml) {
       contentScope: CONTENT_SCOPE,
     };
     // 공개 제목뿐 아니라 공급처의 본문/요약도 검사한다. 본문은 저장·재배포하지 않는다.
-    if (isAllowedNewsItem({...item,providerText:decode(x.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1')).replace(/<[^>]+>/g,' ')})) items.push(item);
+    if (isAllowedNewsItem({...item,providerText:decode(x.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]+>/g,' '))})) items.push(item);
   }
   return items.filter((it) => it.time);
 }
