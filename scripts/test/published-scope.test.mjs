@@ -35,12 +35,29 @@ test('생활 분야를 포함해도 질환 예방·관리와 보건정책 프로
  }
  for(const title of ['서울 공원 산책로 개장','서울 문화센터 공연 안내','서울 도서관 독서 프로그램']) assert.equal(isAllowedNewsItem(item(title)),true,title);
 });
+test('의료·생활 위험 대응이 문화/공원 기사에 섞여도 제공 범위에서 제외한다',()=>{
+ const excluded=['식중독','치과','한의','한방','간호','요양','헌혈','난임','임신','산후','중독','마약','열사병','온열','저체온','진드기','모기','말라리아','뇌염','폭우','가뭄','낙뢰','우박','정전','단수','누출','유출','방사능','원전','싱크홀','땅꺼짐','지반침하','실종','수색'];
+ for(const term of excluded) {
+  assert.equal(isAllowedNewsItem(item('서울 공원 '+term+' 안내')),false,term+' title');
+  assert.equal(isAllowedNewsItem(item('서울 문화 행사',{body:term+' 대응 정보'})),false,term+' body');
+ }
+});
+test('도서관·공원 제목에 섞인 응급처치 교육과 천식 관리는 제공하지 않는다',()=>{
+ for(const title of ['도서관에서 배우는 자동심장충격기 사용법','공원에서 배우는 심정지 대처법','공원에서 만나는 천식 관리 교육']) assert.equal(isAllowedNewsItem(item(title)),false,title);
+ for(const body of ['자동심장충격기','제세동','AED','심정지','구조호흡','인공호흡','천식','심장','뇌졸중','뇌경색','기도폐쇄','하임리히','중풍']) assert.equal(isAllowedNewsItem(item('서울 공원 안내',{body})),false,body);
+});
 test('정책 공급처 제목이 일반 생활이어도 원문 본문이 의료·재난이면 수집하지 않는다',()=>{
  const article=body=>`<NewsItem><NewsItemId>1</NewsItemId><Title>수원시 영통구 도서관 개관</Title><KoglType>1</KoglType><ApproveDate>20261126120000</ApproveDate><Contents><![CDATA[${body}]]></Contents></NewsItem>`;
  assert.deepEqual(parse(article('감염병 대응과 응급처치 교육')),[]);
  const [accepted]=parse(article('도서 대출 공간 확충'));
  assert.equal(accepted.contentScope,CONTENT_SCOPE);assert.equal(isAllowedNewsItem(accepted),true);
  assert.equal(accepted.body,undefined);assert.equal(accepted.providerText,undefined);
+});
+test('공급처의 escaped 꺾쇠 일반 문구는 태그로 지우지 않고 범위 판정에 포함한다',()=>{
+ const article=body=>`<NewsItem><NewsItemId>1</NewsItemId><Title>수원시 영통구 공원 개장</Title><KoglType>1</KoglType><ApproveDate>20261126120000</ApproveDate><Contents>${body}</Contents></NewsItem>`;
+ assert.deepEqual(parse(article('&lt;치료 안내&gt;')),[]);
+ assert.deepEqual(parse(article('<![CDATA[&lt;헌혈 안내&gt;]]>')),[]);
+ assert.equal(parse(article('&lt;문화 안내&gt;')).length,1);
 });
 test('구 데이터·서버 news는 미검증 항목과 응급 출처 상태를 버리며 수집 날짜를 바꾸지 않는다',()=>{
  const data=scopedNews({updated:now.toISOString(),sources:{sms:{ok:true},brief:{ok:true}},items:[item('서울 생활 소식',{contentScope:undefined}),item('서울 지진 안내',{src:'eqk'})]},{now});
@@ -57,6 +74,15 @@ test('마지막 산출물 정리는 실제·가상 의료 파일과 구 marker�
  for(const name of ['er.json','pharmacy','demo-er.json','demo-pharmacy','earthquake.json','warnings.json','sms.json','disaster-test.json','collection-health.json'])assert.equal(fs.existsSync(path.join(root,name)),false,name);
  assert.equal(fs.readFileSync(path.join(root,'weather.json'),'utf8'),weather);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root,'outings.json'))),{keep:true});
  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root,'demo-news.json'))).items.map(x=>x.title),['서울 책 축제']);
+});
+test('데모는 며칠 뒤 재배포해도 유지하되 동일 범위 검사를 통과해야 한다',t=>{
+ const root=directory(t),later=new Date(+now+10*86400000);
+ const data={updated:now.toISOString(),contentScope:CONTENT_SCOPE,sources:{brief:{ok:true}},items:[item('서울 공원 개장'),item('서울 공원 헌혈 행사'),item('서울 공원 안내',{contentScope:undefined})]};
+ for(const name of ['news.json','demo-news.json'])fs.writeFileSync(path.join(root,name),JSON.stringify(data));
+ sanitizePublishedData(root,{now:later});
+ assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root,'news.json'))).items,[]);
+ const demo=JSON.parse(fs.readFileSync(path.join(root,'demo-news.json')));
+ assert.deepEqual(demo.items.map(x=>x.title),['서울 공원 개장']);assert.equal(demo.updated,data.updated);
 });
 test('실제 collector 실행은 응급 API를 호출하지 않고 과거 자료 병합도 같은 범위로 제한한다',t=>{
  const root=directory(t),log=path.join(root,'calls.json'),hook=path.join(root,'hook.mjs');
