@@ -4,6 +4,7 @@
 // 지역 이름이 제목에 나오고 공공누리 1유형인 자료만 쓴다. 본문은 싣지 않고 제목과 원문 링크만.
 // 제목에 지명이 '언급'됐을 뿐 그곳에서 일어난 일이라는 보장이 없으므로 지도에는 찍지 않고(onMap: false) 목록에만 둔다.
 import { findPlacesInText } from '../lib/regions.mjs';
+import {CONTENT_SCOPE,isAllowedNewsItem} from '../lib/published-scope.mjs';
 
 const ENDPOINT = 'https://apis.data.go.kr/1371000/policyNewsService2/policyNewsList2';
 
@@ -37,7 +38,7 @@ export function parse(xml) {
     const { sgg, sido } = findPlacesInText(title);
     if (!sgg.length && !sido.length) continue;
     const url = tag(x, 'OriginalUrl');
-    items.push({
+    const item = {
       id: `brief-${tag(x, 'NewsItemId')}`,
       src: 'brief',
       urgency: 'normal',
@@ -50,7 +51,10 @@ export function parse(xml) {
       source: `정책브리핑 · ${tag(x, 'MinisterCode') || '정부'}`,
       license: '공공누리 1유형',
       url: /^https?:\/\//.test(url) ? url : undefined,
-    });
+      contentScope: CONTENT_SCOPE,
+    };
+    // 공개 제목뿐 아니라 공급처의 본문/요약도 검사한다. 본문은 저장·재배포하지 않는다.
+    if (isAllowedNewsItem({...item,providerText:decode(x.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1')).replace(/<[^>]+>/g,' ')})) items.push(item);
   }
   return items.filter((it) => it.time);
 }
