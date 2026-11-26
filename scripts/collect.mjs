@@ -2,30 +2,24 @@
 // GitHub Actions가 10분마다 돌린다 (.github/workflows/deploy.yml). 로컬: npm run collect
 //
 // 환경 변수
-//   SAFETYDATA_KEY   긴급재난문자 (safetydata.go.kr)
-//   KMA_APIHUB_KEY   기상특보·지진정보 (apihub.kma.go.kr)
 //   DATA_GO_KR_KEY   정책브리핑·전국문화축제·초단기실황 기온 (data.go.kr) → 기온은 web/data/weather.json, 매시
 //   OPINET_KEY       주유소 기름값 (opinet.co.kr) → web/data/fuel.json, 3시간마다
 //   FOODSAFETY_KEY   식품안심업소 (foodsafetykorea.go.kr) → web/data/food/, 하루 한 번
 //   SEOUL_KEY        서울 시영주차장 실시간 (data.seoul.go.kr) → web/data/parking-live.json, 매번
 //                    (주차장 표준데이터는 DATA_GO_KR_KEY → web/data/parking/, 하루 한 번)
-//                    (약국·응급실도 DATA_GO_KR_KEY → web/data/pharmacy/, web/data/er.json, 하루 한 번·전국 완전할 때만)
 //   FORCE_REFRESH   1이면 간격과 상관없이 기름값·식품안심업소를 새로 받는다
 //   PREV_URL         직전에 배포된 news.json 주소 (없으면 로컬 파일을 이어 쓴다)
 import fs from 'node:fs';
-import * as sms from './sources/disaster-sms.mjs';
-import * as wrn from './sources/weather-warning.mjs';
 import * as brief from './sources/policy-news.mjs';
-import * as eqk from './sources/earthquake.mjs';
 import { fetchFestivals } from './sources/festivals.mjs';
 import { fetchFuel, mergeFuel, PRODUCTS, OPINET_SIDO } from './sources/fuel.mjs';
 import { fetchFood } from './sources/food-safety.mjs';
 import { fetchTemperature, latestBase, sggGrids } from './sources/temperature.mjs';
 import { fetchForecast, forecastBase } from './sources/forecast.mjs';
 import { fetchParking, fetchSeoulLive } from './sources/parking.mjs';
-import { fetchPharmacies, fetchEmergency, updatePharmacy, updateEmergency } from './sources/medical.mjs';
 import { createCollectorFetch } from './lib/collector-fetch.mjs';
 import { collectionHealth, currentWeather, currentForecast } from './collection-health.mjs';
+import {CONTENT_SCOPE,isAllowedNewsItem,scopedNews,sanitizePublishedData} from './lib/published-scope.mjs';
 
 // 호출자의 전체 제한시간을 지키고, 연결되지 않는 호스트에 수백 번 재접속하지 않는다.
 globalThis.fetch = createCollectorFetch(globalThis.fetch);
@@ -33,15 +27,9 @@ globalThis.fetch = createCollectorFetch(globalThis.fetch);
 const OUT = 'web/data/news.json';
 const KEEP_HOURS = 72;
 const MAX_ITEMS = 600;
-// 실종자 문자는 이름·나이 등 개인정보가 있어 하루만 보여준다
-const MISSING_PERSON_HOURS = 24;
-const isMissingPerson = (it) => it.src === 'sms' && it.cat === '사건' && /실종|찾습니다|배회/.test(it.body || it.title);
 
 const SOURCES = [
-  { name: 'sms', label: '긴급재난문자', mod: sms, key: process.env.SAFETYDATA_KEY },
-  { name: 'wrn', label: '기상특보', mod: wrn, key: process.env.KMA_APIHUB_KEY },
   { name: 'brief', label: '정책브리핑', mod: brief, key: process.env.DATA_GO_KR_KEY },
-  { name: 'eqk', label: '지진정보', mod: eqk, key: process.env.KMA_APIHUB_KEY },
 ];
 
 async function loadPrevious() {
@@ -62,7 +50,7 @@ const prev = await loadPrevious();
 const now = new Date();
 const minimumWeatherRegions = Math.ceil(sggGrids().length * 0.8);
 const since = new Date(now.getTime() - KEEP_HOURS * 3600e3);
-const byId = new Map((prev?.items || []).map((it) => [it.id, it]));
+const byId = new Map((prev ? scopedNews(prev,{now}).items : []).map((it) => [it.id, it]));
 const status = {};
 
 for (const s of SOURCES) {
@@ -71,7 +59,7 @@ for (const s of SOURCES) {
     if (r.skipped) { status[s.name] = { ok: false, note: r.skipped }; console.log(`- ${s.label}: 건너뜀 (${r.skipped})`); continue; }
     if (r.replaceSource) for (const [id, it] of byId) if (it.src === s.name) byId.delete(id);
     let added = 0;
-    for (const it of r.items) { if (!byId.has(it.id)) added++; byId.set(it.id, it); }
+    for (const it of r.items.filter(isAllowedNewsItem)) { if (!byId.has(it.id)) added++; byId.set(it.id, it); }
     status[s.name] = { ok: true, count: r.items.length, at: now.toISOString() };
     console.log(`- ${s.label}: ${r.items.length}건 (새 소식 ${added})`);
   } catch (e) {
@@ -83,12 +71,12 @@ for (const s of SOURCES) {
 
 const items = [...byId.values()]
   .filter((it) => new Date(it.time) >= since && new Date(it.time) <= new Date(now.getTime() + 3600e3))
-  .filter((it) => !isMissingPerson(it) || now - new Date(it.time) < MISSING_PERSON_HOURS * 3600e3)
+  .filter(isAllowedNewsItem)
   .sort((a, b) => new Date(b.time) - new Date(a.time))
   .slice(0, MAX_ITEMS);
 
 fs.mkdirSync('web/data', { recursive: true });
-fs.writeFileSync(OUT, JSON.stringify({ updated: now.toISOString(), sources: status, items }));
+fs.writeFileSync(OUT, JSON.stringify({ updated: now.toISOString(), contentScope:CONTENT_SCOPE, sources: status, items }));
 console.log(`→ ${OUT}: ${items.length}건`);
 
 // ---------- 축제(장소·일정): 소식과 섞지 않고 web/data/festivals.json으로 따로 ----------
@@ -273,11 +261,7 @@ try {
   console.log(`- 서울 주차 실시간: 실패 — ${e.message || e}`);
 }
 
-// ---------- 약국·응급실 (국립중앙의료원): 전국이 빠짐없이 받아졌을 때만 갱신 ----------
-// perSggDaily(95% 재사용 허용)와 달리 일부 실패·0건·급감·중복은 이번 결과를 버리고 직전 정상 자료를 통째로 둔다.
-// 갱신·유지·실패 기록 규칙은 scripts/sources/medical.mjs의 updatePharmacy / updateEmergency (시험: medical.test.mjs)
-await updatePharmacy({ dir: 'web/data/pharmacy', prevJson, now, force: !!process.env.FORCE_REFRESH, fetcher: (prevTotal) => fetchPharmacies({ key: process.env.DATA_GO_KR_KEY, prevTotal }) });
-await updateEmergency({ out: 'web/data/er.json', prevJson, now, force: !!process.env.FORCE_REFRESH, fetcher: (prevTotal) => fetchEmergency({ key: process.env.DATA_GO_KR_KEY, prevTotal }) });
+sanitizePublishedData('web/data');
 
 const readOutput = name => { try { return JSON.parse(fs.readFileSync(`web/data/${name}.json`,'utf8')); } catch (_) { return null; } };
 const finishedAt=new Date();
