@@ -11,7 +11,7 @@ function setup({preferred='outing'}={}) {
   let timerId=0,briefUpdates=0;
   const ctx={
     AbortController,Promise,Object,DEMO:false,exploreReady:false,exploreChoiceChanged:false,mode:'explore',exploreLayer:'outing',preferredExploreLayer:preferred,
-    fuelData:null,weatherData:null,forecastData:null,foodIndex:null,parkingIndex:null,pharmacyIndex:null,erData:null,placesData:{items:[]},placeLocations:{items:{}},outingIndex:null,parkingLive:null,careRaw:{},
+    fuelData:null,weatherData:null,forecastData:null,foodIndex:null,parkingIndex:null,placesData:{items:[]},placeLocations:{items:{}},outingIndex:null,parkingLive:null,
     exploreFailed:new Set(),feedEl:{scrollTop:0},exploreTools:{querySelector:()=>null},
     exploreValid:{'outings/index':d=>d.total>0,places:d=>Array.isArray(d.items),'place-locations':d=>!!d.items&&typeof d.items==='object'&&!Array.isArray(d.items),weather:d=>!!d.sgg,forecast:d=>!!d.sgg},
     fetch:(url,{signal})=>new Promise((resolve,reject)=>{

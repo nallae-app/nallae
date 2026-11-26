@@ -26,8 +26,8 @@ test('제어 워커가 없는 동네 코스 첫 요청이 멈춰도 실패·재�
  assert.equal(ctx.outingPending.size,0);assert.equal(ctx.outingErrors.has('11440'),true);
  blocked=false;await ctx.loadOutingRegion('11440');assert.equal(ctx.outingErrors.size,0);assert.equal(ctx.outingCache.get('11440')[0].id,'park');
 });
-test('주차·약국·식품 지역 조회도 첫 방문 지연 뒤 불러오는 중에 갇히지 않는다',async()=>{
- for(const [fn,prefix] of [['loadParking','parking'],['loadPharmacy','pharmacy'],['loadFood','food']]){
+test('주차·식품 지역 조회도 첫 방문 지연 뒤 불러오는 중에 갇히지 않는다',async()=>{
+ for(const [fn,prefix] of [['loadParking','parking'],['loadFood','food']]){
   const {ctx,deadlines}=networkContext((_url,{signal})=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('timeout')))));
   Object.assign(ctx,{mode:'news',[prefix+'Pending']:new Set(),[prefix+'Errors']:new Set(),[prefix+'Cache']:new Map()});load(ctx,fn);
   const pending=ctx[fn]('11440');deadlines.get(12000)();await pending;assert.equal(ctx[prefix+'Pending'].size,0);assert.equal(ctx[prefix+'Errors'].has('11440'),true);
