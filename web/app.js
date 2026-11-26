@@ -21,25 +21,20 @@ if (DEMO && (params.has('rain') || params.has('snow'))) mode = 'explore';
 rootMode();
 function rootMode() { document.documentElement.dataset.mode = mode; }
 const NEWS_URL = DEMO ? 'data/demo-news.json' : 'data/news.json';
+// 검증된 일반 생활 소식만 표시한다. 새 범위 모듈이 없으면 과거 캐시를 노출하지 않는다.
+const allowedNews = item => typeof item?.id === 'string' && !!item.id && typeof item.time === 'string' && Number.isFinite(Date.parse(item.time)) && globalThis.JippiReleaseScope?.isAllowedNewsItem?.(item) === true;
 const POLL_MS = 60 * 1000;          // 소식 파일 다시 읽는 간격
 const REPLAY_WINDOW_MIN = 60;       // 첫 진입 때 재생할 최근 소식 범위
 const REPLAY_STEP_MS = 550;
 const MUNI_ZOOM = 8.5;              // 이 배율부터 시·군·구 단위로 본다
 
-const CATEGORIES = ['재난', '기상', '사건', '교통', '개발', '행정', '생활', '정책'];
+const CATEGORIES = ['교통', '개발', '행정', '생활', '정책'];
 const root = document.documentElement;
 const token = (name) => getComputedStyle(root).getPropertyValue('--' + name).trim();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-const signalName = (it) => ({ critical:'signal-critical', urgent:'signal-urgent', normal:'brand' }[it.urgency] || 'signal-unknown');
-const signalStyle = (it) => '--signal:var(--' + signalName(it) + ')';
-const urgencyBadge = (it) => {
-  const u = ['critical','urgent','normal'].includes(it.urgency) ? it.urgency : 'unknown';
-  return u === 'normal' ? '' : '<span class="urgency ' + u + '">' + ({critical:'위급',urgent:'긴급',unknown:'구분 미제공'}[u]) + '</span>';
-};
+const signalName = () => 'brand';
+const signalStyle = () => '--signal:var(--brand)';
 const iconPaths = {
-  '재난':'M12 3 2 21h20L12 3ZM12 9v5m0 3v1',
-  '기상':'M7 16a4 4 0 1 1 1-8 5 5 0 0 1 9 2 3 3 0 0 1 0 6H7ZM8 19l-1 2m6-2-1 2m6-2-1 2',
-  '사건':'M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3ZM12 8v5m0 3v1',
   '교통':'M5 16h14l-1-9H6l-1 9ZM5 12h14M7 16v4m10-4v4M8 7V4h8v3',
   '개발':'M4 21V9l8-6 8 6v12M2 21h20M9 21v-7h6v7',
   '행정':'M3 9h18L12 3 3 9ZM5 10v8m7-8v8m7-8v8M3 21h18',
@@ -182,7 +177,7 @@ map.getContainer().addEventListener('click', (event) => {
 });
 // 배율에 관계없이 화면 안에 있고 앱이 보이는 동안만 지도에 둔다.
 function updateBukangi() {
-  const show = !document.hidden && !decorationsPaused(['26110','26170']) && map.getBounds().pad(0.1).contains(BUKANGI);
+  const show = !document.hidden && map.getBounds().pad(0.1).contains(BUKANGI);
   if (show && !map.hasLayer(bukangi)) bukangi.addTo(map);
   else if (!show && map.hasLayer(bukangi)) map.removeLayer(bukangi);
 }
@@ -364,7 +359,7 @@ function restyle(m) {
   if (!m.layer) return;
   const paper=paperCourseMap(),land=paper?'#42606C':baseStyle.fillColor,selectedFill=paper?'#807143':token('selection-fill'),selectedStroke=paper?'#FFD16D':token('brand');
   const fuelFill = mode === 'explore' && exploreLayer === 'fuel' ? fuelColor(m.code) : mode === 'explore' && exploreLayer === 'weather' ? weatherColor(m.code) : null;
-  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : mode === 'news' && m.warning ? {fillColor:token(m.warning),fillOpacity:.18} : {fillColor:(mode === 'explore' && ['food','parking','pharmacy','er'].includes(exploreLayer) ? selection?.center === m : isSelected(m)) ? selectedFill : land,fillOpacity:1};
+  const fill = fuelFill ? {fillColor:fuelFill,fillOpacity:root.dataset.theme==='dark'?.24:.72} : {fillColor:(mode === 'explore' && ['food','parking'].includes(exploreLayer) ? selection?.center === m : isSelected(m)) ? selectedFill : land,fillOpacity:1};
   if (selection && selection.center === m) m.layer.setStyle({ ...baseStyle, ...fill, color:selectedStroke, weight:2.5, opacity:1 });
   else if (isSelected(m)) m.layer.setStyle({ ...baseStyle, ...fill, color:selectedStroke, weight:1.3, opacity:1 });
   else m.layer.setStyle({...baseStyle,...fill});
@@ -479,9 +474,8 @@ function showMapBubble(item, at) {
   if (Date.now() < bubbleUntil) return;
   clearTimeout(bubbleTimer);
   bubbleAt = at;
-  bubbleUntil = item.urgency === 'critical' ? Date.now() + 4000 : 0;
-  bubbleEl.innerHTML = urgencyBadge(item) + '<span class="bubble-title">' + escapeHtml(placeLabel(item)) + ' · ' + escapeHtml(displayTitle(item)) + '</span>';
-  if(item.src==='eqk') bubbleEl.innerHTML+='<span class="bubble-quake-detail">'+escapeHtml(item.body?.split(' · ')[0] || '진도 미제공')+' · '+escapeHtml(new Date(item.time).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}))+'</span>';
+  bubbleUntil = 0;
+  bubbleEl.innerHTML = '<span class="bubble-title">' + escapeHtml(placeLabel(item)) + ' · ' + escapeHtml(displayTitle(item)) + '</span>';
   bubbleItem = item;
   const openable = mode === 'news' && visible(item);
   bubbleEl.classList.toggle('openable', openable);
@@ -489,7 +483,7 @@ function showMapBubble(item, at) {
   bubbleEl.setAttribute('aria-label', (openable ? '이 소식 카드 열기: ' : '') + placeLabel(item) + ' · ' + displayTitle(item));
   bubbleEl.hidden = false;
   placeMapOverlays();
-  bubbleHideLater(item.urgency === 'critical' ? 4000 : 2800);
+  bubbleHideLater(2800);
 }
 const bubbleHideLater = (ms) => { clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; bubbleItem = null; }, ms); };
 // 누르거나 포커스하는 동안에는 사라지지 않게
@@ -520,10 +514,10 @@ const onMap = (item) => item.onMap !== false && item.src !== 'brief';
 const hasPoint = (item) => Number.isFinite(item.lat) && Number.isFinite(item.lon);
 
 function pulse(item, withBubble) {
-  if (mode !== 'news' || !onMap(item) || (selection && !visible(item))) return;
+  if (mode !== 'news' || !onMap(item) || !visible(item)) return;
   const signal = signalName(item);
   const targets = localItemMunis(item);
-  const point = hasPoint(item) ? L.latLng(item.lat, item.lon) : null; // 지진 진앙처럼 좌표가 온 소식
+  const point = hasPoint(item) ? L.latLng(item.lat, item.lon) : null;
   if (!targets.length && !point) return;
   targets.forEach((m) => flash(m, signal));
   const at = point || (selection ? targets.find(m=>m.code===selection.center.code)?.center || targets[0]?.center : item.sgg?.length ? muniByCode.get(item.sgg[0])?.center : sidos.get(item.sido?.[0])?.center);
@@ -542,23 +536,23 @@ function pulse(item, withBubble) {
 function itemMunis(item) {
   const out = new Set();
   (item.sgg || []).forEach((c) => muniByCode.has(c) && out.add(muniByCode.get(c)));
-  if(item.src!=='eqk') (item.sido || []).forEach((c) => sidos.get(c)?.munis.forEach((m) => out.add(m)));
+  (item.sido || []).forEach((c) => sidos.get(c)?.munis.forEach((m) => out.add(m)));
   return [...out];
 }
 function localItemMunis(item) {
   return selection ? NallaeLocalScope.relevantRegions(item,selection.codes,munis) : itemMunis(item);
 }
 function displayTitle(item) {
-  return selection && item.src==='wrn' ? item.title.split(' — ')[0]+' — '+placeLabel(item) : item.title;
+  return item.title;
 }
 
 // 선택한 중심 지역과 이 소식의 관계. 데이터에 적힌 시·군·구/시·도만 근거로 하고 새 관계를 만들지 않는다.
 //  centerPlus: 중심 구 + 다른 곳 · centerWide: 중심 구를 포함한 시·도 전체 · neighbor: 맞닿은 시·군·구만 · neighborWide: 맞닿은 지역의 시·도 전체만
-//  중심 구만 지정된 소식·전국 모드·목록 전용(정책)·해역 지진('가까운 해역')에는 붙이지 않는다.
+//  중심 구만 지정된 소식·전국 모드·목록 전용(정책)에는 붙이지 않는다.
 function selectionRelation(item) {
   if (!selection || !onMap(item)) return null;
   const c = selection.center.code;
-  const sgg = item.sgg || [], sido = item.src === 'eqk' ? [] : item.sido || [];
+  const sgg = item.sgg || [], sido = item.sido || [];
   if (sgg.includes(c)) return sgg.length > 1 || sido.length ? 'centerPlus' : null;
   if (sido.includes(selection.center.sido)) return 'centerWide';
   if (sgg.some((x) => selection.codes.has(x))) return 'neighbor';
@@ -577,9 +571,9 @@ function placeLabel(item) {
     }
   }
   const sgg = (item.sgg || []).map((c) => muniByCode.get(c)).filter(Boolean);
-  const sido = (item.src==='eqk' ? [] : item.sido || []).map((c) => sidos.get(c)).filter(Boolean);
+  const sido = (item.sido || []).map((c) => sidos.get(c)).filter(Boolean);
   const names = [...sido.map((s) => `${s.short} 전체`), ...sgg.map(label)];
-  if (!names.length) return item.src==='eqk' ? (nearbySea(item)?'가까운 해역':'해역') : hasPoint(item)?'진앙 위치':'전국'; // 바다 지진: 시·군·구 없이 점만
+  if (!names.length) return '전국';
   const text = names.length > 2 ? `${names[0]} 외 ${names.length - 1}곳` : names.join(', ');
   return onMap(item) ? text : `관련: ${text}`;
 }
@@ -605,9 +599,9 @@ async function load() {
   }
   loadFailed = false;
   lastChecked = new Date();
-  sources = data.sources || {};
+  sources = {brief:data.sources?.brief};
   const incoming = (data.items || [])
-    .filter((it) => it.id && it.title && it.time)
+    .filter(allowedNews)
     .sort((a, b) => new Date(b.time) - new Date(a.time));
   const fresh = incoming.filter((it) => !seen.has(it.id));
   incoming.forEach((it) => seen.add(it.id));
@@ -615,12 +609,6 @@ async function load() {
   updateDecorations();
   updatedAt = data.updated ? new Date(data.updated) : null;
   syncCategories();
-  munis.forEach(m => { m.warning = null; });
-  const severity = {'signal-critical':3,'signal-urgent':2,'brand':1,'signal-unknown':0};
-  items.filter(it => it.src === 'wrn' && onMap(it)).forEach(it => itemMunis(it).forEach(m => {
-    const signal = signalName(it);
-    if (!m.warning || severity[signal] > severity[m.warning]) m.warning = signal;
-  }));
   munis.forEach(m => { if (!m.flashing) restyle(m); });
 
   if (firstLoad) {
@@ -628,12 +616,10 @@ async function load() {
     renderFeed();
     const cutoff = Date.now() - REPLAY_WINDOW_MIN * 60000;
     const replay = incoming.filter((it) => onMap(it) && new Date(it.time) >= cutoff).slice(0, 20).reverse();
-    const priority = it => ({critical:0,urgent:1}[it.urgency] ?? 2);
-    replay.sort((a,b) => priority(a) - priority(b));
     const replayStatus = document.getElementById('replay-status');
     replayStatus.hidden = mode !== 'news' || !replay.length;
     setTimeout(() => { replayStatus.hidden = true; }, 500 + replay.length * REPLAY_STEP_MS + 5600);
-    replay.forEach((it, k) => setTimeout(() => pulse(it, ['critical','urgent'].includes(it.urgency) || k === replay.length - 1 || k % 3 === 0), 500 + k * REPLAY_STEP_MS));
+    replay.forEach((it, k) => setTimeout(() => pulse(it, k === replay.length - 1 || k % 3 === 0), 500 + k * REPLAY_STEP_MS));
     return;
   }
   const holding = feedEl.scrollTop > 8 || feedEl.contains(document.activeElement);
@@ -646,23 +632,9 @@ async function load() {
 }
 let updatedAt = null;
 
-function nearbySea(it) {
-  if(!selection || it.src!=='eqk' || it.sgg?.length || !hasPoint(it)) return false;
-  return NallaeLocalScope.distance(selection.origin,[it.lat,it.lon])<=50000;
-}
-const earthquakeMarkers=L.layerGroup().addTo(map);
-function renderEarthquakes() {
-  earthquakeMarkers.clearLayers(); if(mode!=='news') return;
-  items.filter(it=>it.src==='eqk' && hasPoint(it) && visible(it)).forEach(it=>{
-    const size=14+Math.max(0,Math.min(6,(it.mag||0)-2));
-    const marker=L.marker([it.lat,it.lon],{pane:'pulses',title:it.title,icon:L.divIcon({className:'earthquake-marker',iconSize:[size,size],iconAnchor:[size/2,size/2],html:'<span class="earthquake-pin'+(Date.now()-new Date(it.time)>86400000?' faded':'')+'" style="--eq-size:'+size+'px"><i></i>'+(it.mag!=null&&it.mag!==''&&Number.isFinite(Number(it.mag))?'<b>M'+escapeHtml(Number(it.mag).toFixed(1))+'</b>':'')+'</span>'})}).addTo(earthquakeMarkers);
-    marker.on('click',()=>{pending.delete(it.id);openId=it.id;atHome=false;selectionAutoFit=false;bubbleUntil=0;renderFeed(null,true);feedEl.querySelector('[data-id="'+it.id+'"]')?.scrollIntoView({block:'nearest'});showMapBubble(it,L.latLng(it.lat,it.lon));});
-  });
-}
 setInterval(()=>{if(mode==='news') renderFeed(null,true);},60000);
 function visible(item) {
-  if(item.src==='eqk' && (!validDate(new Date(item.time)) || Date.now()-new Date(item.time)>72*3600000)) return false;
-  if(selection && item.src==='eqk') return (!category || category===item.cat) && (hasPoint(item) && NallaeLocalScope.distance(selection.origin,[item.lat,item.lon])<=NallaeLocalScope.NEARBY_METERS || nearbySea(item));
+  if (!allowedNews(item)) return false;
   if (category && item.cat !== category) return false;
   if (selection && !onMap(item)) return false;
   if (selection && !localItemMunis(item).length) return false;
@@ -670,27 +642,9 @@ function visible(item) {
 }
 
 let sources = {}, loadFailed = false, lastChecked = null;
-// 장식만 중단한다. 공식 소식·경고 신호·지도 조작은 유지한다.
-// 수집 목록에서 해당 안내가 빠질 때까지 보수적으로 숨긴다(사고 종료를 추정하지 않음).
-function decorationsPaused(codes = []) {
-  if (DEMO) return false; // 명시된 가상 자료 미리보기이며 실제 상황 판단에 사용하지 않는다.
-  // 조회 실패는 기존 자료 상태 안내로 알린다. 오류 자체를 위급 상황으로 해석하지 않는다.
-  return items.some(it => {
-    if (!['sms','wrn','eqk'].includes(it.src)) return false;
-    const nationwide = sidos.size > 0 && [...sidos.values()].every(s => it.sido?.includes(s.code) || s.munis.every(m => it.sgg?.includes(m.code)));
-    if (it.urgency === 'critical' && nationwide) return true;
-    const related = codes.some(code => it.sgg?.includes(code) || it.sido?.includes(muniByCode.get(code)?.sido));
-    return related && (
-      ['critical','urgent'].includes(it.urgency) ||
-      (it.src === 'wrn' && ['주의보','경보'].includes(it.level)) ||
-      (it.src === 'sms' && ['화재','산불','붕괴','폭발','지진','해일','대설','호우','태풍','홍수','산사태','교통사고'].includes(it.kind))
-    );
-  });
-}
 function updateDecorations() {
   updateBukangi();
   updateRainScene();
-  if (decorationsPaused()) document.querySelectorAll('.festival-confetti').forEach(el => el.remove());
 }
 const pending = new Set();
 const newButton = document.getElementById('new-items');
@@ -720,9 +674,8 @@ function updateTimes() {
   document.getElementById('sources-detail').innerHTML = sourceStatus() + '<p>' + escapeHtml(statusText) + '</p>';
 }
 const validDate = d => d instanceof Date && Number.isFinite(d.getTime());
-const SOURCE_NAMES = {sms:'긴급재난문자',wrn:'기상특보',eqk:'지진정보',brief:'정책브리핑'};
-// 지진정보는 수집 파일에 상태가 있을 때만 판단에 넣는다 (예전 파일에는 없음)
-const newsSourceKeys = () => ['sms','wrn','eqk','brief'].filter(k => k !== 'eqk' || sources.eqk);
+const SOURCE_NAMES = {brief:'정책브리핑'};
+const newsSourceKeys = () => ['brief'];
 const ALERT_ICONS = {stale:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>', failed:'<path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4m0 3v.5"/>'};
 function setAlert(kind, text, action, retry = '') {
   const alert = document.getElementById('collection-alert');
@@ -744,21 +697,20 @@ function sourceState(key) {
 }
 function sourceStatus() {
   const names = SOURCE_NAMES;
-  return ['sms','wrn','eqk','brief'].map(key => {
+  return newsSourceKeys().map(key => {
     const v = sources[key];
     return '<p class="source-status"><strong>' + names[key] + '</strong><br>' + sourceState(key).text + (v?.at ? '<br>확인 시각: ' + escapeHtml(v.at) : '') + (v?.note ? '<br>' + escapeHtml(v.note) : '') + '</p>';
   }).join('');
 }
 function card(it) {
   const open = it.id === openId;
-  return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + urgencyBadge(it) + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span>' + relationHtml(it) + '<span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '"' + (it.timeBasis === 'collected' ? ' data-prefix="확인 "' : '') + '>' + (it.timeBasis === 'collected' ? '확인 ' : '') + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(displayTitle(it)) + '</span></button>' + (open ? detail(it) : '');
+  return '<button type="button" class="card-toggle" aria-expanded="' + open + '"><span class="meta">' + '<span class="category-label">' + icon(it.cat) + escapeHtml(it.cat) + '</span>' + relationHtml(it) + '<span class="place-label">' + escapeHtml(placeLabel(it)) + '</span><time datetime="' + escapeHtml(it.time) + '"' + (it.timeBasis === 'collected' ? ' data-prefix="확인 "' : '') + '>' + (it.timeBasis === 'collected' ? '확인 ' : '') + ago(new Date(it.time)) + '</time></span><span class="title">' + escapeHtml(displayTitle(it)) + '</span></button>' + (open ? detail(it) : '');
 }
 function renderFeed(newIds, preserve = false) {
   if (mode === 'explore') { renderExplore(); return; }
-  renderEarthquakes();
   if (!preserve) pending.clear();
-  titleEl.textContent = selection ? regionTitle(selection.center) + ' 주변' : '전국 소식';
-  subEl.textContent = selection ? (selection.fromLocation ? '내 위치 기준 · ' : '') + selection.center.name + '와 인접 '+(selection.codes.size-1)+'곳 · 인접 지역 대표지점 30km 이내' : '최근 72시간 · 새 소식은 지도에서 먼저 반짝여요';
+  titleEl.textContent = selection ? regionTitle(selection.center) + ' 주변 생활 소식' : '일반 생활 소식';
+  subEl.textContent = '일반 정책·생활 소식 · 최근 72시간';
   const oldScroll = feedEl.scrollTop;
   const focused = document.activeElement;
   const focusId = focused?.closest('li[data-id]')?.dataset.id;
@@ -781,7 +733,6 @@ function renderFeed(newIds, preserve = false) {
     const signature = JSON.stringify(it) + (it.id === openId) + placeLabel(it) + selectionRelation(it);
     if (li._signature !== signature) { li.innerHTML = card(it); li._signature = signature; }
     li.classList.toggle('open',it.id === openId);
-    li.classList.toggle('critical',it.urgency === 'critical');
     li.style.cssText = signalStyle(it);
     desired.push(li);
   }
@@ -799,8 +750,8 @@ function renderFeed(newIds, preserve = false) {
     if (loadFailed && !items.length) {
       li.innerHTML = '<p>' + (navigator.onLine === false ? '인터넷에 연결되지 않았어요' : '소식을 불러오지 못했어요') + '</p><p class="empty-note">연결을 확인하고 다시 시도해 주세요.</p><div class="empty-actions"><button type="button" data-retry>다시 시도</button></div>';
     } else {
-      li.innerHTML = '<p>' + (category ? escapeHtml(category) + ' 분류에 수집된 소식이 없어요' : selection ? '선택한 지역에 수집된 소식이 없어요' : '지금 수집된 소식이 없어요') + '</p>'
-        + '<p class="empty-note">최근 72시간 · 포함 지역 ' + (selection ? selection.codes.size : munis.length) + '곳 기준이에요. 안전하다는 뜻은 아니에요.</p>'
+      li.innerHTML = '<p>' + (category ? escapeHtml(category) + ' 분류에 수집된 소식이 없어요' : selection ? '선택한 지역에 수집된 소식이 없어요' : '지금 확인된 일반 생활 소식이 없어요') + '</p>'
+        + '<p class="empty-note">최근 72시간 · 포함 지역 ' + (selection ? selection.codes.size : munis.length) + '곳 기준이에요. 코스·날씨·축제 등 생활정보는 계속 이용할 수 있어요.</p>'
         + (failedNames.length ? '<p class="empty-note">' + escapeHtml(failedNames.join('·')) + ' 소식을 불러오지 못해 빠진 소식이 있을 수 있어요.</p>' : '')
         + ((category || selection) ? '<div class="empty-actions">' + (category ? '<button type="button" data-all-cats>전체 분류 보기</button>' : '') + (selection ? '<button type="button" data-home-empty>전국 소식 보기</button>' : '') + '</div>' : '');
     }
@@ -821,21 +772,16 @@ function renderFeed(newIds, preserve = false) {
   updateTimes();
   fitSheet();
 }
-// 출처별 item.time의 뜻(수집기 기준): 재난문자 생성·발송, 특보 발표, 지진 발생, 정책 승인·게시. 수집 시각은 여기 붙이지 않는다.
-const TIME_KIND = { sms: '발송', wrn: '발표', eqk: '발생', brief: '게시' };
-// 링크 이름 = 실제 목적지. 특보·지진 링크는 개별 원문이 아니라 기상청 현황·목록 페이지다.
-const LINK_NAME = { wrn: '기상청 특보 현황 ↗', eqk: '기상청 지진 목록 ↗' };
+// 일반 정책·생활 소식은 게시 시각을 표시한다.
+const TIME_KIND = { brief: '게시' };
 const kstFull = (d) => d.toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Asia/Seoul' });
-// 특보: 발표 시각이 확인된 것만 '발표'. 없으면 수집 확인 시각임을 밝히고, timeBasis가 없는 예전 자료는 '자료 시각'으로만 부른다
 function timeLine(it, when) {
   const at = escapeHtml(kstFull(when)) + ' (한국 시간)';
-  if (it.src === 'wrn' && it.timeBasis === 'collected') return '발표 시각 미제공 · 수집 확인 ' + at;
-  if (it.src === 'wrn' && it.timeBasis !== 'issued') return '자료 시각 ' + at;
   return TIME_KIND[it.src] + ' ' + at;
 }
 function detail(it) {
   const when = new Date(it.time);
-  return '<div class="detail">' + (TIME_KIND[it.src] && validDate(when) ? '<p class="detail-time">' + timeLine(it, when) + '</p>' : '') + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span><span>표시 근거: ' + escapeHtml(it.urgencyBasis || '구분 미제공') + (it.src==='eqk'?'</span><span>기상청 지진정보 · 진앙 위치는 발표 좌표':'') + '</span>' + (it.url && /^https?:\/\//i.test(it.url) ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener noreferrer">' + (LINK_NAME[it.src] || '원문 보기 ↗') + '</a>' : '') + '</div></div>';
+  return '<div class="detail">' + (TIME_KIND[it.src] && validDate(when) ? '<p class="detail-time">' + timeLine(it, when) + '</p>' : '') + (it.body ? '<p>' + escapeHtml(it.body) + '</p>' : '') + '<div class="src"><span>출처: ' + escapeHtml(it.source || '미제공') + (it.license ? ' · ' + escapeHtml(it.license) : '') + '</span>' + (it.url && /^https?:\/\//i.test(it.url) ? '<a href="' + escapeAttr(it.url) + '" target="_blank" rel="noopener noreferrer">' + '원문 보기 ↗' + '</a>' : '') + '</div></div>';
 }
 
 feedEl.addEventListener('click', (e) => {
@@ -862,7 +808,7 @@ feedEl.addEventListener('click', (e) => {
     moveToBounds(b, { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 10.5 });
     setTimeout(() => pulse(item, true), 700);
   } else if (onMap(item) && hasPoint(item)) {
-    // 바다 지진처럼 점만 있는 소식: 진앙 둘레로 이동
+    // 좌표가 있는 일반 소식은 그 위치 둘레로 이동
     moveToBounds(L.latLng(item.lat, item.lon).toBounds(60000), { paddingTopLeft: leftPad(), paddingBottomRight: bottomPad(), duration: 0.8, maxZoom: 8 });
     setTimeout(() => pulse(item, true), 700);
   }
@@ -1313,8 +1259,8 @@ new MutationObserver(() => {
   });
   scheduleLabels();
 }).observe(root, {attributes:true, attributeFilter:['data-theme']});
-let exploreLayer='outing', fuelProduct='B027', fuelData=null, placesData=null, placeLocations=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null, pharmacyIndex=null, erData=null, careRaw={};
-try { exploreLayer=localStorage.getItem('nallae-explore-layer') || 'outing'; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
+let exploreLayer='outing', fuelProduct='B027', fuelData=null, placesData=null, placeLocations=null, foodIndex=null, weatherData=null, forecastData=null, parkingIndex=null, parkingLive=null;
+try { const storedLayer=localStorage.getItem('nallae-explore-layer'); if(['outing','places','festival','weather','fuel','parking','food'].includes(storedLayer)) exploreLayer=storedLayer; fuelProduct=localStorage.getItem('nallae-fuel-product') === 'D047' ? 'D047' : 'B027'; } catch (_) {}
 let fuelRadius=5000, fuelSort='distance';
 const nearbyFuelClient=NallaeNearbyFuel.createClient();
 let fuelShown=[], fuelLookupAllowed=false, fuelSampleFallback=false;
@@ -1433,7 +1379,7 @@ const exploreFailed=new Set(); let exploreReady=false;
 const fuelColors=['#b5d9d1','#c7ded5','#e0e4da','#d7dce6','#d9cee5'];
 const productName=()=>fuelProduct==='B027'?'휘발유':'경유';
 const money=v=>Number.isFinite(v)?v.toLocaleString('ko-KR',{maximumFractionDigits:0})+'원':'미제공';
-const availableLayers=()=>[['places','맛집 찾기',placesData],['outing','놀거리·데이트',outingIndex||discoveryCatalog||overseasData||overseasView],['festival','축제',festivals.length],['weather','날씨',weatherData],['fuel','주유소',fuelData||exploreReady],['parking','주차장',parkingIndex],['pharmacy','약국',exploreReady],['er','응급실',exploreReady],['food','식품안심업소',foodIndex]].filter(x=>x[2]);
+const availableLayers=()=>[['places','맛집 찾기',placesData],['outing','놀거리·데이트',outingIndex||discoveryCatalog||overseasData||overseasView],['festival','축제',festivals.length],['weather','날씨',weatherData],['fuel','주유소',fuelData||exploreReady],['parking','주차장',parkingIndex],['food','식품안심업소',foodIndex]].filter(x=>x[2]);
 
 const parkingCache=new Map(), parkingPending=new Set(), parkingErrors=new Set();
 const parkingMarkers=L.layerGroup().addTo(map);
@@ -1527,120 +1473,6 @@ setInterval(async()=>{
   if(mode==='explore'&&exploreLayer==='parking'){const scroll=feedEl.scrollTop;renderExplore();feedEl.scrollTop=scroll;}
  }catch(_){exploreFailed.add('parking-live');updateParkingLiveLabels();}finally{clearTimeout(timeout);}
 },10*60*1000);
-// ---------- 약국·응급실 (국립중앙의료원 공공데이터, 하루 한 번 수집한 정적 파일) ----------
-// 약국은 공식 등록 운영시간만 그대로 보여주고 '지금 영업 중'이라고 판정하지 않는다(임시휴무를 알 수 없다).
-// 응급실은 dutyEryn(응급실운영여부)=1 기관만 수집된다. 수용 가능 여부·치료 우선순위·거리 추천은 하지 않는다.
-// 사용자 위치는 쓰지 않는다(지역 선택 기준). 전화는 누를 때만 전화 앱이 열린다.
-let careFilter='', careCode=null, careShown=[];
-const pharmacyCache=new Map(), pharmacyPending=new Set(), pharmacyErrors=new Set();
-const careMarkers=L.layerGroup().addTo(map), careMarkerById=new Map();
-const CARE_DAYS=['월','화','수','목','금','토','일','공휴일'];
-const hm=t=>t.slice(0,2)+':'+t.slice(2);
-// 한국 시간 기준 요일 칸(0=월 … 6=일). 공휴일은 달력이 없어 따로 판정하지 않는다.
-const kstDayIndex=(d=new Date())=>(new Date(d.getTime()+9*3600e3).getUTCDay()+6)%7;
-const careHours=h=>h?hm(h[0])+'~'+hm(h[1]):'등록된 시간 없음';
-const careDate=d=>{const t=new Date(d);return validDate(t)?t.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'}):'미제공';};
-const careHas=x=>Number.isFinite(x.lat)&&Number.isFinite(x.lon)&&x.lat>=33&&x.lat<=39&&x.lon>=124&&x.lon<=132;
-function telLink(num,text){const d=String(num||'').replace(/[^0-9]/g,'');if(d.length<7||d.length>12)return '';return '<a class="care-tel" href="tel:'+d+'">'+escapeHtml(text)+' '+escapeHtml(num)+'</a>';}
-async function loadPharmacy(code) {
-  pharmacyPending.add(code); pharmacyErrors.delete(code);
-  try { const d=await fetchJsonData('data/'+(DEMO?'demo-pharmacy/':'pharmacy/')+encodeURIComponent(code)+'.json'); if(!Array.isArray(d.items)) throw Error();
-    // 배포 도중·오프라인 캐시로 목차와 다른 세대 파일을 받으면 쓰지 않는다(0곳·완료로 판정하지 않음)
-    if(d.updated!==pharmacyIndex?.updated||d.items.length!==pharmacyIndex?.counts?.[code]) throw Error('generation'); pharmacyCache.set(code,d); } catch(_) { pharmacyErrors.add(code); }
-  pharmacyPending.delete(code); if(mode==='explore'&&exploreLayer==='pharmacy'&&selection?.center.code===code) renderExplore();
-}
-function pharmacyCard(x) {
-  const today=kstDayIndex();
-  const rows=CARE_DAYS.map((d,i)=>'<tr'+(i===today?' class="today"':'')+'><th scope="row">'+d+'</th><td>'+escapeHtml(careHours(x.hours?.[i]))+'</td></tr>').join('');
-  return '<li class="festival-card care-card" data-care-id="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name)+'</h3><p class="care-today">오늘('+CARE_DAYS[today]+') 등록 운영시간 <strong>'+escapeHtml(careHours(x.hours?.[today]))+'</strong></p>'
-    +'<details class="care-hours"><summary>요일별·공휴일 운영시간</summary><table>'+rows+'</table><p class="place-checked">공휴일에는 \'공휴일\' 시간을 확인하세요. 시간 없음은 휴무라는 뜻이 아니라 자료에 등록되지 않았다는 뜻이에요.</p></details>'
-    +'<p class="card-address">'+escapeHtml(x.address)+'</p><div class="care-actions">'+(telLink(x.phone,'전화')||'<span class="place-checked">전화번호 미제공 · 방문 전 다른 방법으로 확인하세요</span>')+(careHas(x)?'<button type="button" data-care-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<span class="place-checked">지도 위치 없음 · 주소로 찾아보세요</span>')+routeLink(careHas(x)?x:{address:x.address})+'</div></li>';
-}
-function erCard(x) {
-  return '<li class="festival-card care-card" data-care-id="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name)+'</h3>'+(x.cls?'<p>'+escapeHtml(x.cls)+' <span class="place-checked">(공식 분류)</span></p>':'')
-    +'<p class="card-address">'+escapeHtml(x.address)+'</p><div class="care-actions">'+(telLink(x.erPhone,'응급실 전화')||'<span class="place-checked">응급실 전화 미제공</span>')+(telLink(x.phone,'대표 전화')||(x.erPhone?'':'<span class="place-checked">대표 전화 미제공 · 위급하면 119</span>'))+(careHas(x)?'<button type="button" data-care-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<span class="place-checked">지도 위치 없음 · 주소로 찾아보세요</span>')+routeLink(careHas(x)?x:{address:x.address})+'</div></li>';
-}
-function careRegionPrompt(what) { return '<li class="empty">지도에서 시·군·구를 고르면 그 동네 '+what+'을 보여드려요'+(favorites.length?'<div class="explore-toggle">'+favorites.map(r=>'<button type="button" data-care-region="'+escapeHtml(r.code)+'">'+escapeHtml(r.name)+'</button>').join('')+'</div>':'')+'</li>'; }
-const CARE_DISCLAIMER='지삐는 의료기기가 아니며, 어떠한 질환도 진단·치료·치유·예방하지 않습니다. 의학적 조언·진단·치료가 필요하면 의사 등 의료 전문가와 상담하세요.';
-const CARE_URGENT='<div class="care-urgent" role="note"><p><strong>생명이 위급하면 바로 119</strong>에 전화하세요.</p><a class="care-119" href="tel:119">119 전화</a></div>';
-// 실패 기록의 고정 문구(수집기가 만든 것)만 보고 '준비 중'과 '받지 못함'을 나눈다. 원문은 화면에 그대로 보이지 않는다.
-const careWaiting=raw=>/활용신청|등록되지 않은 키|접근 거부/.test(raw?.lastFailure?.error||'');
-function renderCareUnavailable(er) {
-  const key=er?'er':'pharmacy/index', raw=careRaw[key], what=er?'응급실 운영 기관':'약국';
-  careShown=[]; renderCareMarkers();
-  exploreTools.innerHTML=(er?CARE_URGENT:'')+'<p class="care-note">'+(er?'가까운 응급실은 119에 전화해 안내받을 수 있어요.':'운영시간이 바뀔 수 있으니 방문 전 전화로 확인하세요.')+'</p>'+sourceDisclosure('의료정보 이용 안내',CARE_DISCLAIMER);
-  const when=raw?.lastFailure?.at?' (마지막 시도 '+careDate(raw.lastFailure.at)+')':'';
-  const msg=!exploreReady?what+' 자료를 불러오는 중이에요.'
-    : careWaiting(raw)?what+' 정보는 공공데이터 이용 승인을 기다리는 중이라 아직 보여드릴 수 없어요'+when+'.'
-    : what+' 자료를 받지 못했어요'+when+'. 자료가 없다는 뜻이지 '+what+'이 없다는 뜻은 아니에요.';
-  feedEl.innerHTML='<li class="empty">'+escapeHtml(msg)+(exploreReady?'<div class="empty-actions"><button type="button" data-care-reload>다시 시도</button></div>':'')+'</li>';
-}
-function updateCareStatus() {
-  const er=exploreLayer==='er', data=er?erData:pharmacyIndex, status=document.getElementById('collection-status'), alert=document.getElementById('collection-alert');
-  const date=new Date(data?.updated), fail=data?.lastFailure?.at&&new Date(data.lastFailure.at)>date;
-  status.classList.remove('failed','stale');
-  if(!data){ status.textContent=exploreReady?'받지 못함':'불러오는 중'; if(exploreReady) status.classList.add('failed'); }
-  else { status.textContent=validDate(date)?ago(date):'시각 미제공'; status.classList.toggle('stale',fail||!validDate(date)||Date.now()-date>48*3600000); }
-  status.setAttribute('aria-label','자료 확인 시각: '+status.textContent+'. 상세 보기');
-  alert.hidden=!(data&&fail);
-  if(data&&fail) setAlert('stale',(er?'응급실':'약국')+' 최근 갱신에 실패해 '+ago(date)+' 자료를 보여줘요','자세히');
-  document.getElementById('sources-detail').textContent=(er?'국립중앙의료원 전국 응급의료기관 정보 조회 서비스':'국립중앙의료원 전국 약국 정보 조회 서비스')+'(공공데이터포털) · 수집 '+(data?careDate(data.updated):'없음')+(fail||(!data&&careRaw[er?'er':'pharmacy/index']?.lastFailure)?' · 최근 갱신 시도 실패 '+careDate((data||careRaw[er?'er':'pharmacy/index']).lastFailure.at):'');
-}
-function renderCare() {
-  const er=exploreLayer==='er', data=er?erData:pharmacyIndex, code=muniByCode.has(selection?.center.code)?selection.center.code:null;
-  if(careCode!==code+exploreLayer){careCode=code+exploreLayer;careFilter='';}careShown=[];
-  if(!data) return renderCareUnavailable(er);
-  const day=careDate(data.updated), fail=data.lastFailure?.at&&new Date(data.lastFailure.at)>new Date(data.updated)?' · 최근 갱신 시도 실패('+careDate(data.lastFailure.at)+'), 직전 정상 자료를 보여줘요':'';
-  const left=er?(data.excluded?.unknown||0)+(data.excluded?.unplaced||0):(data.unplaced||0);
-  exploreTools.innerHTML=(fail?'<p class="care-note care-stale" role="status">최근 갱신에 실패해 '+escapeHtml(day)+' 수집 자료를 보여줘요.</p>':'')+(er
-    ? CARE_URGENT+'<p class="care-note">응급실 수용 가능 여부와 진료 가능 과목은 이 목록으로 알 수 없어요. 가기 전에 응급실에 전화로 확인하세요.</p>'
-    : '<p class="care-note">운영시간이 바뀔 수 있으니 방문 전 전화로 확인하세요.</p>')
-    +sourceDisclosure((data.fixture?'시험 자료(가상) · ':'')+(er?'응급실 운영 기관':'약국 등록 운영시간')+' · 국립중앙의료원 · '+day+' 수집',
-      (er?'국립중앙의료원 전국 응급의료기관 정보(공공데이터포털)에서 응급실운영여부가 \'운영\'인 기관만 보여줘요. 실시간 병상·수용 정보가 아니며, 순서는 이름순이고 추천 순서가 아니에요.'
-        :'국립중앙의료원 전국 약국 정보(공공데이터포털)에 등록된 요일별·공휴일 운영시간이에요. 지금 문을 열었는지(임시휴무 등)는 알 수 없어요.')
-      +' · 수집 '+day+(left?' · 주소·좌표로 지역을 정하지 못했거나 운영 여부가 확인되지 않은 '+left+'곳은 목록에 없어요':'')+fail+' · 지도 점은 등록 좌표이며 입구를 뜻하지 않아요. '+CARE_DISCLAIMER);
-  if(!code){feedEl.innerHTML=careRegionPrompt(er?'응급실 운영 기관':'약국');renderCareMarkers();return;}
-  const counts=data.counts||{}, name=escapeHtml(label(selection.center));
-  let items;
-  if(er) items=data.items.filter(x=>x.sgg===code);
-  else {
-    if(!(code in counts)){feedEl.innerHTML='<li class="empty">이 지역의 약국 자료가 없어요(자료가 없다는 뜻이지 약국이 없다는 뜻은 아니에요).</li>';renderCareMarkers();return;}
-    const c=pharmacyCache.get(code), d=c&&c.updated===data.updated?c:null;
-    if(!d&&counts[code]>0){feedEl.innerHTML='<li class="empty">'+(pharmacyErrors.has(code)?'지역 약국 자료를 받지 못했어요(약국이 없다는 뜻은 아니에요). <button type="button" data-care-retry>다시 받기</button>':'지역 약국 자료를 불러오는 중이에요.')+'</li>';if(!pharmacyPending.has(code)&&!pharmacyErrors.has(code)) loadPharmacy(code);renderCareMarkers();return;}
-    items=d?.items||[];
-  }
-  if(!items.length){feedEl.innerHTML='<li class="empty">'+day+' 수집한 공식 자료에 '+name+'의 '+(er?'응급실 운영 기관':'약국')+'이 없어요. 이웃 지역을 함께 확인하고, 위급하면 119에 전화하세요.</li>';renderCareMarkers();return;}
-  const holiday=!er&&items.some(x=>x.hours?.[7]);
-  if(holiday) exploreTools.insertAdjacentHTML('beforeend','<div class="explore-toggle care-filter">'+[['','전체'],['holiday','공휴일 시간 등록']].map(([k,n])=>'<button type="button" data-care-filter="'+k+'" aria-pressed="'+(careFilter===k)+'">'+n+'</button>').join('')+'</div>');
-  careShown=items.filter(x=>careFilter!=='holiday'||x.hours?.[7]);
-  feedEl.innerHTML='<li class="explore-source">'+name+' · '+careShown.length+'곳 · 이름순</li>'+careShown.map(er?erCard:pharmacyCard).join('');
-  renderCareMarkers();
-}
-function renderCareMarkers(){
-  careMarkers.clearLayers();careMarkerById.clear();
-  if(mode!=='explore'||!['pharmacy','er'].includes(exploreLayer))return;
-  const er=exploreLayer==='er', groups=[];
-  for(const x of careShown){if(!careHas(x))continue;const pt=map.latLngToContainerPoint([x.lat,x.lon]);let g=groups.find(g=>g.pt.distanceTo(pt)<(map.getZoom()<MUNI_ZOOM?40:24));if(!g){g={pt,items:[]};groups.push(g);}g.items.push(x);}
-  for(const g of groups){
-    const bounds=L.latLngBounds(g.items.map(x=>[x.lat,x.lon])), count=g.items.length;
-    const marker=L.marker(bounds.getCenter(),{title:count>1?(er?'응급실 ':'약국 ')+count+'곳':g.items[0].name,icon:L.divIcon({className:'care-marker '+(er?'er':'pharmacy'),iconSize:[44,44],iconAnchor:[22,22],html:'<span>'+(count>1?count:er?'응':'약')+'</span>'})}).addTo(careMarkers);
-    if(count>1&&map.getZoom()<map.getMaxZoom())marker.on('click',()=>{atHome=false;selectionAutoFit=false;map.fitBounds(bounds,{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:map.getMaxZoom(),animate:!reducedMotion.matches});});
-    else marker.bindPopup(g.items.map(x=>'<strong>'+escapeHtml(x.name)+'</strong><p>'+escapeHtml(x.address)+'</p><button type="button" data-care-card="'+escapeHtml(x.id)+'">목록에서 보기</button>'+(er?telLink(x.erPhone,'응급실 전화'):telLink(x.phone,'전화'))+routeLink(x)).join('<hr>'),{maxWidth:260});
-    g.items.forEach(x=>careMarkerById.set(x.id,marker));
-  }
-}
-map.on('zoomend',()=>{if(mode==='explore'&&['pharmacy','er'].includes(exploreLayer))renderCareMarkers();});
-exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-care-filter]');if(b){careFilter=b.dataset.careFilter;renderExplore();}});
-feedEl.addEventListener('click',e=>{
-  if(mode!=='explore'||!['pharmacy','er'].includes(exploreLayer))return;
-  const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.careRegion){const m=muniByCode.get(b.dataset.careRegion);if(m)select(m,false);}
-  if(b.hasAttribute('data-care-retry')){loadPharmacy(selection.center.code);renderExplore();}
-  if(b.hasAttribute('data-care-reload')){loadExploreData([exploreLayer==='er'?'er':'pharmacy/index']);}
-  if(b.dataset.careMap){const x=careShown.find(x=>x.id===b.dataset.careMap);if(!x||!careHas(x))return;atHome=false;selectionAutoFit=false;setSheetStage(0);clearTimeout(sheetFitTimer);map.setView([x.lat,x.lon],map.getMaxZoom(),{animate:false});renderCareMarkers();careMarkerById.get(x.id)?.openPopup();}
-});
-map.getContainer().addEventListener('click',e=>{const b=e.target.closest('[data-care-card]');if(!b)return;const el=[...feedEl.querySelectorAll('[data-care-id]')].find(el=>el.dataset.careId===b.dataset.careCard);if(el){setSheetStage(2);el.scrollIntoView({block:'nearest',behavior:'instant'});(el.querySelector('[data-care-map]')||el.querySelector('a'))?.focus({preventScroll:true});}});
-
 function fuelColor(code) {
   const price=fuelData?.sgg?.[code]?.[fuelProduct], avg=fuelData?.national?.[fuelProduct]?.price;
   if (!Number.isFinite(price) || !Number.isFinite(avg)) return null;
@@ -1648,7 +1480,7 @@ function fuelColor(code) {
 }
 // 탐험 자료: 응답이 200이어도 필수 구조가 없으면 실패로 본다. 재시도에 성공하면 실패 표시를 지운다.
 const EXPLORE_NAMES={fuel:'주유소',weather:'날씨','parking/index':'주차장','food/index':'식품안심업소','places':'소개된 식당','outings/index':'놀거리'};
-const exploreValid={fuel:d=>d.sgg&&Array.isArray(d.stations)&&d.national,'food/index':d=>d.counts,weather:d=>d.sgg,forecast:d=>d.sgg,'parking/index':d=>d.counts,'parking-live':d=>Array.isArray(d.items),'pharmacy/index':d=>d.complete===true&&d.counts&&typeof d.counts==='object',er:d=>d.complete===true&&Array.isArray(d.items)&&d.counts,'places':d=>Array.isArray(d.items),'place-locations':d=>d.items&&typeof d.items==='object'&&!Array.isArray(d.items),'outings/index':d=>d.counts&&Array.isArray(d.featured)&&d.total>0};
+const exploreValid={fuel:d=>d.sgg&&Array.isArray(d.stations)&&d.national,'food/index':d=>d.counts,weather:d=>d.sgg,forecast:d=>d.sgg,'parking/index':d=>d.counts,'parking-live':d=>Array.isArray(d.items),'places':d=>Array.isArray(d.items),'place-locations':d=>d.items&&typeof d.items==='object'&&!Array.isArray(d.items),'outings/index':d=>d.counts&&Array.isArray(d.featured)&&d.total>0};
 const exploreMissing=()=>Object.entries(EXPLORE_NAMES).filter(([k])=>exploreFailed.has(k)).map(x=>x[1]);
 async function loadExploreData(keys=Object.keys(exploreValid)) {
   const first=!exploreReady; // 다시 시도할 때는 보고 있던 분류를 바꾸지 않는다
@@ -1658,12 +1490,11 @@ async function loadExploreData(keys=Object.keys(exploreValid)) {
     try {
       const r=await fetch('data/'+(DEMO&&!['places','place-locations','outings/index'].includes(key)?(key==='food/index'?'demo-food/index':'demo-'+key):key)+'.json',{cache:'no-store',signal:controller.signal});
       if (!r.ok) throw Error(); const data=await r.json();
-      if(key==='pharmacy/index'||key==='er') careRaw[key]=data;
       if (!data || !exploreValid[key](data)) throw Error('invalid');
       if(key==='fuel') fuelData=data; else if(key==='weather') weatherData=data; else if(key==='forecast') forecastData=data;
-      else if(key==='food/index') foodIndex=data; else if(key==='parking/index') parkingIndex=data; else if(key==='pharmacy/index') pharmacyIndex=data; else if(key==='er') erData=data; else if(key==='places') placesData=data; else if(key==='place-locations') placeLocations=data; else if(key==='outings/index') outingIndex=data; else parkingLive=data;
+      else if(key==='food/index') foodIndex=data; else if(key==='parking/index') parkingIndex=data; else if(key==='places') placesData=data; else if(key==='place-locations') placeLocations=data; else if(key==='outings/index') outingIndex=data; else parkingLive=data;
       exploreFailed.delete(key);
-    } catch (_) { exploreFailed.add(key); if(key==='pharmacy/index') pharmacyIndex=null; if(key==='er') erData=null; }
+    } catch (_) { exploreFailed.add(key); }
     finally {
       clearTimeout(timeout); if(key==='weather')updateBeforeOuting();
       // コスに必要な場所・食堂・座標だけを待つ。生活情報の遅延からは独立する。
@@ -1698,7 +1529,6 @@ function updateExploreStatus() {
     document.getElementById('sources-detail').textContent='전국관광지·도시공원 표준데이터 · 가져온 날 '+(outingIndex?.updated||'미확인').slice(0,10)+' · 각 장소의 자료 기준일은 카드에 표시해요. 현재 개방·안전·요금은 방문 전에 확인해 주세요.';return;
   }
   if(exploreLayer==='festival') return updateFestivalStatus();
-  if(exploreLayer==='pharmacy'||exploreLayer==='er') return updateCareStatus();
   if(exploreLayer==='places') {
     const status=document.getElementById('collection-status');
     status.textContent='식당 '+allPlaceItems().length+'곳'; status.classList.remove('failed','stale');
@@ -1707,14 +1537,14 @@ function updateExploreStatus() {
     document.getElementById('sources-detail').textContent='영상 소개·운영자 추천 확인일 '+(placesData.listCheckedAt||'미제공')+' · 백년가게 지정 자료 2026-08-20, 업종 자료 2022-07-13을 대조했어요. 맛·위생·현재 영업을 보증하지 않아요.';
     return;
   }
-  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:exploreLayer==='pharmacy'?pharmacyIndex:exploreLayer==='er'?erData:foodIndex, date=new Date(data?.updated);
+  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:foodIndex, date=new Date(data?.updated);
   const status=document.getElementById('collection-status'), stale=!validDate(date)||Date.now()-date>(exploreLayer==='weather'?2:exploreLayer==='fuel'?6:48)*3600000;
   status.textContent=!exploreReady?'불러오는 중':validDate(date)?ago(date):'시각 미제공'; status.classList.remove('failed'); status.classList.toggle('stale',stale);
   status.setAttribute('aria-label','자료 확인 시각: '+status.textContent+'. 상세 보기');
   const alert=document.getElementById('collection-alert'); alert.hidden=!stale;
   if(stale) setAlert('stale',validDate(date)?(availableLayers().find(x=>x[0]===exploreLayer)?.[1]||'자료')+' 자료가 '+ago(date)+' 기준이에요':'자료 확인 시각이 없어요','자세히');
   const missing=noteExploreMissing();
-  document.getElementById('sources-detail').textContent=(missing.length?'불러오지 못한 자료: '+missing.join('·')+' · ':'')+(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':exploreLayer==='pharmacy'?'국립중앙의료원 전국 약국 정보 조회 서비스(공공데이터포털)':exploreLayer==='er'?'국립중앙의료원 전국 응급의료기관 정보 조회 서비스(공공데이터포털)':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미제공');
+  document.getElementById('sources-detail').textContent=(missing.length?'불러오지 못한 자료: '+missing.join('·')+' · ':'')+(exploreLayer==='weather'?'기상청 초단기실황':exploreLayer==='fuel'?'오피넷(한국석유공사)':exploreLayer==='parking'?'전국주차장정보표준데이터 · 서울열린데이터광장':'식품안전나라(식품의약품안전처)')+' · 확인 시각: '+(validDate(date)?date.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'미제공');
 }
 function renderExplore() {
   if(exploreTools.querySelector('.outing-filters-dialog[open]'))return;
@@ -1726,7 +1556,7 @@ function renderExplore() {
   if(!available.some(x=>x[0]===exploreLayer)&&!(savedView&&exploreLayer==='outing')) exploreLayer=available[0]?.[0] || 'festival';
   syncModeNavigation();
   panel.dataset.exploreLayer=exploreLayer;
-  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers(); careMarkers.clearLayers(); placeMarkers.clearLayers(); map.attributionControl.removeAttribution(placeAttribution);
+  exploreTools.hidden=mode!=='explore'; exploreTools.innerHTML=''; fuelMarkers.clearLayers(); festivalMarkers.clearLayers(); parkingMarkers.clearLayers(); placeMarkers.clearLayers(); map.attributionControl.removeAttribution(placeAttribution);
   munis.forEach(restyle); scheduleLabels();
   updateRainScene();
   if(mode!=='explore') return;
@@ -1734,8 +1564,8 @@ function renderExplore() {
   if(exploreLayer==='festival') return renderFestivals();
   syncCategories(); newButton.hidden=true; updateExploreStatus();
   titleEl.textContent=selection?regionTitle(selection.center):'동네 탐험';
-  subEl.textContent=exploreLayer==='weather'?'동네 날씨 실황(최근 관측)':exploreLayer==='fuel'?'주변 주유소 · 거리순·최저가순':exploreLayer==='parking'?'동네 주차장':exploreLayer==='pharmacy'?'동네 약국 · 등록 운영시간':exploreLayer==='er'?'응급실 운영 기관 · 위급하면 119':exploreLayer==='places'?'영상에 소개된 식당·운영자 추천 (지역별 순차 제공)':'동네 식품안심업소';
-  if(exploreLayer==='outing') renderOutings(); else if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else if(exploreLayer==='pharmacy'||exploreLayer==='er') renderCare(); else if(exploreLayer==='places') renderPlaces(); else renderFood();
+  subEl.textContent=exploreLayer==='weather'?'동네 날씨 실황(최근 관측)':exploreLayer==='fuel'?'주변 주유소 · 거리순·최저가순':exploreLayer==='parking'?'동네 주차장':exploreLayer==='places'?'영상에 소개된 식당·운영자 추천 (지역별 순차 제공)':'동네 식품안심업소';
+  if(exploreLayer==='outing') renderOutings(); else if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else if(exploreLayer==='places') renderPlaces(); else renderFood();
 }
 // extra: 요약 줄 오른쪽에 붙는 보기 전용 범례(색 띠) — 따로 한 줄을 쓰지 않아 지도 자리를 아낀다
 function sourceDisclosure(summary, detail = summary, extra = '') { return '<details class="source-disclosure"><summary><span class="disclosure-text">'+escapeHtml(summary)+'</span>'+extra+'</summary><p>'+escapeHtml(detail)+'</p></details>'; }
@@ -1760,7 +1590,7 @@ const koreaDate=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,1
 const rainScene = L.layerGroup().addTo(map);
 function updateRainScene() {
   rainScene.clearLayers();
-  if (document.hidden || mode !== 'explore' || exploreLayer !== 'weather' || !selection || decorationsPaused([selection.center.code])) return;
+  if (document.hidden || mode !== 'explore' || exploreLayer !== 'weather' || !selection) return;
   const region = selection.center, preview = DEMO && (params.has('rain') || params.has('snow'));
   const age = Date.now() - new Date(forecastData?.base).getTime();
   const day = forecastData?.sgg?.[region.code]?.[koreaDate(new Date())];
@@ -1809,14 +1639,12 @@ function renderWeather() {
   const rows=Object.entries(weatherData.sgg).filter(([c,v])=>muniByCode.has(c)&&Number.isFinite(v.t)).sort((a,b)=>a[1].t-b[1].t);
   const line=([c,v])=>'<p>'+escapeHtml(label(muniByCode.get(c)))+' <strong>'+v.t+'°</strong>'+(v.pty>0?' '+precipSymbol(v.pty):'')+'</p>';
   if(code) {
-    const warning=items.some(it=>it.src==='wrn'&&it.level!=='예비특보'&&it.onMap!==false&&(it.sgg?.includes(code)||it.sido?.includes(region?.sido)));
-    feedEl.innerHTML=(warning?'<li><button class="weather-warning" type="button" data-weather-news>기상특보 발효 중 — 소식 탭에서 보기</button></li>':'')+'<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+(w&&Number.isFinite(w.t)?'<p class="weather-kind">최근 관측 · 실황 '+escapeHtml(hour)+'</p><strong class="temperature">'+w.t+'°</strong> '+(w.pty>0?precipSymbol(w.pty):'')+'<p>습도 '+(w.reh??'미제공')+(w.reh==null?'':'%')+' · 바람 '+(w.wsd??'미제공')+(w.wsd==null?'':'m/s')+' · 1시간 강수 '+(w.rn??'미제공')+(w.rn==null?'':'mm')+'</p>':'<p>이 지역의 현재 날씨 자료가 없어요.</p>')+'<p>'+hour+'</p>'+forecastCards(code)+'</li>';
+    feedEl.innerHTML='<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+(w&&Number.isFinite(w.t)?'<p class="weather-kind">최근 관측 · 실황 '+escapeHtml(hour)+'</p><strong class="temperature">'+w.t+'°</strong> '+(w.pty>0?precipSymbol(w.pty):'')+'<p>습도 '+(w.reh??'미제공')+(w.reh==null?'':'%')+' · 바람 '+(w.wsd??'미제공')+(w.wsd==null?'':'m/s')+' · 1시간 강수 '+(w.rn??'미제공')+(w.rn==null?'':'mm')+'</p>':'<p>이 지역의 현재 날씨 자료가 없어요.</p>')+'<p>'+hour+'</p>'+forecastCards(code)+'</li>';
   } else {
     const wet=rows.filter(([,v])=>v.pty>0);
     feedEl.innerHTML=forecastSummary()+'<li class="festival-card"><h3>가장 따뜻한 곳</h3>'+rows.slice(-3).reverse().map(line).join('')+'</li><li class="festival-card"><h3>가장 쌀쌀한 곳</h3>'+rows.slice(0,3).map(line).join('')+'</li>'+(wet.length?'<li class="festival-card"><h3>비·눈 오는 곳</h3>'+wet.map(line).join('')+'</li>':'');
   }
 }
-feedEl.addEventListener('click',e=>{if(e.target.closest('[data-weather-news]')) document.querySelector('[data-mode-choice="news"]').click();});
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-legend]');if(b) exploreTools.querySelector('.legend-detail').textContent=b.dataset.legend;});
 function stationText(s) { return '<p class="price-line"><strong class="price">'+money(s.price[fuelProduct])+(Number.isFinite(s.price[fuelProduct])?'<small>/L</small>':'')+'</strong> '+productName()+'</p><h3>'+escapeHtml(s.name)+'</h3><p>'+escapeHtml(({GSC:'GS칼텍스',SKE:'SK에너지',HDO:'HD현대오일뱅크',SOL:'S-OIL',RTE:'알뜰주유소',RTX:'알뜰주유소',NHO:'농협알뜰',ETC:'자가상표',E1G:'E1',SKG:'SK가스'})[s.brand] || s.brand || '상표 미제공')+'</p><p>'+escapeHtml(s.address || '주소 미제공')+'</p>'+(s.asOf&&validDate(new Date(s.asOf))?'<p class="fuel-asof">'+escapeHtml(new Date(s.asOf).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'}))+' 수집 값</p>':'')+locationActions(s,'fuel'); }
 // 카카오맵 연결 (키·요금 없는 공개 링크). 앱이 있으면 앱, 없으면 웹. 누를 때만 외부로 나간다.
@@ -2405,8 +2233,6 @@ try { celebrated = sessionStorage.getItem('nallae-celebrated') === '1'; } catch 
 const dayNumber = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? Date.parse(value + 'T00:00:00+09:00') / 86400000 : NaN;
 const today = () => dayNumber(new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Seoul'}));
 const festivalCodes = f => Array.isArray(f.sgg) ? f.sgg.map(String) : [String(f.sgg || '')];
-const emergencyCodes = () => new Set(items.filter(it => ['critical','urgent'].includes(it.urgency)).flatMap(it => itemMunis(it).map(m => m.code)));
-const restrained = (f, codes) => festivalCodes(f).some(c => codes.has(c));
 function festivalList() {
   const now = today(), weekend=NallaeLocalScope.weekend();
   return festivals.filter(f => dayNumber(f.end) >= now && dayNumber(f.start) <= now + 30 && (festivalPeriod!=='weekend' || dayNumber(f.start)<=weekend.end && dayNumber(f.end)>=weekend.start) && (!selection || festivalCodes(f).some(c => selection.codes.has(c)))).sort((a,b) => {
@@ -2441,8 +2267,7 @@ exploreTools.addEventListener('click',e=>{
   if(button){festivalPeriod=button.dataset.festivalPeriod;renderExplore();resetSelectedFeed();}
 });
 function renderFestivals() {
-  // 상단 유머 문구는 '보고 있는 지역'(선택 지역+맞닿은 곳)에 위급·긴급 소식이 있을 때만 끈다. 카드별 억제는 따로(restrained).
-  const list = festivalList(), codes = emergencyCodes(), quiet = loadFailed || !lastChecked || (!!selection && [...selection.codes].some(c => codes.has(c)));
+  const list = festivalList();
   titleEl.textContent = selection ? regionTitle(selection.center) + ' 주변 축제' : '동네 탐험';
   const now = today(), ongoing = list.filter(f => dayNumber(f.start) <= now).length;
   subEl.textContent=festivalPeriod==='weekend'?'이번 주말과 일정이 겹치는 축제예요':'진행 중 '+ongoing+'곳 · 30일 안 시작하는 축제도 함께';
@@ -2451,10 +2276,10 @@ function renderFestivals() {
   const scroll = feedEl.scrollTop;
   const date = v => (v.slice(0,4) === new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,4) ? '' : v.slice(0,4) + '.') + Number(v.slice(5,7)) + '.' + Number(v.slice(8)) + '(' + '일월화수목금토'[new Date(v+'T00:00:00Z').getUTCDay()] + ')';
   const card = f => {
-    const muted = restrained(f,codes), end = dayNumber(f.end), start = dayNumber(f.start);
+    const end = dayNumber(f.end), start = dayNumber(f.start);
     const badge = end === now ? '오늘 끝나요' : start <= now ? '진행 중' : 'D-' + Math.ceil(start-now);
     const region = festivalCodes(f).map(c => muniByCode.get(c)).filter(Boolean).map(label).join(', ');
-    return '<li class="festival-card" data-festival="' + escapeHtml(f.id) + '"><details><summary><span class="festival-day ' + (end === now ? 'ending' : start <= now ? 'ongoing' : '') + '">' + badge + '</span><h3>' + escapeHtml(f.name) + '</h3><p>' + date(f.start) + ' – ' + date(f.end) + '</p><p class="festival-place">' + escapeHtml((f.place || f.address || '장소 미제공') + (region ? ' · ' + region : '')) + '</p>' + (f.content ? '<p class="festival-content">' + escapeHtml(f.content) + '</p>' : '') + (muted ? '<p class="festival-notice">이 지역에 긴급 소식이 있어요</p>' : end === now && !quiet ? '<p>오늘이 마지막 날이에요. 서둘러 둘러보세요!</p>' : '') + '</summary><div class="festival-detail"><p>주최: ' + escapeHtml(f.host || '미제공') + '</p><p>전화: ' + escapeHtml(f.phone || '미제공') + '</p>' + (/^https?:\/\//i.test(f.url || '') ? '<a href="' + escapeAttr(f.url) + '" target="_blank" rel="noopener">누리집 ↗</a>' : '') + routeLink(f) + '<p class="src">출처: 전국문화축제표준데이터</p></div></details></li>';
+    return '<li class="festival-card" data-festival="' + escapeHtml(f.id) + '"><details><summary><span class="festival-day ' + (end === now ? 'ending' : start <= now ? 'ongoing' : '') + '">' + badge + '</span><h3>' + escapeHtml(f.name) + '</h3><p>' + date(f.start) + ' – ' + date(f.end) + '</p><p class="festival-place">' + escapeHtml((f.place || f.address || '장소 미제공') + (region ? ' · ' + region : '')) + '</p>' + (f.content ? '<p class="festival-content">' + escapeHtml(f.content) + '</p>' : '') + (end === now ? '<p>오늘이 마지막 날이에요. 서둘러 둘러보세요!</p>' : '') + '</summary><div class="festival-detail"><p>주최: ' + escapeHtml(f.host || '미제공') + '</p><p>전화: ' + escapeHtml(f.phone || '미제공') + '</p>' + (/^https?:\/\//i.test(f.url || '') ? '<a href="' + escapeAttr(f.url) + '" target="_blank" rel="noopener">누리집 ↗</a>' : '') + routeLink(f) + '<p class="src">출처: 전국문화축제표준데이터</p></div></details></li>';
   };
   const regular = list.filter(f => dayNumber(f.end)-dayNumber(f.start)+1 < 30), long = list.filter(f => dayNumber(f.end)-dayNumber(f.start)+1 >= 30);
   feedEl.innerHTML = regular.map(card).join('') + (long.length ? '<li class="festival-group"><details><summary>상시 진행 ' + long.length + '건</summary><ul>' + long.map(card).join('') + '</ul></details></li>' : '') || '<li class="empty"><p>' + (festivalFailed ? '축제를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.' : !festivalLoaded ? '축제를 불러오는 중이에요.' : '조건에 맞는 축제 자료가 없어요. 다른 일정이나 지역도 살펴보세요.') + '</p><p>출처: 전국문화축제표준데이터 · 선택 지역과 맞닿은 지역 포함</p></li>';
@@ -2463,7 +2288,7 @@ function renderFestivals() {
   if (!celebrated && festivalLoaded) {
     celebrated = true;
     try { sessionStorage.setItem('nallae-celebrated','1'); } catch (_) {}
-    if (!quiet && !decorationsPaused() && !reducedMotion.matches && list.length) {
+    if (!reducedMotion.matches && list.length) {
       const confetti = document.createElement('div'); confetti.className = 'festival-confetti'; confetti.setAttribute('aria-hidden','true');
       confetti.innerHTML = Array.from({length:12},(_,i) => '<i style="--i:' + i + '"></i>').join('');
       panel.append(confetti); setTimeout(() => confetti.remove(),950);
@@ -2473,7 +2298,7 @@ function renderFestivals() {
 function renderFestivalMarkers() {
   festivalMarkers.clearLayers();
   if (mode !== 'explore' || exploreLayer !== 'festival') return;
-  const codes = emergencyCodes(), groups = [], zoomed = map.getZoom() >= MUNI_ZOOM;
+  const groups = [], zoomed = map.getZoom() >= MUNI_ZOOM;
   for (const f of festivalList()) {
     if (typeof f.lat !== 'number' || typeof f.lon !== 'number' || !Number.isFinite(f.lat) || !Number.isFinite(f.lon) || Math.abs(f.lat)>90 || Math.abs(f.lon)>180) continue;
     const at = [f.lat,f.lon], pt = map.latLngToContainerPoint(at);
@@ -2481,19 +2306,17 @@ function renderFestivalMarkers() {
     if (!group) { group = {pt,at,items:[]}; groups.push(group); } group.items.push(f);
   }
   for (const g of groups) {
-    const muted = g.items.some(f => restrained(f,codes));
     const svg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 20 2-12 7 7-9 5ZM12 4l1-3m4 7 4-1M8 5 6 3m12 10 3 2M15 6l3-3"/></svg>';
     const count = g.items.length, size = Math.min(36,24 + Math.floor(Math.log2(count))*3);
     const html = count > 1 ? '<b class="festival-cluster" style="width:' + size + 'px;height:' + size + 'px">' + count + '</b>' : zoomed ? svg : '<i class="festival-dot"></i>';
     const bounds = L.latLngBounds(g.items.map(f => [f.lat,f.lon]));
-    const marker = L.marker(bounds.getCenter(),{icon:L.divIcon({className:'festival-marker',html:'<span class="festival-pin">' + html + '</span>',iconSize:[44,44],iconAnchor:[22,22]}),title:g.items.map(f=>f.name).join(' · ') + (count > 1 ? ' · 눌러서 확대해요' : '') + (muted ? ' · 이 지역에 긴급 소식이 있어요' : '')}).addTo(festivalMarkers);
+    const marker = L.marker(bounds.getCenter(),{icon:L.divIcon({className:'festival-marker',html:'<span class="festival-pin">' + html + '</span>',iconSize:[44,44],iconAnchor:[22,22]}),title:g.items.map(f=>f.name).join(' · ') + (count > 1 ? ' · 눌러서 확대해요' : '')}).addTo(festivalMarkers);
     if (count > 1) {
       marker.on('click', () => { atHome=false; moveToBounds(bounds,{paddingTopLeft:leftPad(),paddingBottomRight:bottomPad(),maxZoom:Math.min(13,map.getZoom()+2),duration:.6}); });
       if (map.getZoom() < 13) continue;
     }
     const popup = document.createElement('div');
     g.items.forEach(f => { const p=document.createElement('p'); p.textContent=f.name; popup.append(p); popup.insertAdjacentHTML('beforeend', routeLink(f)); });
-    if (muted) { const p=document.createElement('p'); p.textContent='이 지역에 긴급 소식이 있어요'; popup.append(p); }
     marker.bindPopup(popup);
   }
 }
@@ -2520,7 +2343,7 @@ function applyMode() {
   locationFocus.clearLayers();
   placeMarkers.clearLayers();map.attributionControl.removeAttribution(placeAttribution);
   updateRainScene();
-  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); parkingMarkers.clearLayers(); careMarkers.clearLayers(); earthquakeMarkers.clearLayers();
+  exploreTools.hidden=mode!=='explore'; fuelMarkers.clearLayers(); parkingMarkers.clearLayers();
   map.closePopup(); bubbleEl.hidden = true; bubbleAt = null; bubbleUntil = 0; replayEl.hidden = true;
   map.getPane('pulses').style.display = mode === 'explore' ? 'none' : '';
   if (mode === 'explore') festivalMarkers.addTo(map); else map.removeLayer(festivalMarkers);

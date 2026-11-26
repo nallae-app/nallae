@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+const scopeSource=fs.readFileSync(new URL('../../web/release-scope.js',import.meta.url),'utf8');
 const source = fs.readFileSync(new URL('../../web/sw.js', import.meta.url), 'utf8');
 function worker(fetch, previous = new Map()) {
   const handlers = {}, writes = [];
@@ -10,7 +11,8 @@ function worker(fetch, previous = new Map()) {
   let storing;
   const cacheStarted = new Promise(resolve => { storing = resolve; });
   const cache = { match: async request => previous.has(typeof request==='string'?request:request.url) ? new Response(previous.get(typeof request==='string'?request:request.url)) : undefined, put: async (request, response) => { storing(); writes.push([typeof request==='string'?request:request.url, await response.text()]); } };
-  vm.runInNewContext(source, {
+  vm.runInNewContext(scopeSource+'\n'+source, {
+    importScripts:()=>{},
     self: { addEventListener: (name, fn) => handlers[name] = fn },
     location: { origin: 'https://example.test' }, URL, Request, Response, Headers, AbortController,
     setTimeout: fn => { deadline = fn; return 1; }, clearTimeout: () => {}, fetch,
@@ -67,10 +69,11 @@ function activation(cached, failedPut = false) {
   const stores=new Map(Object.entries(cached).map(([name,items])=>[name,new Map(Object.entries(items))]));
   const cache=name=>({
     keys:async()=>[...(stores.get(name)||new Map()).keys()].map(url=>new Request(url)),
+    delete:async req=>stores.get(name)?.delete(req.url),
     match:async req=>stores.get(name)?.has(req.url)?new Response(stores.get(name).get(req.url)):undefined,
     put:async(req,res)=>{if(failedPut)throw Error('quota');stores.get(name).set(req.url,await res.text());},
   });
-  vm.runInNewContext(source,{self:{addEventListener:(name,fn)=>handlers[name]=fn,clients:{claim:async()=>{claimed=true;}}},location:{origin:'https://example.test'},URL,Request,Response,AbortController,setTimeout,clearTimeout,fetch:async()=>{throw Error('offline');},caches:{
+  vm.runInNewContext(scopeSource+'\n'+source,{importScripts:()=>{},self:{addEventListener:(name,fn)=>handlers[name]=fn,clients:{claim:async()=>{claimed=true;}}},location:{origin:'https://example.test'},URL,Request,Response,AbortController,setTimeout,clearTimeout,fetch:async()=>{throw Error('offline');},caches:{
     keys:async()=>[...stores.keys()],open:async name=>{if(!stores.has(name))stores.set(name,new Map());return cache(name);},delete:async name=>{removed.push(name);stores.delete(name);},
   }});
   return {stores,removed,get claimed(){return claimed;},run(){let done;handlers.activate({waitUntil:p=>done=p});return done;},request(path){let response;handlers.fetch({request:new Request('https://example.test/nallae/'+path),respondWith:p=>response=p});return response;}};
@@ -111,4 +114,30 @@ test('릴리스 확인은 오래된 JSON을 최신인 것처럼 반환하지 않
 test('버전이 지정된 프로그램은 열린 문서 뒤에서 다른 버전으로 교체하지 않는다',async()=>{
  let requests=0;const sw=worker(async()=>{requests++;return new Response('future');},new Map([['https://example.test/nallae/app.js?v=84','v84']]));
  assert.equal(await(await sw.request('app.js?v=84')).text(),'v84');assert.equal(requests,0);assert.equal(sw.writes.length,0);
+});
+
+test('종료된 자료 URL은 구 캐시와 서버가 있어도 410이며 네트워크로 가지 않는다',async()=>{
+ let calls=0;
+ for(const path of ['data/er.json','data/pharmacy/index.json','data/pharmacy/11440.json?old=1','data/demo-er.json','data/demo-pharmacy/11440.json','data/earthquake.json','data/warnings.json','data/disaster-old.json','data/sms.json','data/pharmacy%2F11440.json']){
+  const sw=worker(async()=>{calls++;return new Response('old dataset');},new Map([['https://example.test/nallae/'+path,'old cached dataset']]));
+  assert.equal((await sw.request(path)).status,410,path);
+ }
+ assert.equal(calls,0);
+});
+test('네트워크와 오프라인 뉴스 모두 공유 범위 표식과 실제 내용 검증을 통과한 일반 소식만 반환한다',async()=>{
+ const safe={id:'local',src:'brief',cat:'생활',title:'서울 공원 야간 개장 안내',time:new Date().toISOString(),contentScope:'local-life-v1'};
+ const data={updated:'2026-11-26T11:00:00Z',contentScope:'local-life-v1',sources:{brief:{ok:true},sms:{ok:true},wrn:{ok:true}},items:[safe,{...safe,id:'unmarked',contentScope:undefined},{...safe,id:'hidden',body:'재난 대응 안내'},{...safe,id:'sms',src:'sms'}]};
+ const old=new Map([['https://example.test/nallae/data/news.json',JSON.stringify(data)]]);
+ for(const fetch of [async()=>new Response(JSON.stringify(data)),async()=>{throw Error('offline');}]){
+  const out=await(await worker(fetch,old).request('data/news.json')).json();
+  assert.deepEqual(out.items,[safe]);assert.deepEqual(Object.keys(out.sources),['brief']);assert.equal(out.updated,data.updated);
+ }
+});
+test('업데이트 이관 실패 중에도 폐기 자료와 옛 뉴스는 삭제하고 마지막 정상 장소·다른 앱·미래 캐시는 보존한다',async()=>{
+ const base='https://example.test/nallae/',active=source.match(/const VERSION = '([^']+)'/)[1];
+ const sw=activation({'nallae-v92':{[base+'data/er.json']:'medical',[base+'data/pharmacy/11440.json']:'medical',[base+'data/news.json']:'old news',[base+'data/outings/index.json']:'saved places'},[active]:{[base+'index.html']:'current shell'},'other-app':{[base+'data/er.json']:'unrelated'},'nallae-v999':{[base+'data/er.json']:'future'}},true);
+ await sw.run();const old=sw.stores.get('nallae-v92');
+ assert.equal(old.has(base+'data/er.json'),false);assert.equal(old.has(base+'data/pharmacy/11440.json'),false);assert.equal(old.has(base+'data/news.json'),false);
+ assert.equal(old.get(base+'data/outings/index.json'),'saved places');assert.equal(sw.stores.get('other-app').get(base+'data/er.json'),'unrelated');assert.equal(sw.stores.get('nallae-v999').get(base+'data/er.json'),'future');
+ assert.equal((await sw.request('data/er.json')).status,410);
 });

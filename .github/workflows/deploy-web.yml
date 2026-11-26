@@ -68,6 +68,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: test "$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)" = "$GITHUB_SHA"
       - uses: actions/configure-pages@v5
+      - name: Enforce published data scope
+        run: node scripts/sanitize-published-data.mjs web/data
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web

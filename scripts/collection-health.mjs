@@ -3,6 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { latestBase } from './sources/temperature.mjs';
 import { forecastBase } from './sources/forecast.mjs';
+import {CONTENT_SCOPE,isAllowedNewsItem} from './lib/published-scope.mjs';
 
 const regions = data => data?.sgg && !Array.isArray(data.sgg) ? Object.entries(data.sgg).filter(([code]) => /^\d{5}$/.test(code)).map(([,value]) => value) : [];
 const validDay = day => day && !Array.isArray(day) && (['tmn','tmx'].some(key => Number.isFinite(day[key]) && day[key]>=-60 && day[key]<=60) || (Number.isFinite(day.pop) && day.pop>=0 && day.pop<=100) || [1,3,4].includes(day.sky) || [0,1,2,3,4,5,6,7].includes(day.pty));
@@ -14,17 +15,15 @@ export function currentForecast(data, base, minimumRegions) {
 }
 export function collectionHealth({news,weather,forecast,weatherBase,forecastBase,minimumRegions,now=new Date(),commit=null}) {
   const sources = {
-    sms: news?.sources?.sms?.ok === true,
-    warning: news?.sources?.wrn?.ok === true,
-    earthquake: news?.sources?.eqk?.ok === true,
+    localNews: news?.contentScope === CONTENT_SCOPE && news?.sources?.brief?.ok === true && Array.isArray(news.items) && news.items.every(isAllowedNewsItem),
     weather: currentWeather(weather,weatherBase,minimumRegions),
     forecast: currentForecast(forecast,forecastBase,minimumRegions),
   };
-  return {commit,checkedAt:now.toISOString(),coreFresh:Object.values(sources).every(Boolean),sources,weatherBase:weather?.base||null,forecastBase:forecast?.base||null};
+  return {commit,contentScope:CONTENT_SCOPE,checkedAt:now.toISOString(),coreFresh:Object.values(sources).every(Boolean),sources,weatherBase:weather?.base||null,forecastBase:forecast?.base||null};
 }
 export function skipRecovery(health,{commit,now=Date.now()}={}) {
   const age=now-Date.parse(health?.checkedAt);
-  return !!commit && health?.commit===commit && health?.coreFresh===true && health?.weatherBase===latestBase(new Date(now)).iso && health?.forecastBase===forecastBase(new Date(now)).iso && Number.isFinite(age) && age>=0 && age<5*60000;
+  return !!commit && health?.contentScope===CONTENT_SCOPE && health?.commit===commit && health?.coreFresh===true && health?.weatherBase===latestBase(new Date(now)).iso && health?.forecastBase===forecastBase(new Date(now)).iso && Number.isFinite(age) && age>=0 && age<5*60000;
 }
 if (process.argv[1] && import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href && process.argv[2]==='plan') {
   let run=true;

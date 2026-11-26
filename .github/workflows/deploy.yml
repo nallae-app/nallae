@@ -1,7 +1,7 @@
 # 소식을 모아 GitHub Pages에 배포한다.
 #
 # 수집 위치는 저장소 변수 COLLECTOR로 고른다 (Settings → Secrets and variables → Actions → Variables)
-#   (없음)  : 이 작업이 10분마다 직접 수집한다. 필요한 Secrets: SAFETYDATA_KEY, KMA_APIHUB_KEY, DATA_GO_KR_KEY
+#   (없음)  : 일반 생활 소식·날씨를 수집한다. 의료·재난 출처는 수집하지 않는다.
 #   server  : 국내 서버(server/run.sh)가 수집해 data 브랜치에 news.json을 올리고 repository_dispatch로 이 작업을 부른다.
 #             일부 공공 API(예: ITS)는 해외(GitHub) IP에서 접속되지 않기 때문.
 # 필요한 설정: Settings → Pages → Source: GitHub Actions
@@ -38,8 +38,6 @@ jobs:
       runner: ubuntu-latest
       force: ${{ inputs.force || false }}
     secrets:
-      SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
-      KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
       DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
       OPINET_KEY: ${{ secrets.OPINET_KEY }}
       FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
@@ -53,8 +51,6 @@ jobs:
       recovery: true
       force: ${{ inputs.force || false }}
     secrets:
-      SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
-      KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
       DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
       OPINET_KEY: ${{ secrets.OPINET_KEY }}
       FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}

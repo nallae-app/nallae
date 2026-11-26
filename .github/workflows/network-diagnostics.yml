@@ -25,7 +25,7 @@ jobs:
           import {execFile} from 'node:child_process';
           import {promisify} from 'node:util';
           const exec=promisify(execFile);
-          const targets=[['control','https://nallae-app.github.io/nallae/data/app-release.json'],['sms','https://www.safetydata.go.kr/V2/api/DSSP-IF-00247'],['warning','https://apihub.kma.go.kr/api/typ01/url/wrn_now_data.php'],['weather','https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst']];
+          const targets=[['control','https://nallae-app.github.io/nallae/data/app-release.json'],['weather','https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst']];
           const handshake=(host,family)=>new Promise(resolve=>{let done=false;const start=Date.now();const socket=tls.connect({host,port:443,servername:host,family,autoSelectFamily:false,rejectUnauthorized:true});const finish=result=>{if(done)return;done=true;socket.destroy();resolve({...result,ms:Date.now()-start});};socket.setTimeout(5000,()=>finish({ok:false,error:'timeout'}));socket.on('secureConnect',()=>finish({ok:true,family:socket.remoteFamily}));socket.on('error',e=>finish({ok:false,error:e.code||e.name}));});
           const tcp=host=>new Promise(resolve=>{const start=Date.now(),s=net.connect({host,port:443});let done=false;const end=result=>{if(done)return;done=true;s.destroy();resolve({...result,ms:Date.now()-start});};s.setTimeout(5000,()=>end({ok:false,error:'timeout'}));s.on('connect',()=>end({ok:true}));s.on('error',e=>end({ok:false,error:e.code||e.name}));});
           for(const [name,url] of targets){
