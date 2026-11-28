@@ -1051,3 +1051,5 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
   :root[data-map-controls-placement="header"] .map-controls.controls button { width:44px; min-width:44px; padding:10px; box-shadow:none; }
   :root[data-map-controls-placement="header"] .map-controls.controls button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 }
+
+.topbar .jigi-hello img { vertical-align: middle; object-fit: contain; }

@@ -162,7 +162,7 @@ const bukangi = L.marker(BUKANGI, { pane: 'decor', interactive: true, keyboard: 
     + '<path class="bukangi-smile" d="M10.5 24 Q13 28 17 24.5" fill="none"/>'
     + '<path class="bukangi-gill" d="M37 19 Q39 22 37 25 M40.5 18.5 Q43 22 40.5 25.5" fill="none"/>'
     + '</svg></span></span>' }) });
-bukangi.bindPopup('<strong>🦈 부캉이</strong><p>부산 북항 친수공원 수로에서 발견된 상어의 애칭이에요.<br>지삐에서는 북항을 헤엄치는 기념 캐릭터로 만나요.</p><small>현재 위치나 실제 이동 경로를 나타내지 않아요.</small>', { className: 'bukangi-popup', maxWidth: 250, autoPanPaddingTopLeft: [16, 90], autoPanPaddingBottomRight: [16, 260] });
+bukangi.bindPopup('<strong>🦈 부캉이</strong><p>부산 북항 친수공원 수로에서 발견된 상어의 애칭이에요.<br>지삐에서는 북항을 헤엄치는 기념 캐릭터로 만나요.</p><p>“지삐지기면 백전백승!”</p><small>현재 위치나 실제 이동 경로를 나타내지 않아요.</small>', { className: 'bukangi-popup', maxWidth: 250, autoPanPaddingTopLeft: [16, 90], autoPanPaddingBottomRight: [16, 260] });
 bukangi.on('add', () => {
   const el = bukangi.getElement();
   el.setAttribute('aria-label', '부캉이 소개 보기');
@@ -1549,7 +1549,7 @@ function updateExploreStatus() {
 function renderExplore() {
   if(exploreTools.querySelector('.outing-filters-dialog[open]'))return;
   if(exploreLayer==='outing'&&(overseasView||savedView&&outingTheme==='travel')){syncModeNavigation();panel.dataset.exploreLayer='outing';exploreTools.hidden=false;syncCategories();newButton.hidden=true;if(exploreTools.dataset.travelView!==travelViewKey())renderTravel();return;}
-  if(exploreLayer==='outing'&&!outingIndex&&!savedView&&!overseasView&&!(discoveryCatalog&&!selection)){syncModeNavigation();panel.dataset.exploreLayer='outing';exploreTools.hidden=false;exploreTools.innerHTML='';titleEl.textContent='오늘 어디 갈까?';subEl.textContent='';feedEl.innerHTML=nextOutingCard()+(exploreReady?'<li class="empty">코스에 필요한 장소 자료를 받지 못했어요. <button type="button" data-outings-load>다시 받기</button></li>':'<li class="empty" role="status">가까운 코스를 준비하고 있어요…</li>');return;}
+  if(exploreLayer==='outing'&&!outingIndex&&!savedView&&!overseasView&&!(discoveryCatalog&&!selection)){syncModeNavigation();panel.dataset.exploreLayer='outing';exploreTools.hidden=false;exploreTools.innerHTML='';titleEl.textContent='오늘 뭐 할까?';subEl.textContent='';feedEl.innerHTML=nextOutingCard()+(exploreReady?'<li class="empty">코스에 필요한 장소 자료를 받지 못했어요. <button type="button" data-outings-load>다시 받기</button></li>':'<li class="empty" role="status">가까운 코스를 준비하고 있어요…</li>');return;}
   locationFocus.clearLayers();
   outingMarkers.clearLayers();
   const available=availableLayers();
@@ -1905,7 +1905,7 @@ function renderOutings() {
   if((!outingIndex&&!savedView&&(selection||!discoveryCatalog))||exploreTools.querySelector('.outing-filters-dialog[open]'))return;
   const code=selection?.center.code||'';
   if(outingCode!==code){outingCode=code;outingLimit=30;outingPlanLimit=3;}
-  titleEl.textContent=savedView?'저장한 곳':selection?regionTitle(selection.center)+'에서 뭐 할까?':'오늘 어디 갈까?';
+  titleEl.textContent=savedView?'저장한 곳':selection?regionTitle(selection.center)+'에서 뭐 할까?':'오늘 뭐 할까?';
   subEl.textContent='';
   const themeOptions=[['date','데이트 코스'],['','전체 장소'],['park','산책'],['attraction','관광지']];
   const regionOptions=(favorites.length?'<optgroup label="관심 지역">'+favorites.map(r=>'<option value="'+r.code+'"'+(r.code===code?' selected':'')+'>'+escapeHtml(r.name+' · '+label(muniByCode.get(r.code)))+'</option>').join('')+'</optgroup>':'')+'<optgroup label="모든 동네">'+munis.filter(m=>!favorites.some(r=>r.code===m.code)).map(m=>'<option value="'+m.code+'"'+(m.code===code?' selected':'')+'>'+escapeHtml(label(m))+'</option>').join('')+'</optgroup>';
@@ -2063,9 +2063,9 @@ function renderOutingCards() {
     outingPlans=[];renderOutingMarkers([]);
     if(discoveryCatalog){
       syncDiscoveryMarker();
-      feedEl.innerHTML=nextOutingCard()+'<li class="discover-shelf">'+JippiDiscoveryShelf.render({catalog:discoveryCatalog,activeIndex:discoveryIndex,saved:savedPlans})+'<div class="discover-utilities"><button type="button" data-outing-near>내 주변에서 찾기</button>'+travelEntry()+'</div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div><details class="welcome-about"><summary>지삐 소개 · 참여하기</summary><p>오늘 어디 갈지 모르겠어?<br><span class="brand-accent">지삐</span>지기와 함께라면 언제나 백전백승</p><p>위치는 내 주변을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'<button type="button" data-contribution-open>다시 가는 곳 제보하기</button></details></li>';return;
+      feedEl.innerHTML=nextOutingCard()+'<li class="discover-shelf">'+JippiDiscoveryShelf.render({catalog:discoveryCatalog,activeIndex:discoveryIndex,saved:savedPlans})+'<div class="discover-utilities"><button type="button" data-outing-near>내 주변에서 찾기</button>'+travelEntry()+'</div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div><details class="welcome-about"><summary>지삐 소개 · 참여하기</summary><p><span class="brand-accent">지삐</span> 지기와 함께라면 백전백승</p><p>위치는 내 주변을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'<button type="button" data-contribution-open>다시 가는 곳 제보하기</button></details></li>';return;
     }
-    feedEl.innerHTML=nextOutingCard()+'<li class="outing-welcome"><div class="welcome-heading"><span class="welcome-eyebrow">오늘의 작은 외출</span><h3>오늘, 어디 갈까?</h3></div><p>동네를 고르면 두 곳을 잇는 코스를 찾아드려요.</p><div class="welcome-actions"><button type="button" class="welcome-primary" data-outing-choose>동네 고르기 <span aria-hidden="true">›</span></button><button type="button" class="welcome-near" data-outing-near>내 주변</button></div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div>'+travelEntry()+'<details class="welcome-about"><summary>지삐 소개</summary><p>오늘 어디 갈지 모르겠어?<br><span class="brand-accent">지삐</span>지기와 함께라면 언제나 백전백승</p><p>위치는 내 주변을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'<button type="button" data-contribution-open>다시 가는 곳 제보하기</button></details></li>';return;
+    feedEl.innerHTML=nextOutingCard()+'<li class="outing-welcome"><div class="welcome-heading"><span class="welcome-eyebrow">오늘의 작은 외출</span><h3>오늘 뭐 할까?</h3></div><p>동네를 고르면 두 곳을 잇는 코스를 찾아드려요.</p><div class="welcome-actions"><button type="button" class="welcome-primary" data-outing-choose>동네 고르기 <span aria-hidden="true">›</span></button><button type="button" class="welcome-near" data-outing-near>내 주변</button></div><div class="favorite-quick">'+favorites.map(r=>'<button type="button" data-quick-region="'+r.code+'">'+escapeHtml(r.name)+'</button>').join('')+'</div>'+travelEntry()+'<details class="welcome-about"><summary>지삐 소개</summary><p><span class="brand-accent">지삐</span> 지기와 함께라면 백전백승</p><p>위치는 내 주변을 눌렀을 때만 요청해요.</p>'+(savedPlans.size?'<button type="button" data-outing-saved-plans>저장한 코스 '+savedPlans.size+'개 꺼내보기</button>':'')+'<button type="button" data-contribution-open>다시 가는 곳 제보하기</button></details></li>';return;
   }
 
   const q=outingQuery.trim().toLocaleLowerCase();

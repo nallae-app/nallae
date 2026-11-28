@@ -1,14 +1,14 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-importScripts('release-scope.js?v=93');
-const VERSION = 'nallae-v93';
+importScripts('release-scope.js?v=94');
+const VERSION = 'nallae-v94';
 const SHELL = [
   './', 'index.html', 'style.css', 'discovery-home.css', 'region-covers.css', 'region-covers.js', 'data/region-covers.json', 'images/regions/seoul-cheonggyecheon.webp', 'images/courses/bosu-books.webp', 'images/courses/jeolmul-forest.webp', 'fonts/pretendard/pretendard-subset.css', 'fonts/wanted-sans/brand.css', 'fonts/wanted-sans/WantedSansVariable.woff2', 'app.js', 'release-update.js', 'discovery-shelf.js', 'data/discovery-shelf.json', 'overseas-courses.js', 'overseas-map.js', 'data/overseas-courses.json', 'data/world-land.json', 'release-scope.js', 'local-scope.js', 'discovery.js', 'community.js', 'community-ui.js', 'nearby-fuel.js', 'manifest.webmanifest',
   'vendor/leaflet.min.css', 'vendor/leaflet.min.js', 'vendor/topojson-client.min.js',
-  'data/regions.json', 'icons/logo-header.png', 'icons/logo-header-dark.png', 'icons/icon-192.png',
+  'data/regions.json', 'icons/bukangi.svg', 'icons/logo-header.png', 'icons/logo-header-dark.png', 'icons/icon-192.png',
   'icons/apple-touch-icon-v2.png', 'icons/icon-192.png?v=2', 'icons/icon-512.png?v=2', 'icons/maskable-512.png?v=2',
   'icons/favicon-light-32.png', 'icons/favicon-dark-32.png',
   'about.html', 'privacy.html', 'doc.css',
-].map(path=>/\.(?:js|css)$/.test(path)&&!path.startsWith('vendor/')?path+'?v=93':path);
+].map(path=>/\.(?:js|css)$/.test(path)&&!path.startsWith('vendor/')?path+'?v=94':path);
 
 self.addEventListener('install', (e) => {
   // GitHub Pages는 max-age=600을 보낸다. 기본 요청이면 새 버전 캐시에 10분 묵은 이전 파일이 담길 수 있어 HTTP 캐시를 건너뛴다.
