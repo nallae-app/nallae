@@ -775,7 +775,20 @@ footer {
 #dining-status { margin: 6px 0 10px; }
 #dining-results ul { padding: 0; margin: 0; list-style: none; }
 #dining-results li { padding: 10px 2px; border-top: 1px solid var(--line); }
-#dining-results a { display: flex; align-items: center; justify-content: space-between; min-height: 44px; font-size: 19px; line-height: 1.25; letter-spacing: -.035em; text-decoration: none; color: var(--ink); }
+#dining-results a { color:var(--ink); text-underline-offset:3px; }
+.dining-place-title, .dining-place-actions, .dining-save-notice { display:flex; align-items:center; gap:8px; }
+.dining-place-title { justify-content:space-between; }
+.dining-place-title strong { font-size:19px; letter-spacing:-.035em; overflow-wrap:anywhere; }
+.dining-place-title button, .dining-place-actions a { min-height:44px; display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:13px; }
+.dining-place-title button { flex:none; padding:0 5px; border:0; color:var(--muted); background:transparent; }
+.dining-place-title svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.65; stroke-linejoin:round; }
+.dining-place-title button[aria-pressed="true"] { color:var(--accent); font-weight:750; }
+.dining-place-title button[aria-pressed="true"] svg { fill:var(--accent); }
+.dining-place-actions { flex-wrap:wrap; margin-top:3px; column-gap:16px; }
+#dining-results .dining-place-actions a:first-child { color:var(--accent); font-weight:750; }
+.dining-place-actions a:last-child { font-size:12px; }
+.dining-save-notice { position:fixed; z-index:4; inset:auto 12px calc(64px + env(safe-area-inset-bottom)); margin-inline:auto; width:fit-content; max-width:calc(100% - 24px); padding:4px 14px; min-height:44px; border-radius:10px; background:var(--ink); color:var(--paper); font-size:13px; }
+.dining-save-notice a { min-height:44px; display:inline-flex; align-items:center; color:inherit; white-space:nowrap; text-underline-offset:3px; }
 .dining-meta, .dining-group { color: var(--accent); font-size: 12px; font-weight: 700; }
 .dining-group { margin: 13px 0 5px; }
 .dining-arrow, .dining-address, .dining-date { color: var(--muted); }

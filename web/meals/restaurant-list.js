@@ -10,6 +10,29 @@
   const sources = new Map();
   const version = document.documentElement.dataset.appVersion;
   const batch = 4;
+  const notice = document.querySelector('.dining-save-notice');
+  const saveMessage = document.querySelector('#dining-save-message');
+  let noticeTimer, returnTo;
+  const saving = new Set();
+  function showSaveNotice(outcome) {
+    clearTimeout(noticeTimer);
+    notice.hidden = false;
+    saveMessage.textContent = JippiRestaurantSaves.message(outcome);
+    notice.querySelector('a').hidden = !outcome.ok || !outcome.saved;
+    noticeTimer = setTimeout(() => {
+      if (!notice.contains(document.activeElement)) notice.hidden = true;
+    }, 5000);
+  }
+  function syncSave(button) {
+    const id = button.closest('[data-dining-place]').dataset.diningPlace;
+    const selected = JippiRestaurantSaves.has(id);
+    button.setAttribute('aria-pressed', String(selected));
+    button.setAttribute('aria-disabled', String(saving.has(id)));
+    button.querySelector('span').textContent = selected ? '저장됨' : '저장';
+  }
+  JippiRestaurantSaves.subscribe(() => {
+    result.querySelectorAll('button[data-dining-action="save"]').forEach(syncSave);
+  });
   let menu = '', limit = batch, district = null, districtPoint = null;
   const locationOrder = JippiRestaurantLocation.create(navigator, state => {
     const point = state.point;
@@ -51,25 +74,43 @@
   }
   function card({place, distanceKm}, sameDistrict, coordinates) {
     const li = document.createElement('li');
-    const link = document.createElement('a');
+    li.dataset.diningPlace = place.id;
     const name = [place.name, place.branch].filter(Boolean).join(' ');
-    link.href = coordinates && Number.isFinite(coordinates.lat) && Number.isFinite(coordinates.lon)
-      ? 'https://map.kakao.com/link/map/' + encodeURIComponent(name) + ',' + coordinates.lat + ',' + coordinates.lon
-      : 'https://map.kakao.com/link/search/' + encodeURIComponent(place.address);
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.setAttribute('aria-label', name + (coordinates ? ' 위치' : ' 주소') + ' 카카오맵에서 보기 (새 창)');
-    link.append(textNode('strong', name), textNode('span','↗','dining-arrow'));
+    const title = document.createElement('div');
+    title.className = 'dining-place-title';
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.dataset.diningAction = 'save';
+    save.setAttribute('aria-label',name + ' 저장');
+    save.innerHTML = '<svg aria-hidden="true" viewBox="0 0 20 20"><path d="M5 3h10v14l-5-3-5 3z"/></svg><span></span>';
+    title.append(textNode('strong', name),save);
     const details = [place.district];
     if (Number.isFinite(distanceKm)) details.push(distanceLabel(distanceKm));
     else if (sameDistrict) details.push('같은 시·군·구');
-    li.append(textNode('small',details.join(' · '),'dining-meta'),link,
+    li.append(textNode('small',details.join(' · '),'dining-meta'),title,
       textNode('p',place.food,'dining-food'),textNode('p',place.address,'dining-address'));
+    syncSave(save);
+    const actions = document.createElement('div');
+    actions.className = 'dining-place-actions';
+    const map = textNode('a','지삐 지도에서 보기');
+    map.dataset.diningAction = 'map';
+    map.setAttribute('aria-label', name + ' 지삐 지도에서 보기');
+    map.href = 'explore.html?view=places&place=' + encodeURIComponent(place.id);
+    const external = textNode('a','카카오맵 ↗');
+    external.dataset.diningAction = 'external';
+    external.setAttribute('aria-label',name + ' 카카오맵에서 보기 (새 창)');
+    external.target = '_blank';
+    external.rel = 'noopener noreferrer';
+    external.href = coordinates && Number.isFinite(coordinates.lat) && Number.isFinite(coordinates.lon)
+      ? 'https://map.kakao.com/link/map/' + encodeURIComponent(name) + ',' + coordinates.lat + ',' + coordinates.lon
+      : 'https://map.kakao.com/link/search/' + encodeURIComponent(place.address);
+    actions.append(map, external);
     const date = place.kindDate || place.sourceDate || place.checkedAt;
     if (date) {
       const label = place.kindDate || place.sourceDate ? '메뉴 자료 ' : '자료 확인 ';
       li.append(textNode('small',label + date.replaceAll('-','.'),'dining-date'));
     }
+    li.append(actions);
     return li;
   }
   function render() {
@@ -121,6 +162,12 @@
         ['같은 시·군·구 · 거리 미확인',localUnknown],['5km 밖 · 가까운 순',ranked.filter(m => m.distanceKm > 5)],
         ['거리 미확인 · 지역순',other]];
     } else groups = [['',matches]];
+    const readyToRestore = returnTo && !pending && state.status !== 'locating' &&
+      fileNames.every(f => sources.get(f)?.state !== 'pending');
+    if (readyToRestore) {
+      const i = groups.flatMap(group => group[1]).findIndex(m => m.place.id === returnTo);
+      if (i >= limit) limit = Math.ceil((i+1) / batch) * batch;
+    }
     let remaining = limit;
     const chunks = [];
     for (const [name, list] of groups) {
@@ -133,9 +180,19 @@
       remaining -= visible.length;
     }
     // 비동기 거리 갱신 때 키보드로 선택 중인 가게가 초점을 잃지 않게 한다.
-    const focused = result.contains(document.activeElement) ? document.activeElement.href : null;
+    const active = document.activeElement;
+    const focused = result.contains(active) ? active.closest('[data-dining-place]')?.dataset.diningPlace : null;
     result.replaceChildren(...chunks);
-    if (focused) [...result.querySelectorAll('a')].find(a => a.href === focused)?.focus({preventScroll:true});
+    function findControl(id, action) {
+      return Array.from(result.querySelectorAll('[data-dining-action]')).find(el =>
+        el.dataset.diningAction === action && el.closest('li').dataset.diningPlace === id);
+    }
+    if (focused) findControl(focused,active.dataset.diningAction)?.focus({preventScroll:true});
+    if (readyToRestore) {
+      const control = findControl(returnTo,'map');
+      if (control) { control.focus({preventScroll:true}); control.closest('li').scrollIntoView({block:'center'}); }
+      returnTo = null;
+    }
     if (count && !document.hidden) void locationOrder.activate();
     else if (!pending && !count) locationOrder.deactivate();
     more.hidden = count <= limit;
@@ -145,24 +202,59 @@
     if (menu && !document.hidden) render();
   }
   function show(name) {
-    if (menu !== name) limit = batch;
+    if (menu !== name) { limit = batch; returnTo = null; notice.hidden = true; }
     menu = name;
     for (const file of fileNames) if (!sources.has(file)) load(file);
     render();
   }
-  function hide() { menu = ''; locationOrder.deactivate(); }
+  function hide() { menu = ''; returnTo = null; notice.hidden = true; locationOrder.deactivate(); }
+  function forgetReturn() {
+    if (!history.state?.jippiDining) return;
+    const next = {...history.state};
+    delete next.jippiDining;
+    try { history.replaceState(next,''); } catch {}
+  }
+  function remember(id) {
+    if (!menu) return;
+    const date = document.querySelector('#issue-date').dateTime;
+    try { history.replaceState({...history.state, jippiDining:{date,limit,id}},''); } catch {}
+  }
+  function restore(context) {
+    returnTo = typeof context?.id === 'string' ? context.id : null;
+    limit = Number.isSafeInteger(context?.limit) ? Math.max(batch, Math.min(1000,context.limit)) : batch;
+    render();
+  }
+  result.addEventListener('click', async event => {
+    const control = event.target.closest('[data-dining-action]');
+    if (!control) return;
+    const id = control.closest('li').dataset.diningPlace;
+    if (control.dataset.diningAction === 'map') { remember(id); return; }
+    if (control.dataset.diningAction !== 'save' || saving.has(id)) return;
+    saving.add(id);
+    const desired = control.getAttribute('aria-pressed') !== 'true';
+    syncSave(control);
+    try {
+      const outcome = await JippiRestaurantSaves.setSaved(id, desired);
+      if (menu && !document.hidden) showSaveNotice(outcome);
+    } finally {
+      saving.delete(id);
+      result.querySelectorAll('button[data-dining-action="save"]').forEach(syncSave);
+    }
+  });
+  notice.querySelector('a').addEventListener('click', () => remember(null));
+  document.querySelector('.meal-nav').addEventListener('click', () => remember(null));
   near.addEventListener('click',() => locationOrder.request());
   retry.addEventListener('click',() => {fileNames.forEach(load);render();});
   more.addEventListener('click',() => {
     const old = limit;
     limit += batch;
     render();
-    result.querySelectorAll('li a')[old]?.focus({preventScroll:false});
+    result.querySelectorAll('[data-dining-action="map"]')[old]?.focus({preventScroll:false});
   });
   document.addEventListener('visibilitychange',() => {
     if (document.hidden) locationOrder.deactivate(); else activate();
   });
   window.addEventListener('pagehide',() => locationOrder.deactivate());
   window.addEventListener('pageshow',activate);
-  globalThis.JippiDiningList = Object.freeze({show,hide});
+  globalThis.JippiDiningList = Object.freeze({show,hide,restore,forgetReturn});
 })();

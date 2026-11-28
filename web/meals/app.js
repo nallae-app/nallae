@@ -28,17 +28,18 @@ function issue(offset) {
     ...mealForDay(baseDay + offset),
   };
 }
-function chooseMode(mode) {
+function chooseMode(mode, scroll = true) {
   modes.forEach((button) =>
     button.setAttribute('aria-pressed', String(button.dataset.mode === mode)),
   );
   document.querySelector('#at-home').hidden = mode !== 'cook';
   const dining = document.querySelector('#eat-out');
   dining.hidden = mode !== 'dine';
+  document.querySelector('.meal-nav a[href*="view=saved"]').href = dining.hidden ? 'explore.html?view=saved' : 'explore.html?view=saved&tab=restaurants';
   if (dining.hidden) JippiDiningList.hide();
   else {
     JippiDiningList.show(issue(activeOffset).dine.name);
-    if (window.matchMedia('(max-width: 719px)').matches &&
+    if (scroll && window.matchMedia('(max-width: 719px)').matches &&
         dining.getBoundingClientRect().top > window.innerHeight * 0.55) {
       dining.scrollIntoView({block: 'start'});
     }
@@ -160,12 +161,16 @@ function openRecipe(offset, trigger) {
   dialog.scrollTop = 0;
 }
 buttons.forEach((button) =>
-  button.addEventListener('click', () =>
-    selectDay(Number(button.dataset.offset)),
-  ),
+  button.addEventListener('click', () => {
+    JippiDiningList.forgetReturn();
+    selectDay(Number(button.dataset.offset));
+  }),
 );
 modes.forEach((button) =>
-  button.addEventListener('click', () => chooseMode(button.dataset.mode)),
+  button.addEventListener('click', () => {
+    JippiDiningList.forgetReturn();
+    chooseMode(button.dataset.mode);
+  }),
 );
 action.addEventListener('click', () => openRecipe(activeOffset, action));
 next.addEventListener('click', () => openRecipe(1 - activeOffset, next));
@@ -188,7 +193,14 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) refreshDate();
 });
 window.addEventListener('pageshow', refreshDate);
-selectDay(0);
+const previousDining = history.state?.jippiDining;
+const restoreOffset = (Date.parse(previousDining?.date + 'T00:00:00Z') / dayMs) - baseDay;
+const restoreDining = restoreOffset === 0 || restoreOffset === 1;
+selectDay(restoreDining ? restoreOffset : 0);
+if (restoreDining || new URLSearchParams(location.search).get('meal') === 'dine') {
+  chooseMode('dine', false);
+  if (restoreDining) JippiDiningList.restore(previousDining);
+}
 refreshDate();
 function syncMealTheme() {
   try {

@@ -324,7 +324,12 @@ dialog button:disabled { color:var(--text-muted); cursor:default; }
 .food-search input { margin:0; }
 .places-controls { display:block; overflow:visible; }
 .places-controls .food-search { width:100%; margin-bottom:6px; }
-.places-controls .explore-toggle { overflow-x:auto; }
+/* Each source label stays inside a whole touch target, even in the desktop sidebar. */
+.places-controls .explore-toggle { flex-wrap:wrap; gap:4px 6px; overflow:visible; }
+.places-controls .explore-toggle button {
+  flex:0 0 auto; width:auto; min-width:max-content; min-height:44px; padding:6px 11px;
+  white-space:nowrap; line-height:1.35;
+}
 .places-shortcuts { margin-top:6px; }
 :root[data-mode="explore"] #feed .festival-card { padding:8px 12px; }
 :root[data-mode="explore"] #feed .festival-card p { margin:3px 0; }
@@ -1075,3 +1080,30 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
 :is(.weather-map-reading,.weather-inline-art) :is(.rain-umbrella,.snowman,.snow-flake,.rain-drop) { animation:none; }
 .weather-map-reading svg:not(.temperature-icon),.weather-inline-art svg { overflow:visible; }
 .weather-card [data-weather-retry],.festival-card [data-weather-retry] { border:1px solid var(--border-sgg); border-radius:9px; padding:6px 10px; color:var(--text); background:var(--surface); font:inherit; }
+
+.panel.restaurant-focus-panel > :not(.restaurant-focus):not(.panel-footer) { display:none!important; }
+.restaurant-focus-panel .restaurant-focus { overflow:auto; padding:7px 18px 12px; min-height:0; }
+.restaurant-focus-back { display:inline-flex;align-items:center;min-height:40px;color:var(--brand);font-size:13px;font-weight:700;text-decoration:none; }
+.restaurant-focus h2 { margin:0 0 4px;font-size:21px;line-height:1.25;color:var(--text);word-break:keep-all;overflow-wrap:anywhere; }
+.restaurant-focus-address,.restaurant-focus-status { color:var(--text-muted);font-size:13px;line-height:1.5;margin:4px 0; }
+.restaurant-focus-status:empty { display:none; }
+.restaurant-focus-actions { display:flex;gap:8px;flex-wrap:wrap; }
+.restaurant-focus-actions :is(button,a):not([hidden]) { display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border:1px solid var(--border-sgg);border-radius:10px;background:var(--surface-muted);color:var(--text);font:inherit;font-size:13px;font-weight:700;text-decoration:none; }
+.restaurant-focus-pin { pointer-events:none!important;background:none;border:0; }
+.restaurant-focus-pin span { position:absolute;display:block;white-space:nowrap;border-radius:7px;padding:4px 8px;font:700 13px/16px sans-serif;box-shadow:0 1px 5px #07172e55; }
+.restaurant-focus-pin.is-shop span { right:0;bottom:3px;border:2px solid #69430a;background:#ffe29b;color:#35210c;border-bottom-right-radius:0; }
+.restaurant-focus-pin.is-shop::after { content:'';position:absolute;width:8px;height:8px;left:-4px;top:-4px;border-radius:50%;background:#69430a; }
+.restaurant-focus-pin.is-user span { top:5px;left:4px;border:2px solid #fff;background:#185598;color:#fff;border-top-left-radius:0; }
+.restaurant-focus-pin.is-user::after { content:'';position:absolute;width:8px;height:8px;left:-6px;top:-6px;border-radius:50%;border:2px solid white;background:#185598; }
+@media(max-width:759px) {
+  .panel.restaurant-focus-panel { height:auto!important;max-height:46dvh;overflow:hidden;transition:none; }
+}
+.restaurant-focus-pin.is-shop span { max-width:100px;overflow:hidden;text-overflow:ellipsis; }
+.restaurant-street-name span { display:block;position:absolute;transform:translate(-50%,-50%);font:600 10px/1.2 sans-serif;white-space:nowrap;color:var(--text-muted);text-shadow:0 1px 2px var(--land),1px 0 2px var(--land),-1px -1px 2px var(--land); }
+.restaurant-map-context { position:absolute;z-index:500;pointer-events:none;bottom:24px;right:10px;color:var(--text);background:var(--surface);border:1px solid var(--border-sgg);border-radius:6px;padding:4px 7px;font-size:11px; }
+@media(max-width:759px) {
+  #map.has-restaurant-focus .leaflet-bottom.leaflet-right { bottom:calc(var(--focus-sheet,200px) + 2px); }
+  #map.has-restaurant-focus .restaurant-map-context { bottom:calc(var(--focus-sheet,200px) + 30px); }
+}
+
+#map.restaurant-no-pin ~ .map-controls #btn-locate { display:none; }

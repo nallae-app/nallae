@@ -14,6 +14,8 @@ async function fetchJsonData(url, options = {}) {
 const DEMO = params.has('demo');
 const directTravel=params.has('travel');
 const requestedView=params.get('view');
+const restaurantEntryId=requestedView==='places' && (params.get('place')||'').slice(0,200);
+let restaurantFocusMap=null;
 const sectionEntry=['courses','places','saved','utilities'].includes(requestedView);
 let locationRequestId = 0, routePicking = false;
 let mode = 'explore', exploreChoiceChanged=false, savedView=false;
@@ -425,7 +427,7 @@ function setupRegions(topo) {
     onEachFeature: (f, layer) => {
       const m = muniByCode.get(f.properties.code);
       m.layer = layer;
-      layer.on('click', () => onRegionClick(m));
+      layer.on('click', () => {restaurantFocusMap?.close(); onRegionClick(m);});
       layer.on('mouseover', () => { if (!m.flashing && !isSelected(m)) layer.setStyle({ fillColor: token('surface-muted') }); });
       layer.on('mouseout', () => { if (!m.flashing) restyle(m); });
     },
@@ -449,7 +451,7 @@ function setupRegions(topo) {
 }
 let atHome = true, selectionAutoFit = false;
 // 사용자가 지도를 직접 끌거나 확대·축소하면 시트 높이 변화로 다시 맞추지 않는다
-const userMovedMap = () => { atHome = false; selectionAutoFit = false; };
+const userMovedMap = () => { atHome = false; selectionAutoFit = false; restaurantFocusMap?.pauseCamera(); };
 map.on('dragstart', userMovedMap);
 map.getContainer().addEventListener('wheel', userMovedMap, {passive:true});
 map.getContainer().addEventListener('dblclick', userMovedMap);
@@ -506,6 +508,7 @@ function onRegionClick(m) {
 }
 
 function select(m, fromLocation, origin=m.center) {
+  restaurantFocusMap?.close();
   regionPreviewCode='';
   overseasView=false;travelMapContext=false;syncTravelMap();
   locationRequestId++;
@@ -986,7 +989,7 @@ function initFavorites() {
     }
   } catch (_) {}
   renderFavorites();
-  if (startCode) select(muniByCode.get(startCode), false);
+  if (startCode && !restaurantEntryId) select(muniByCode.get(startCode), false);
 }
 const favoriteShapes = {
   home:'M3 11 12 3l9 8M5 10v11h5v-7h4v7h5V10',
@@ -1108,7 +1111,7 @@ function locationErrorMessage(error) {
     : error?.code === 3 ? '위치를 찾는 데 시간이 오래 걸려요. 다시 시도하거나 동네를 직접 골라 주세요.'
     : '현재 위치를 확인하지 못했어요. 잠시 후 다시 시도하거나 동네를 직접 골라 주세요.';
 }
-locateBtn.addEventListener('click', requestLocation);
+locateBtn.addEventListener('click', () => restaurantFocusMap ? restaurantFocusMap.locateBoth() : requestLocation());
 function requestLocation() {
   if (!munis.length) return;
   if (!navigator.geolocation) return toast('이 기기에서는 위치 기능을 쓸 수 없어요. 지도에서 동네를 눌러 고르세요.');
@@ -1135,7 +1138,7 @@ function requestLocation() {
   );
 }
 
-document.getElementById('btn-all').addEventListener('click', () => { overseasView=false;travelMapContext=false;travelPins.clearLayers();syncTravelMap();clearSelection();atHome=true;fitHome(); });
+document.getElementById('btn-all').addEventListener('click', () => { restaurantFocusMap?.close();overseasView=false;travelMapContext=false;travelPins.clearLayers();syncTravelMap();clearSelection();atHome=true;fitHome(); });
 const mobileSheet = matchMedia('(max-width:759px)');
 const handle = document.getElementById('panel-handle');
 const sheetHead = panel.querySelector('.panel-head');
@@ -1415,7 +1418,8 @@ function loadHeritageData() {
 }
 loadHeritageData();
 const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
-let outingIndex=null, outingQuery='', outingTheme=savedView?'plans':'date', outingLimit=30, outingCode=null, outingNonce=0, outingShown=[], outingPlans=[], outingRadius=5000, outingStopCount=2, outingPlanLimit=3;
+const initialSavedTab=requestedView==='saved' && params.get('tab')==='restaurants' ? 'restaurants' : 'plans';
+let outingIndex=null, outingQuery='', outingTheme=savedView?initialSavedTab:'date', outingLimit=30, outingCode=null, outingNonce=0, outingShown=[], outingPlans=[], outingRadius=5000, outingStopCount=2, outingPlanLimit=3;
 const outingCache=new Map(), outingPending=new Set(), outingErrors=new Set(), outingMarkers=L.layerGroup().addTo(map);
 const outingPlanMemo=new Map();let outingRevision=0,outingSearchTimer,outingDataTimer;
 let discoveryCatalog=null,discoveryIndex=0,discoveryError=false,discoveryRequest=null,discoveryDialog=null,discoveryMarkers=[],discoveryMarkerId='';
@@ -1963,8 +1967,22 @@ async function loadFood(code) {
 }
 // 소개된 식당(전국 일부 지역, 손으로 확인한 정적 목록). 식품안심업소와 다른 자료이며 좌표 없이 목록으로 제공한다.
 let placesQuery='', placesSource='', placesShowAll=false, placesForCode, placesOnlySaved=false, placesLimit=40, placeMapItems=[];
-const savedPlaces=new Set();
-try { const saved=JSON.parse(localStorage.getItem('nallae-saved-places-v1')||'[]');if(Array.isArray(saved))saved.filter(id=>typeof id==='string'&&id.length<200).slice(0,500).forEach(id=>savedPlaces.add(id)); } catch(_) {}
+const savedPlaces=JippiRestaurantSaves;
+savedPlaces.subscribe(() => {
+  if (mode !== 'explore' || exploreLayer !== 'places') {
+    refreshSavedRestaurants();
+    return;
+  }
+  const focused = document.activeElement;
+  const focusedId = focused?.dataset.savePlace;
+  renderPlaceCards();
+  const shortcut = exploreTools.querySelector('[data-places-saved]');
+  if (shortcut) shortcut.textContent = '가보고 싶은 곳 ' + allPlaceItems().filter(x => savedPlaces.has(x.id)).length;
+  if (focusedId) {
+    const restored = [...feedEl.querySelectorAll('[data-save-place]')].find(el => el.dataset.savePlace === focusedId);
+    (restored || shortcut)?.focus({preventScroll:true});
+  }
+});
 const PLACE_SOURCE={video:'영상 소개',operator:'운영자 추천',heritage:'백년가게 지정',goodprice:'착한가격업소',menu:'매장 공식 메뉴'};
 function renderPlaces() {
   const all=allPlaceItems(), code=selection?.center.code;
@@ -2002,7 +2020,7 @@ function placeLocation(x) {
 }
 function renderPlaceMarkers(shown) {
   placeMarkers.clearLayers();placeMarkerById.clear();map.attributionControl.removeAttribution(placeAttribution);
-  if(mode!=='explore'||exploreLayer!=='places')return;
+  if(restaurantFocusMap||mode!=='explore'||exploreLayer!=='places')return;
   const list=shown || placeMapItems;
   const groups=[];
   for(const x of list){const loc=placeLocation(x);if(!loc)continue;const pt=map.latLngToContainerPoint([loc.lat,loc.lon]);let g=groups.find(g=>g.pt.distanceTo(pt)<(map.getZoom()>=16?1:40));if(!g){g={pt,items:[]};groups.push(g);}g.items.push(x);}
@@ -2037,17 +2055,12 @@ exploreTools.addEventListener('click',e=>{ const b=e.target.closest('[data-place
 exploreTools.addEventListener('click',e=>{if(!e.target.closest('[data-more-food]'))return;exploreLayer='food';try{localStorage.setItem('nallae-explore-layer','food');}catch(_){}renderExplore();resetSelectedFeed();});
 exploreTools.addEventListener('click',e=>{if(e.target.closest('[data-places-saved]')){placesOnlySaved=!placesOnlySaved;placesShowAll=true;placesLimit=40;renderExplore();}});
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-places-scope]');if(!b)return;placesShowAll=b.dataset.placesScope==='all';placesLimit=40;renderExplore();});
-feedEl.addEventListener('click',e=>{
+feedEl.addEventListener('click',async e=>{
   if(e.target.closest('[data-places-more]')){placesLimit+=40;renderPlaceCards();return;}
-  const b=e.target.closest('[data-save-place]');if(!b)return;
-  const id=b.dataset.savePlace;
-  const removing=savedPlaces.has(id);
-  if(removing)savedPlaces.delete(id);else {if(savedPlaces.size>=500){toast('저장한 식당은 최대 500곳까지 모을 수 있어요.');return;}savedPlaces.add(id);}
-  let persisted=true;try{localStorage.setItem('nallae-saved-places-v1',JSON.stringify([...savedPlaces]));}catch(_){persisted=false;}
-  renderPlaceCards();
-  const savedButton=exploreTools.querySelector('[data-places-saved]');if(savedButton)savedButton.textContent='가보고 싶은 곳 '+allPlaceItems().filter(x=>savedPlaces.has(x.id)).length;
-  ([...feedEl.querySelectorAll('[data-save-place]')].find(el=>el.dataset.savePlace===id)||savedButton)?.focus({preventScroll:true});
-  toast(persisted?(removing?'식당 저장을 해제했어요.':'이 기기에만 저장해요. 다음 외출 때 다시 꺼내보세요.'):'이번 실행에서는 기억하지만 기기에 저장하지 못했어요.');
+  const button = e.target.closest('[data-save-place]');
+  if (!button) return;
+  const result = await savedPlaces.setSaved(button.dataset.savePlace, button.getAttribute('aria-pressed') !== 'true');
+  toast(savedPlaces.message(result));
 });
 feedEl.addEventListener('click',e=>{ if(mode==='explore'&&exploreLayer==='places'&&e.target.closest('[data-places-all]')) { placesShowAll=true; placesLimit=40; renderExplore(); } });
 async function loadOutingRegion(code) {
@@ -2192,7 +2205,7 @@ function savedRestaurantContent() {
   const pending=savedRestaurantRetryPending||heritageLoadState==='loading'||(!exploreReady&&!placesData&&!exploreFailed.has('places'));
   return '<li class="explore-source">저장한 맛집 '+savedPlaces.size+'곳 · 현재 자료 확인 '+xs.length+'곳'+(missing?' · 미확인 '+missing+'곳':'')+' · 현재 지역과 관계없이 보여요.</li>'
     +(missing?'<li class="explore-source" role="status">저장 기록은 이 기기에 그대로 있어요. '+missing+'곳의 현재 장소 자료를 '+(pending?'확인하고 있어요.':'확인하지 못했어요.')+(retryNeeded?' <button type="button" data-saved-restaurants-retry'+(pending?' disabled':'')+'>'+(pending?'자료 확인 중…':'저장한 식당 자료 다시 받기')+'</button>':'')+'</li>':'')
-    +xs.map(x=>'<li class="festival-card" data-saved-restaurant="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name)+'</h3><p>'+escapeHtml(x.address)+'</p>'+addressLink(x.address)+'</li>').join('')
+    +xs.map(x=>'<li class="festival-card" data-saved-restaurant="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name+(x.branch?' '+x.branch:''))+'</h3><p>'+escapeHtml(x.address)+'</p><a class="food-map" href="explore.html?view=places&amp;place='+encodeURIComponent(x.id)+'&amp;from=saved">지삐 지도에서 보기</a> '+addressLink(x.address)+'</li>').join('')
     +(savedPlaces.size?'':'<li class="empty">맛집 화면에서 가보고 싶은 식당을 저장해 보세요.</li>');
 }
 function refreshSavedRestaurants() {
@@ -2533,6 +2546,9 @@ document.querySelectorAll('[data-mode-choice]').forEach(b=>b.addEventListener('c
   applyMode(); restoreSelectedFeed();
 }));
 map.on('moveend zoomend',renderFestivalMarkers);
+panel.querySelector('.main-navigation').addEventListener('click',event=>{
+  if (event.target.closest('button')) restaurantFocusMap?.close();
+},true);
 document.querySelector('[data-open-places]').addEventListener('click',()=>{
   exploreChoiceChanged=true;savedView=false;
   if(!placesData){toast('식당 자료를 불러오는 중이에요. 잠시 후 다시 눌러 주세요.');return;}
@@ -2651,6 +2667,19 @@ document.querySelector('.main-navigation').addEventListener('click',event=>{
 fetchJsonData('data/regions.json', { cache: 'default' })
   .then((topo) => {
     setupRegions(topo);
+    if (restaurantEntryId && !exploreChoiceChanged) {
+      atHome=false;
+      restaurantFocusMap=JippiRestaurantFocusMap.create({
+        id:restaurantEntryId,map,L,panel,fetchData:fetchJsonData,
+        districtBounds:code=>muniByCode.get(code)?.layer.getBounds(),
+        onExit:()=>{
+          restaurantFocusMap=null;
+          const url=new URL(location.href);url.searchParams.delete('place');url.searchParams.delete('from');
+          history.replaceState(history.state,'',url);
+          fitSheet();renderFeed();
+        }
+      });
+    }
     initFavorites();
     if(sectionEntry && mobileSheet.matches) setSheetStage(requestedView==='saved'?2:1,false);
     loadDiscoveryShelf();

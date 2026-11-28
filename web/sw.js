@@ -1,10 +1,10 @@
 // 앱 껍데기는 캐시해서 바로 열리게, 소식(news.json)은 항상 네트워크 우선.
-importScripts('release-scope.js?v=97');
-const VERSION = 'nallae-v97';
+importScripts('release-scope.js?v=98');
+const VERSION = 'nallae-v98';
 const mealCatalogFiles = ['places','heritage-restaurants','place-locations','meal-restaurant-coordinates'];
 const SHELL = [
   ...mealCatalogFiles.map(name => 'data/' + name + '.json?v=' + VERSION.slice(8)),
-  'meals/restaurant-match.js', 'meals/restaurant-location.js', 'meals/restaurant-region.js', 'meals/restaurant-list.js',
+  'restaurant-saves.js', 'restaurant-focus-map.js', 'meals/restaurant-match.js', 'meals/restaurant-location.js', 'meals/restaurant-region.js', 'meals/restaurant-list.js',
   './', 'index.html',
   'explore.html', 'meals/style.css', 'meals/menu-calendar.js', 'meals/app.js', 'meals/symbol.png', 'meals/hero.webp', 'meals/soup.webp', 'meals/kalguksu.webp', 'meals/bibimbap.webp', 'meals/mon-cook.webp', 'meals/mon-dine.webp', 'meals/tue-cook.webp', 'meals/tue-dine.webp', 'meals/wed-cook.webp', 'meals/wed-dine.webp', 'meals/thu-cook.webp', 'meals/thu-dine.webp', 'meals/fri-cook.webp', 'meals/fri-dine.webp',
   ...[2,3,4].flatMap(week => ['mon','tue','wed','thu','fri','sat','sun'].flatMap(day =>
@@ -15,7 +15,7 @@ const SHELL = [
   'icons/apple-touch-icon-v2.png', 'icons/icon-192.png?v=2', 'icons/icon-512.png?v=2', 'icons/maskable-512.png?v=2',
   'icons/favicon-light-32.png', 'icons/favicon-dark-32.png',
   'about.html', 'privacy.html', 'doc.css',
-].map(path=>/\.(?:js|css)$/.test(path)&&!path.startsWith('vendor/')?path+'?v=97':path);
+].map(path=>/\.(?:js|css)$/.test(path)&&!path.startsWith('vendor/')?path+'?v=98':path);
 
 self.addEventListener('install', (e) => {
   // GitHub Pages는 max-age=600을 보낸다. 기본 요청이면 새 버전 캐시에 10분 묵은 이전 파일이 담길 수 있어 HTTP 캐시를 건너뛴다.

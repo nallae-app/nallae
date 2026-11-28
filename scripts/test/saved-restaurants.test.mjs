@@ -31,3 +31,14 @@ test('저장 맛집 재시도는 필요한 목록만 받고 중복 요청·ID �
   assert.equal(ctx.feedEl.scrollTop,119);assert.equal(focused,1);assert.equal(ctx.savedPlaces.size,1);assert.match(ctx.feedEl.innerHTML,/현재 자료 확인 1곳/);assert.doesNotMatch(ctx.feedEl.innerHTML,/미확인/);
   ctx.placesData=null;ctx.exploreFailed.add('places');await ctx.retrySavedRestaurants();assert.equal(placeCalls,1);assert.equal(heritageCalls,1);assert.equal(ctx.savedPlaces.size,1);
 });
+
+test('저장 맛집 바로가기에서 공개 ID로 지삐 지도 및 기존 주소 링크를 각각 제공한다',()=>{
+  const ctx=setup(), id='식당/a&b';
+  ctx.savedPlaces=new Set([id]);
+  ctx.allPlaceItems=()=>[{id, name:'식당', branch:'본점', address:'공개 도로명 주소'}];
+  ctx.heritageLoadState='ready';
+  const html=ctx.savedRestaurantContent();
+  assert.ok(html.includes('explore.html?view=places&amp;place='+encodeURIComponent(id)+'&amp;from=saved'));
+  assert.ok(html.includes('<a>지도</a>'));
+  assert.match(html,/식당 본점/);
+});

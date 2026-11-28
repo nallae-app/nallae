@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-app-version="97">
+<html lang="ko" data-app-version="98">
 <head>
   <meta charset="utf-8">
   <script>
@@ -30,15 +30,16 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/favicon-light-32.png" type="image/png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-v2.png">
-  <link rel="stylesheet" href="meals/style.css?v=97">
-  <script src="meals/menu-calendar.js?v=97" defer></script>
-  <script src="local-scope.js?v=97" defer></script>
-  <script src="meals/restaurant-match.js?v=97" defer></script>
-  <script src="meals/restaurant-region.js?v=97" defer></script>
-  <script src="meals/restaurant-location.js?v=97" defer></script>
-  <script src="meals/restaurant-list.js?v=97" defer></script>
-  <script src="meals/app.js?v=97" defer></script>
-  <script src="release-update.js?v=97" defer></script>
+  <link rel="stylesheet" href="meals/style.css?v=98">
+  <script src="meals/menu-calendar.js?v=98" defer></script>
+  <script src="local-scope.js?v=98" defer></script>
+  <script src="meals/restaurant-match.js?v=98" defer></script>
+  <script src="meals/restaurant-region.js?v=98" defer></script>
+  <script src="meals/restaurant-location.js?v=98" defer></script>
+  <script src="restaurant-saves.js?v=98" defer></script>
+  <script src="meals/restaurant-list.js?v=98" defer></script>
+  <script src="meals/app.js?v=98" defer></script>
+  <script src="release-update.js?v=98" defer></script>
 </head>
 <body><div class="issue">
 <header class="mast"><button type="button" class="brand brand-tap" data-egg aria-label="지삐의 한마디" aria-expanded="false" aria-controls="brand-note"><img src="meals/symbol.png" alt="" width="38" height="38"><strong>지삐</strong></button><p><time id="issue-date"></time><span>이번 주 식탁</span></p><a class="settings-link" href="explore.html?view=settings" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 .7-2h4.6L15 4l2 .9 2-.4 2.3 4-1.4 1.6v3.8l1.4 1.6-2.3 4-2-.4-2 .9-.7 2H9.7L9 20l-2-.9-2 .4-2.3-4 1.4-1.6v-3.8L2.7 8.5 5 4.5l2 .4Z"/><circle cx="12" cy="12" r="3"/></svg></a></header>
@@ -69,6 +70,7 @@
     <p class="series">지삐 맛집</p><h2 id="out-title"></h2>
     <div class="dining-controls"><span id="dining-count"></span><button type="button" id="dining-near" hidden>내 주변부터</button></div>
     <p id="dining-status" role="status" aria-live="polite"></p>
+    <div class="dining-save-notice" hidden><span role="status" id="dining-save-message"></span><a href="explore.html?view=saved&amp;tab=restaurants">저장한 맛집 보기</a></div>
     <div id="dining-results"></div>
     <button type="button" id="dining-more" class="dining-secondary" hidden></button>
     <button type="button" id="dining-retry" class="dining-secondary" hidden>식당 자료 다시 받기</button>
