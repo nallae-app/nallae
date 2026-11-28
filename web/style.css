@@ -1053,3 +1053,9 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
 }
 
 .topbar .jigi-hello img { vertical-align: middle; object-fit: contain; }
+
+.panel-footer.main-navigation { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.main-navigation .meal-home-link {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; min-height: 48px; color: var(--text-muted); font-size: 11px; text-decoration: none;
+}

@@ -22,9 +22,36 @@ test('오프라인·잘못된 버전·현재 버전은 새 버전으로 오인�
   const s=setup(fetcher);await settle();assert.equal(s.banner.hidden,true);assert.equal(s.destinations.length,0);
  }
 });
-test('설치 HTML·worker·release 파일과 정적 자산 버전이 함께 일치한다',()=>{
- const html=fs.readFileSync(new URL('../../web/index.html',import.meta.url),'utf8'),sw=fs.readFileSync(new URL('../../web/sw.js',import.meta.url),'utf8'),release=JSON.parse(fs.readFileSync(new URL('../../web/data/app-release.json',import.meta.url)));
- assert.ok(html.includes('data-app-version="'+release.version+'"'));assert.ok(sw.includes("nallae-v"+release.version+"'"));
- for(const match of html.matchAll(/(?:src|href)="((?!vendor\/)[^"?]+\.(?:js|css))\?v=(\d+)"/g)){assert.equal(Number(match[2]),release.version);assert.ok(sw.includes("'"+match[1]+"'"),'precache source '+match[1]);}
- assert.ok(sw.includes("path+'?v="+release.version+"'"));
+test('두 시작 문서와 버전이 지정된 자산은 현재 릴리스의 설치 캐시에 들어간다', () => {
+ const webRoot = new URL('../../web/', import.meta.url);
+ const sw = fs.readFileSync(new URL('sw.js', webRoot), 'utf8');
+ const release = JSON.parse(fs.readFileSync(new URL('data/app-release.json', webRoot)));
+ const base = new URL('https://example.test/nallae/');
+ const installed = vm.runInNewContext(sw + '\n;({version: VERSION, paths: SHELL})', {
+  importScripts() {},
+  self: {addEventListener() {}},
+ });
+ assert.equal(installed.version, 'nallae-v' + release.version);
+ const cached = new Set(installed.paths.map(path => new URL(path, base).href));
+ for (const path of installed.paths) {
+  const onDisk = new URL(path, webRoot);
+  onDisk.search = '';
+  assert.ok(fs.existsSync(onDisk), '설치 캐시에 지정했으나 배포본에 없는 파일 ' + path);
+ }
+ for (const document of ['index.html', 'explore.html']) {
+  const html = fs.readFileSync(new URL(document, webRoot), 'utf8');
+  assert.ok(html.includes('data-app-version="' + release.version + '"'), document);
+  assert.ok(cached.has(new URL(document, base).href), '설치 문서 ' + document);
+  assert.match(html, /id="app-update"/, '업데이트 안내 ' + document);
+  assert.match(html, /src="(?:\.\/)?release-update\.js\?v=\d+"/, '업데이트 스크립트 ' + document);
+  for (const [, reference] of html.matchAll(/(?:src|href)="([^"#]+\.(?:js|css)(?:\?[^"#]+)?)"/g)) {
+   const asset = new URL(reference, base);
+   if (asset.origin !== base.origin) continue;
+   if (!asset.pathname.startsWith(base.pathname + 'vendor/')) {
+    assert.equal(asset.searchParams.get('v'), String(release.version), reference);
+   }
+   assert.ok(cached.has(asset.href), '오프라인 자산 ' + reference);
+   assert.ok(fs.existsSync(new URL(asset.pathname.slice(base.pathname.length), webRoot)), reference);
+  }
+ }
 });

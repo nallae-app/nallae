@@ -13,10 +13,12 @@ async function fetchJsonData(url, options = {}) {
 }
 const DEMO = params.has('demo');
 const directTravel=params.has('travel');
+const requestedView=params.get('view');
+const sectionEntry=['courses','places','saved','utilities'].includes(requestedView);
 let locationRequestId = 0, routePicking = false;
 let mode = 'explore', exploreChoiceChanged=false, savedView=false;
 try { const saved=localStorage.getItem('nallae-mode');if(['news','explore'].includes(saved))mode=saved; } catch (_) {}
-if(directTravel)mode='explore';
+if(directTravel || sectionEntry)mode='explore';
 if (DEMO && (params.has('rain') || params.has('snow'))) mode = 'explore';
 rootMode();
 function rootMode() { document.documentElement.dataset.mode = mode; }
@@ -1265,6 +1267,13 @@ let fuelRadius=5000, fuelSort='distance';
 const nearbyFuelClient=NallaeNearbyFuel.createClient();
 let fuelShown=[], fuelLookupAllowed=false, fuelSampleFallback=false;
 try{const radius=Number(localStorage.getItem('nallae-fuel-radius'));if([5000,10000,15000].includes(radius))fuelRadius=radius;if(localStorage.getItem('nallae-fuel-sort')==='price')fuelSort='price';}catch(_){}
+if(sectionEntry) {
+  if(requestedView==='places') exploreLayer='places';
+  else if(requestedView==='utilities') {
+    if(['places','outing'].includes(exploreLayer)) exploreLayer='weather';
+  } else exploreLayer='outing';
+  savedView=requestedView==='saved';
+}
 const preferredExploreLayer=DEMO && (params.has('rain') || params.has('snow')) ? 'weather' : exploreLayer;
 let lastUtilityLayer=['places','outing'].includes(exploreLayer)?'weather':exploreLayer;
 let heritageData=null,heritageLoadState='idle',heritageRequest=null,savedRestaurantRetryPending=false;
@@ -1287,7 +1296,7 @@ function loadHeritageData() {
 }
 loadHeritageData();
 const foodCache=new Map(), foodPending=new Set(), foodErrors=new Set();
-let outingIndex=null, outingQuery='', outingTheme='date', outingLimit=30, outingCode=null, outingNonce=0, outingShown=[], outingPlans=[], outingRadius=5000, outingStopCount=2, outingPlanLimit=3;
+let outingIndex=null, outingQuery='', outingTheme=savedView?'plans':'date', outingLimit=30, outingCode=null, outingNonce=0, outingShown=[], outingPlans=[], outingRadius=5000, outingStopCount=2, outingPlanLimit=3;
 const outingCache=new Map(), outingPending=new Set(), outingErrors=new Set(), outingMarkers=L.layerGroup().addTo(map);
 const outingPlanMemo=new Map();let outingRevision=0,outingSearchTimer,outingDataTimer;
 let discoveryCatalog=null,discoveryIndex=0,discoveryError=false,discoveryRequest=null,discoveryDialog=null,discoveryMarkers=[],discoveryMarkerId='';
@@ -1548,6 +1557,21 @@ function updateExploreStatus() {
 }
 function renderExplore() {
   if(exploreTools.querySelector('.outing-filters-dialog[open]'))return;
+  // A direct tab link keeps its destination while the first batch is loading.
+  if(sectionEntry && !exploreChoiceChanged &&
+      ['places','utilities'].includes(requestedView) && !availableLayers().some(([key])=>key===exploreLayer)) {
+    syncModeNavigation();
+    panel.dataset.exploreLayer=exploreLayer;
+    exploreTools.hidden=true;
+    newButton.hidden=true;
+    titleEl.textContent=requestedView==='places'?'맛집':'생활정보';
+    subEl.textContent='';
+    syncCategories();
+    feedEl.innerHTML=exploreReady
+      ? '<li class="empty">자료를 받지 못했어요. <button type="button" data-entry-retry>다시 받기</button></li>'
+      : '<li class="empty" role="status">자료를 불러오는 중이에요…</li>';
+    return;
+  }
   if(exploreLayer==='outing'&&(overseasView||savedView&&outingTheme==='travel')){syncModeNavigation();panel.dataset.exploreLayer='outing';exploreTools.hidden=false;syncCategories();newButton.hidden=true;if(exploreTools.dataset.travelView!==travelViewKey())renderTravel();return;}
   if(exploreLayer==='outing'&&!outingIndex&&!savedView&&!overseasView&&!(discoveryCatalog&&!selection)){syncModeNavigation();panel.dataset.exploreLayer='outing';exploreTools.hidden=false;exploreTools.innerHTML='';titleEl.textContent='오늘 뭐 할까?';subEl.textContent='';feedEl.innerHTML=nextOutingCard()+(exploreReady?'<li class="empty">코스에 필요한 장소 자료를 받지 못했어요. <button type="button" data-outings-load>다시 받기</button></li>':'<li class="empty" role="status">가까운 코스를 준비하고 있어요…</li>');return;}
   locationFocus.clearLayers();
@@ -2465,10 +2489,24 @@ document.addEventListener('click',async e=>{
   if(b.dataset.travelCopy){const p=overseasData?.places.find(x=>x.id===b.dataset.travelCopy);if(!p)return;const text=p.nameLocal+'\n'+p.address;try{await navigator.clipboard.writeText(text);toast('현지어 이름과 주소를 복사했어요.');}catch{const dialog=document.createElement('dialog');dialog.className='travel-copy-dialog';dialog.innerHTML='<div class="dialog-head"><h2>현지어 이름·주소</h2><button type="button">닫기</button></div><p>글자를 길게 눌러 복사해 주세요.</p><textarea readonly aria-label="복사할 현지어 이름과 주소"></textarea>';dialog.querySelector('textarea').value=text;dialog.querySelector('button').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.append(dialog);dialog.showModal();dialog.querySelector('textarea').select();}}
 });
 
+feedEl.addEventListener('click', async event => {
+  const retry=event.target.closest('[data-entry-retry]');
+  if(!retry)return;
+  retry.disabled=true;
+  try { await loadExploreData(); } finally { retry.disabled=false; }
+});
+if(requestedView==='settings') document.getElementById('settings-dialog').showModal();
+document.querySelector('.main-navigation').addEventListener('click',event=>{
+  if(!event.target.closest('button'))return;
+  const url=new URL(location.href);
+  url.searchParams.set('view',root.dataset.navigation);
+  history.replaceState(history.state,'',url);
+});
 fetchJsonData('data/regions.json', { cache: 'default' })
   .then((topo) => {
     setupRegions(topo);
     initFavorites();
+    if(sectionEntry && mobileSheet.matches) setSheetStage(requestedView==='saved'?2:1,false);
     loadDiscoveryShelf();
     loadRegionPhotos();
     if(directTravel){mode='explore';exploreLayer='outing';overseasView=false;savedView=false;}

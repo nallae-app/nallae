@@ -97,14 +97,22 @@ test('이관 실패 뒤 오프라인에서도 가장 최근 정상 버전 자료
  assert.equal((await sw.request('data/missing.json')).type,'error');
 });
 
-test('새 탐색은 오래된 HTML 대신 최신 문서를 사용하고 질의가 있어도 오프라인 시작이 된다',async()=>{
- const old=new Map([['https://example.test/nallae/index.html','old']]);
- const sw=worker(async()=>new Response('new',{headers:{'content-type':'text/html'}}),old);
- assert.equal(await(await sw.request('?travel=1&appv=84',true)).text(),'new');
- const offline=worker(async()=>{throw Error('offline');},old);
- assert.equal(await(await offline.request('?travel=1&appv=84',true)).text(),'old');
- const bad=worker(async()=>new Response('bad',{status:404}),old);
- assert.equal(await(await bad.request('index.html',true)).text(),'old');assert.equal(bad.writes.length,0);
+test('새 문서를 우선 사용하고 오프라인에서 식사 홈과 지도 링크가 각각 원래 문서를 연다', async () => {
+ const base = 'https://example.test/nallae/';
+ const previous = new Map([[base + 'index.html', 'home'], [base + 'explore.html', 'map']]);
+ const fresh = worker(async () => new Response('updated', {headers: {'content-type': 'text/html'}}), previous);
+ assert.equal(await (await fresh.request('?appv=84', true)).text(), 'updated');
+ const offline = worker(async () => { throw Error('offline'); }, previous);
+ for (const [path, expected] of [
+  ['', 'home'], ['?appv=84', 'home'], ['index.html', 'home'],
+  ['explore.html?travel=1&appv=84', 'map'], ['explore.html?view=saved', 'map'],
+ ]) {
+  assert.equal(await (await offline.request(path, true)).text(), expected, path);
+ }
+ const bad = worker(async () => new Response('bad', {status: 404}), previous);
+ assert.equal(await (await bad.request('index.html', true)).text(), 'home');
+ assert.equal(await (await bad.request('explore.html?view=courses', true)).text(), 'map');
+ assert.equal(bad.writes.length, 0);
 });
 test('릴리스 확인은 오래된 JSON을 최신인 것처럼 반환하지 않는다',async()=>{
  const sw=worker(async()=>{throw Error('offline');},new Map([['https://example.test/nallae/data/app-release.json','{"version":83}']]));

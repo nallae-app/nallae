@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
 const app=fs.readFileSync(new URL('../../web/app.js',import.meta.url),'utf8');
-const html=fs.readFileSync(new URL('../../web/index.html',import.meta.url),'utf8');
+const html=fs.readFileSync(new URL('../../web/explore.html',import.meta.url),'utf8');
 const setupCode=app.slice(app.indexOf('const themeButtons ='),app.indexOf('\nif (DEMO)'));
 function setup({systemDark=false,storageFailure=false}={}){
   const buttons=['system','light','dark'].map(themeChoice=>({dataset:{themeChoice},attrs:{},listeners:{},setAttribute(k,v){this.attrs[k]=v;},addEventListener(k,fn){this.listeners[k]=fn;}}));

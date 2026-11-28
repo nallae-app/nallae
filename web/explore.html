@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko" data-app-version="95">
+<head>
+  <script>
+    (() => {
+      const p = new URLSearchParams(location.search), r = document.documentElement;
+      let t = 'system';
+      try { t = localStorage.getItem('nallae-theme') || t; } catch (_) {}
+      if (['light', 'dark'].includes(p.get('theme'))) t = p.get('theme');
+      if (!['light', 'dark', 'system'].includes(t)) t = 'system';
+      r.dataset.themeMode = t;
+      r.dataset.theme = t === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
+    })();
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#FFF7E8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0B1B33" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="가까운 나들이 코스를 골라 저장하고, 다시 가는 장소를 제보해요. 맛집·놀거리와 동네 소식·날씨·주유소·주차장도 함께.">
+  <title>지삐 - 오늘 뭐 할까?</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link id="app-favicon" rel="icon" href="icons/favicon-light-32.png" type="image/png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-v2.png">
+  <link rel="stylesheet" href="vendor/leaflet.min.css">
+  <link rel="stylesheet" href="style.css?v=95">
+  <link rel="stylesheet" href="discovery-home.css?v=95">
+  <link rel="stylesheet" href="region-covers.css?v=95">
+  <link rel="stylesheet" href="fonts/pretendard/pretendard-subset.css?v=95">
+  <link rel="stylesheet" href="fonts/wanted-sans/brand.css?v=95">
+</head>
+<body>
+  <div id="map" aria-label="한국·일본·중국 코스·장소 지도"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <h1>지삐</h1>
+        <p class="jigi-hello"><img src="icons/bukangi.svg" width="24" height="16" alt="부캉이"> 지기야, 오늘 뭐 할까?</p>
+      </div>
+    </div>
+    <div class="top-right">
+      <span class="badge-sample" id="badge-demo" hidden>데모</span>
+      <button id="btn-settings" class="global-settings" type="button" aria-label="설정" title="설정" aria-haspopup="dialog" aria-controls="settings-dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 .7-2h4.6L15 4l2 .9 2-.4 2.3 4-1.4 1.6v3.8l1.4 1.6-2.3 4-2-.4-2 .9-.7 2H9.7L9 20l-2-.9-2 .4-2.3-4 1.4-1.6v-3.8L2.7 8.5 5 4.5l2 .4Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="controls map-controls" role="group" aria-label="지도 지역 선택">
+    <button id="btn-locate" type="button" title="내 주변 동네 찾기">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5" fill="none"/></svg>
+      <span>내 주변</span>
+    </button>
+    <button id="btn-all" type="button" title="전국 보기">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none"/></svg>
+      <span>전국</span>
+    </button>
+  </div>
+
+  <aside class="panel" id="panel">
+    <button class="panel-handle" id="panel-handle" type="button" aria-label="목록 높이: 중간. 누르면 다음 높이로 바뀌어요"></button>
+    <div class="panel-head">
+
+      <div>
+        <h2 id="panel-title">오늘 뭐 할까?</h2>
+        <p id="panel-sub">가까운 코스를 준비하고 있어요…</p>
+      </div>
+      <button id="collection-status" class="collection-status" type="button" aria-haspopup="dialog">수집 상태 확인 중</button>
+    </div>
+    <button id="collection-alert" class="collection-alert" type="button" hidden></button>
+    <div class="utility-navigation"><button type="button" data-mode-choice="news">소식</button><button type="button" data-mode-choice="explore">생활정보</button></div>
+    <div class="filter-row category-row"><div class="chips" id="chips" role="group" aria-label="분류"></div></div>
+
+    <button id="new-items" type="button" hidden></button>
+    <ul class="feed" id="feed"></ul>
+    <nav class="panel-footer main-navigation" aria-label="주요 화면"><a href="./?home=1" class="meal-home-link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>홈</a><button type="button" data-open-outings><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v5h12v5"/></svg>코스</button><button type="button" data-open-places><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v6a3 3 0 0 0 6 0V3M8 3v18M19 3c-4 3-4 9 0 9v9M19 3v9"/></svg>맛집</button><button type="button" data-open-saved><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>저장</button><button type="button" data-open-utilities><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>소식·생활</button></nav>
+  </aside>
+
+  <p id="replay-status" class="replay-toast" role="status" hidden>최근 1시간 소식 재생 중</p>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <aside class="app-update" id="app-update" role="status" hidden><span>새 버전이 준비됐어요</span><button type="button" data-app-refresh>새 화면 적용</button><small>작성 중인 내용이 있다면 저장한 뒤 적용하세요.</small></aside>
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <div class="dialog-head"><h2 id="settings-title">설정</h2><button type="button" data-close>닫기</button></div>
+    <button type="button" data-contribution-open>다시 가는 곳 제보</button>
+    <section class="settings-regions"><h3>관심 지역</h3><div id="favorites" class="favorites" role="group" aria-label="관심 지역 선택·관리"></div></section>
+    <div class="settings-row settings-theme"><span>화면 모드</span><div id="btn-theme" role="group" aria-label="화면 모드 선택"><button type="button" data-theme-choice="system" aria-pressed="true">시스템</button><button type="button" data-theme-choice="light" aria-pressed="false">라이트</button><button type="button" data-theme-choice="dark" aria-pressed="false">다크</button></div></div>
+    <p class="settings-note">시스템은 기기의 화면 설정을 따라요.</p>
+    <button type="button" class="settings-refresh" data-app-refresh>최신 화면 불러오기</button>
+    <a class="settings-link" href="about.html">앱 정보·데이터 출처 <span aria-hidden="true">›</span></a>
+    <a class="settings-link" href="privacy.html">개인정보처리방침 <span aria-hidden="true">›</span></a>
+    <details class="map-legend" id="map-legend">
+      <summary>소식 지도 보는 법</summary>
+      <div class="legend-content"><p>소식은 문화·교통·지역 개발 등 일반 생활 정보를 다뤄요.</p><p>정책 소식의 지명은 관련 지역이며, 목록에서 원문 출처를 확인할 수 있어요.</p><p>지도 위 장소와 날씨는 각 자료의 기준 시각을 함께 확인해 주세요.</p></div>
+    </details>
+  </dialog>
+  <dialog id="favorites-dialog" aria-labelledby="favorites-title">
+    <div class="dialog-head"><h2 id="favorites-title">관심 지역</h2><button type="button" data-close>닫기</button></div>
+    <div id="favorite-list"><p>자주 가는 동네를 모아 두세요.</p><div id="saved-regions"></div><button type="button" id="favorite-add">＋ 추가</button></div>
+    <form id="favorite-form" hidden>
+      <button type="button" id="favorite-back">이전으로</button>
+      <div id="favorite-search-step"><label for="region-search">어느 동네를 저장할까요?</label><input id="region-search" type="search" placeholder="시·군·구 검색, 예: 마포" autocomplete="off"><div id="region-results" aria-label="지역 검색 결과"></div></div>
+      <div id="favorite-name-step" hidden><p id="favorite-choice" role="status"></p><p>어떤 이름으로 부를까요?</p><div id="favorite-presets" class="name-chips"></div><label for="favorite-name" hidden>직접 입력</label><input id="favorite-name" maxlength="20" value="집" required hidden><button id="favorite-save" type="submit" disabled>저장</button></div>
+    </form>
+    <p id="storage-note" role="status">이 기기에만 저장해요. 최대 5곳까지 추가할 수 있어요.</p>
+  </dialog>
+  <dialog id="sources-dialog" aria-labelledby="sources-title">
+    <div class="dialog-head"><h2 id="sources-title">출처별 수집 상태</h2><button type="button" data-close>닫기</button></div>
+    <div id="sources-detail"></div>
+  </dialog>
+
+  <script src="vendor/leaflet.min.js"></script>
+  <script src="vendor/topojson-client.min.js"></script>
+  <script src="release-scope.js?v=95"></script>
+  <script src="local-scope.js?v=95"></script>
+  <script src="discovery.js?v=95"></script>
+  <script src="discovery-shelf.js?v=95"></script>
+  <script src="region-covers.js?v=95"></script>
+  <script src="community.js?v=95"></script>
+  <script src="community-ui.js?v=95"></script>
+  <script src="nearby-fuel.js?v=95"></script>
+  <script src="overseas-courses.js?v=95"></script>
+  <script src="overseas-map.js?v=95"></script>
+  <script src="release-update.js?v=95"></script>
+  <script src="app.js?v=95"></script>
+</body>
+</html>
