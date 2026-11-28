@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0B1B33" media="(prefers-color-scheme: dark)">
   <script>try { const t = localStorage.getItem('nallae-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (_) {}</script>
   <title>개인정보처리방침 — 지삐</title>
-  <link rel="stylesheet" href="doc.css?v=96">
+  <link rel="stylesheet" href="doc.css?v=97">
   <link rel="stylesheet" href="fonts/pretendard/pretendard-subset.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
   <a class="back" href="./">← 지삐로 돌아가기</a>
   <h1>개인정보처리방침</h1>
   <p class="muted">시행일: <!--LAUNCH_DATE-->2026년 10월 25일<!--/LAUNCH_DATE--></p>
-  <p class="muted">최근 변경: 2026년 11월 26일 — 코스·장소·일반 날씨·생활정보 제공 범위 정리</p>
+  <p class="muted">최근 변경: 2026년 11월 28일 — 추천 외식의 기기 내 위치 정렬 안내</p>
 
   <p>‘지삐’(이하 “앱”)는 회원가입이나 로그인 없이 쓰는 동네 코스·장소 지도입니다. 회원정보·광고 식별자를 받지 않으며, 이용자가 메일로 제보하면 메일 주소와 작성 내용을 처리합니다. 주변 주유소 조회를 선택한 경우 아래와 같이 위치 좌표를 일시 처리합니다.</p>
 
@@ -24,7 +24,7 @@
 
   <h2>2. 위치정보</h2>
   <ul>
-    <li>‘내 주변’ 버튼을 눌렀을 때만 기기에 위치 권한을 요청합니다.</li>
+    <li>처음에는 ‘내 주변’ 또는 ‘내 주변부터’를 눌렀을 때 위치 권한을 요청합니다. 이미 허용한 기기에서는 추천 외식의 식당 목록을 열면 현재 위치와 식당 사이의 직선거리 및 같은 시·군·구 여부를 기기 안에서 계산합니다. 이 정렬에 쓴 내 좌표는 서버로 전송하거나 기기 저장소에 기록하지 않습니다. 위치를 허용하지 않아도 전국 목록을 볼 수 있습니다.</li>
     <li>받은 좌표는 <b>기기 안에서</b> 내가 있는 시·군·구와 주변 장소의 거리를 찾는 데 씁니다.</li>
     <li>동네 소식·놀거리의 내 주변 검색은 좌표와 판별 결과를 서버로 보내지 않습니다. 앱을 닫으면 사라집니다.</li>
     <li>주유소 화면에서 ‘내 위치로 주유소 조회’를 직접 누르면 위치 좌표·유종·반경을 지삐 조회 서버(Vercel)와 오피넷(한국석유공사)에 전달합니다. 조회에만 사용하며 앱의 위치 로그나 기기 저장소에 남기지 않습니다. 지도에서 동네를 직접 골랐으면 그 동네 대표 지점으로 조회합니다. 지도 서비스·호스팅 제공자는 자체 정책에 따라 접속기록 등을 처리할 수 있습니다.</li>

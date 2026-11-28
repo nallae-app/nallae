@@ -34,7 +34,7 @@ test('항목: 전국 시·군·구 코드·주소·근거·확인일, 중복 없
     assert.ok(x.food === null || (x.food && !PLACEHOLDER.test(x.food)), '음식 분류는 확인한 값 또는 null: ' + x.name); // 미확인은 null
     assert.match(x.checkedAt, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(!('lat' in x) && !('lon' in x), '좌표는 허용 출처 검증 전까지 넣지 않음: ' + x.name);
-    assert.ok(['video', 'operator', 'goodprice'].includes(x.source.type));
+    assert.ok(['video', 'operator', 'goodprice', 'menu'].includes(x.source.type));
     if (x.source.type === 'video') {
       assert.ok(httpOk(x.source.url) && /^https:\/\/(www\.)?(youtube\.com\/watch\?v=[\w-]{11}|youtu\.be\/[\w-]{11})$/.test(x.source.url), '공식 영상 URL 형식: ' + x.name);
       assert.ok(x.source.channel, '채널: ' + x.name);
@@ -43,6 +43,10 @@ test('항목: 전국 시·군·구 코드·주소·근거·확인일, 중복 없
       assert.equal(x.source.url, 'https://www.data.go.kr/data/3045247/fileData.do');
       assert.match(x.sourceDate, /^\d{4}-\d{2}-\d{2}$/);
       assert.ok(x.food && x.sourceDate <= x.checkedAt);
+    } else if (x.source.type === 'menu') {
+      assert.ok(x.food && httpOk(x.addressEvidenceUrl));
+      const links = [x.source.url, x.addressEvidenceUrl].map(u => new URL(u));
+      assert.ok(links.every(u => u.protocol === 'https:' && ['www.starfield.co.kr', 'cdn.ananti.kr', 'eternaljourney.ananti.kr', 'monpetitplat.co.kr'].includes(u.hostname)));
     } else {
       assert.equal(x.source.url ?? null, null, '운영자 추천에 가짜 영상 링크 금지: ' + x.name);
       assert.ok(x.addressEvidence, '운영자 추천 주소 근거: ' + x.name);

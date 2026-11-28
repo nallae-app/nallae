@@ -558,22 +558,6 @@ main.meal-home {
 a.action {
   text-decoration: none;
 }
-#places {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-#places li {
-  margin: 6px 0 10px;
-}
-#places a {
-  display: block;
-  font-weight: 700;
-  color: var(--ink);
-  font-size: 14px;
-  text-underline-offset: 3px;
-}
-#places small,
 .source,
 footer {
   font-size: 11px;
@@ -781,4 +765,26 @@ footer {
   font-weight: 650;
   font-size: 14px;
   border-bottom: 1px solid var(--line);
+}
+
+#eat-out { scroll-margin-top: 12px; }
+.dining-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#dining-count, #dining-status { color: var(--muted); font-size: 13px; line-height: 1.5; }
+#dining-near, .dining-secondary { min-height: 44px; color: var(--accent); background: transparent; font-size: 14px; font-weight: 720; }
+#dining-near { border: 0; text-decoration: underline; text-underline-offset: 4px; }
+#dining-status { margin: 6px 0 10px; }
+#dining-results ul { padding: 0; margin: 0; list-style: none; }
+#dining-results li { padding: 10px 2px; border-top: 1px solid var(--line); }
+#dining-results a { display: flex; align-items: center; justify-content: space-between; min-height: 44px; font-size: 19px; line-height: 1.25; letter-spacing: -.035em; text-decoration: none; color: var(--ink); }
+.dining-meta, .dining-group { color: var(--accent); font-size: 12px; font-weight: 700; }
+.dining-group { margin: 13px 0 5px; }
+.dining-arrow, .dining-address, .dining-date { color: var(--muted); }
+.dining-arrow { font-size: 15px; }
+.dining-food, .dining-address { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.dining-date { display: block; font-size: 11px; margin-top: 3px; }
+.dining-secondary { width: 100%; border: 1px solid var(--line); border-radius: 8px; }
+#dining-credit { margin: 8px 0 18px; }
+#eat-out .dish-note { margin: 16px 0 5px; }
+@media (min-width: 720px) {
+  .meal-home:has(#eat-out:not([hidden])) { align-items: start; }
 }

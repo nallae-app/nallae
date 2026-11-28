@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-app-version="96">
+<html lang="ko" data-app-version="97">
 <head>
   <meta charset="utf-8">
   <script>
@@ -30,10 +30,15 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/favicon-light-32.png" type="image/png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-v2.png">
-  <link rel="stylesheet" href="meals/style.css?v=96">
-  <script src="meals/menu-calendar.js?v=96" defer></script>
-  <script src="meals/app.js?v=96" defer></script>
-  <script src="release-update.js?v=96" defer></script>
+  <link rel="stylesheet" href="meals/style.css?v=97">
+  <script src="meals/menu-calendar.js?v=97" defer></script>
+  <script src="local-scope.js?v=97" defer></script>
+  <script src="meals/restaurant-match.js?v=97" defer></script>
+  <script src="meals/restaurant-region.js?v=97" defer></script>
+  <script src="meals/restaurant-location.js?v=97" defer></script>
+  <script src="meals/restaurant-list.js?v=97" defer></script>
+  <script src="meals/app.js?v=97" defer></script>
+  <script src="release-update.js?v=97" defer></script>
 </head>
 <body><div class="issue">
 <header class="mast"><button type="button" class="brand brand-tap" data-egg aria-label="지삐의 한마디" aria-expanded="false" aria-controls="brand-note"><img src="meals/symbol.png" alt="" width="38" height="38"><strong>지삐</strong></button><p><time id="issue-date"></time><span>이번 주 식탁</span></p><a class="settings-link" href="explore.html?view=settings" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 .7-2h4.6L15 4l2 .9 2-.4 2.3 4-1.4 1.6v3.8l1.4 1.6-2.3 4-2-.4-2 .9-.7 2H9.7L9 20l-2-.9-2 .4-2.3-4 1.4-1.6v-3.8L2.7 8.5 5 4.5l2 .4Z"/><circle cx="12" cy="12" r="3"/></svg></a></header>
@@ -61,14 +66,16 @@
 <details class="shopping"><summary>두 끼 장보기 <span>필요한 분량</span></summary><dl id="shopping-list"></dl></details>
 <aside class="next"><img src="icons/bukangi.svg" alt="부캉이" width="48" height="32"><p><strong>다른 날의 한 끼</strong></p><button type="button" data-pair aria-label="다른 날의 조리법 보기">→</button></aside></section>
   <section class="meal-detail" id="eat-out" aria-labelledby="out-title" hidden>
-    <p class="series">밖에서 먹기</p><h2 id="out-title">오늘은 칼국수 한 그릇.</h2>
+    <p class="series">지삐 맛집</p><h2 id="out-title"></h2>
+    <div class="dining-controls"><span id="dining-count"></span><button type="button" id="dining-near" hidden>내 주변부터</button></div>
+    <p id="dining-status" role="status" aria-live="polite"></p>
+    <div id="dining-results"></div>
+    <button type="button" id="dining-more" class="dining-secondary" hidden></button>
+    <button type="button" id="dining-retry" class="dining-secondary" hidden>식당 자료 다시 받기</button>
+    <p id="dining-credit" class="source" hidden>직선거리는 식당이나 주소 건물 기준이에요. 메뉴·영업 여부는 방문 전에 확인해 주세요. <a href="about.html">자료 출처</a> <span id="dining-osm" hidden>· <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a></span></p>
     <p class="dish-note" id="out-note"></p>
     <a class="action" id="map-search" target="_blank" rel="noopener noreferrer"></a>
     <a class="meal-weather-link" href="explore.html?view=utilities&amp;layer=weather">나가기 전 날씨 지도 <span aria-hidden="true">→</span></a>
-    <details class="shopping" id="examples"><summary>이 메뉴가 등록된 식당</summary>
-      <ul id="places"></ul>
-      <p class="source">지정 목록 2026.08 · 메뉴 자료 2022.07<br>방문 전 메뉴와 영업시간을 확인하세요. <a href="https://www.data.go.kr/data/15132695/fileData.do" target="_blank" rel="noopener noreferrer">백년가게 자료 ↗</a></p>
-    </details>
     <div class="next"><img src="icons/bukangi.svg" alt="부캉이" width="48" height="32"><p id="out-next"></p></div>
   </section>
 </main><footer>메뉴 이미지 · GPT 제작</footer>

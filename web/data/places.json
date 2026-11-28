@@ -1,7 +1,7 @@
 {
  "scope": "전국 일부 지역",
  "listCheckedAt": "2026-10-22",
- "note": "영상 소개는 공식 영상 설명란, 운영자 추천은 운영자의 의견, 착한가격업소는 행정안전부 지정 현황의 음식점·메뉴·주소를 사용한다. 영업 여부는 방문 전에 확인.",
+ "note": "영상 소개는 공식 영상 설명란, 운영자 추천은 운영자의 의견, 착한가격업소는 행정안전부 지정 현황의 음식점·메뉴·주소를 사용한다. 매장 공식 메뉴는 해당 지점이나 운영 시설이 공개한 메뉴와 주소를 대조했다. 영업 여부는 방문 전에 확인.",
  "items": [
   {
    "id": "v-DpGJEDKsf1o-화목순대국",
@@ -1958,6 +1958,1011 @@
     "url": "https://www.data.go.kr/data/3045247/fileData.do"
    },
    "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-c2e6993ea4d2b842",
+   "name": "안녕식당",
+   "branch": null,
+   "address": "경기도 파주시 문산읍 문산로26번길 13 (문산호수아파트) 호수상가 101동 6-21",
+   "district": "경기 파주시",
+   "sgg": "41480",
+   "food": "카레덮밥, 제육덮밥, 마파두부덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d57fcf569a74bd84",
+   "name": "하랑쌀국수",
+   "branch": null,
+   "address": "경기도 파주시 쇠재안길 40-4 (금릉동) 1층",
+   "district": "경기 파주시",
+   "sgg": "41480",
+   "food": "소고기쌀국수, 분짜(베트남만두)",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-2f3293d5cc7a84dd",
+   "name": "버거포레스트",
+   "branch": null,
+   "address": "전남광주통합특별시 순천시 왕지4길 14-16 (왕지동) 1층",
+   "district": "전남 순천시",
+   "sgg": "12150",
+   "food": "리얼치즈버거, 베이컨치즈버거, 포레스트버거, 통살치킨버거",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-e5b432cf9aefcd00",
+   "name": "또부리또",
+   "branch": null,
+   "address": "대전광역시 유성구 궁동로18번길 7 (궁동) 1층",
+   "district": "대전 유성구",
+   "sgg": "30200",
+   "food": "포크부리또, 치킨부리또, 비프부리또",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-1aba1e4c2b1ef60f",
+   "name": "칸스KANS",
+   "branch": null,
+   "address": "서울특별시 강서구 방화동로5길 12-1 (방화동) 1층",
+   "district": "서울 강서구",
+   "sgg": "11500",
+   "food": "(칸스)브리또, 치킨브리또, 치미창가",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-09be9038d6b3b662",
+   "name": "오카와리이치반",
+   "branch": null,
+   "address": "충청남도 천안시 동남구 중앙로 221 (신부동) 오카와리이치반",
+   "district": "충남 천안시 동남구",
+   "sgg": "44131",
+   "food": "미소라멘",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-54bf5b86cb06d387",
+   "name": "세종라멘",
+   "branch": null,
+   "address": "서울특별시 도봉구 도봉로114길 43 (창동) 1층",
+   "district": "서울 도봉구",
+   "sgg": "11320",
+   "food": "돈코츠라멘, 미소라멘, 카라이돈코츠라멘, 챠수동",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-57f545648881ff32",
+   "name": "늘콩 서울대점",
+   "branch": null,
+   "address": "서울특별시 관악구 관악로 199 늘콩 서울대점",
+   "district": "서울 관악구",
+   "sgg": "11620",
+   "food": "전주비빔밥, 순두부찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-65eef56ccf8a8238",
+   "name": "소풍가는날",
+   "branch": null,
+   "address": "경기도 수원시 장안구 수성로261번길 25 (정자동)",
+   "district": "경기 수원시 장안구",
+   "sgg": "41111",
+   "food": "김밥, 해물칼국수, 전주비빔밥, 김치찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-5e304eaaf9ddc44f",
+   "name": "늘콩 신대방삼거리점",
+   "branch": null,
+   "address": "서울특별시 동작구 상도로 112 (상도동) 1층",
+   "district": "서울 동작구",
+   "sgg": "11590",
+   "food": "콩나물국밥, 전주비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d42df390a60ab6c4",
+   "name": "제이콥스핏제리아",
+   "branch": null,
+   "address": "인천광역시 제물포구 우현로45번길 29 (신포동) 1층",
+   "district": "인천 제물포구",
+   "sgg": "28125",
+   "food": "마르게리타",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-45f30486ead1ae9f",
+   "name": "양식집",
+   "branch": null,
+   "address": "전남광주통합특별시 북구 북문대로49번길 11 (운암동) 1층",
+   "district": "광주 북구",
+   "sgg": "12300",
+   "food": "경양식돈까스, 마르게리따피자",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-44583fd31264d4cd",
+   "name": "브릿지 파스타",
+   "branch": null,
+   "address": "충청북도 청주시 서원구 1순환로674번길 56 (사창동) 2층",
+   "district": "충북 청주시 서원구",
+   "sgg": "43112",
+   "food": "알리오올리오, 마르게리따피자, 고르곤졸라피자",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-051526109b479b80",
+   "name": "까시",
+   "branch": null,
+   "address": "전남광주통합특별시 북구 송월로 30 (오치동) 1층",
+   "district": "광주 북구",
+   "sgg": "12300",
+   "food": "고등어구이백반",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-91b7805c454f1376",
+   "name": "해운",
+   "branch": null,
+   "address": "경상남도 김해시 율하카페길67-13 (관동동)",
+   "district": "경남 김해시",
+   "sgg": "48250",
+   "food": "고등어구이정식, 열기구이 정식",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-c209d8a24568377a",
+   "name": "밥맛나는집",
+   "branch": null,
+   "address": "대구광역시 중구 경상감영길 37 (서문로1가) 밥맛나는집",
+   "district": "대구 중구",
+   "sgg": "27110",
+   "food": "된장찌개, 고등어구이 정식, 순두부 찌개, 가자미구이 정식",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-b7750629c0efddd4",
+   "name": "백련가정식백반",
+   "branch": null,
+   "address": "전남광주통합특별시 목포시 백년대로 83 (용당동)",
+   "district": "전남 목포시",
+   "sgg": "12110",
+   "food": "고등어구이백반, 김치찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-a966b53cf7458961",
+   "name": "왓타타이",
+   "branch": null,
+   "address": "대구광역시 북구 칠성로17길 4 (칠성동2가) 1층",
+   "district": "대구 북구",
+   "sgg": "27230",
+   "food": "소고기쌀국수, 팟타이",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-71fbf74e510f2e01",
+   "name": "창앤호아마이",
+   "branch": null,
+   "address": "경기도 화성시 병점구 여울로 138 (능동) 1층",
+   "district": "경기 화성시 병점구",
+   "sgg": "41595",
+   "food": "양지 쌀국수, 팟타이, 팟퐁커리",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-76ce631314196509",
+   "name": "잇다(IT-DA)",
+   "branch": null,
+   "address": "인천광역시 미추홀구 소성로 178 (학익동) .",
+   "district": "인천 미추홀구",
+   "sgg": "28177",
+   "food": "소고기쌀국수, 팟타이, 월남쌈 세트",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d06fd64a2f648081",
+   "name": "투고박스누들",
+   "branch": null,
+   "address": "경기도 용인시 수지구 죽전로 142 (죽전동) 102호",
+   "district": "경기 용인시 수지구",
+   "sgg": "41465",
+   "food": "팟타이(볶음쌀국수), 파인애플볶음밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-e91fc7b20d2c438c",
+   "name": "이포",
+   "branch": null,
+   "address": "경기도 부천시 원미구 부일로445번길 32 (심곡동)",
+   "district": "경기 부천시 원미구",
+   "sgg": "41192",
+   "food": "양지쌀국수, 볶음면(팟타이), 볶음밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-9bf1eea1c16cb6f0",
+   "name": "홀리시티",
+   "branch": null,
+   "address": "대전광역시 중구 계백로1615번길 34 (유천동, 현대아파트) 상가동 108호",
+   "district": "대전 중구",
+   "sgg": "30140",
+   "food": "새우볶음밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-41b0c45e3cdb8244",
+   "name": "올레분식",
+   "branch": null,
+   "address": "경기도 용인시 처인구 금령로27번길6 (김량장동)",
+   "district": "경기 용인시 처인구",
+   "sgg": "41461",
+   "food": "김밥, 비빔국수, 새우볶음밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-7ef38128f8f36fb1",
+   "name": "웨스턴차이나",
+   "branch": null,
+   "address": "서울특별시 강남구 압구정로36길 22 (신사동) 1층",
+   "district": "서울 강남구",
+   "sgg": "11680",
+   "food": "새우볶음밥, 짜장, 해물짬뽕",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-7ba144cf4ca38e9c",
+   "name": "쿡수",
+   "branch": null,
+   "address": "전남광주통합특별시 진도군 진도읍 남동1길 40-8 쿡수",
+   "district": "전남 진도군",
+   "sgg": "12860",
+   "food": "돈까스, 치킨까스, 새우볶음밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d0bb8392828ab4db",
+   "name": "팔선생",
+   "branch": null,
+   "address": "경기도 용인시 기흥구 죽전로43번길11-25 (보정동)",
+   "district": "경기 용인시 기흥구",
+   "sgg": "41463",
+   "food": "짜장면, 새우볶음밥, 소고기 볶음밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-524612890f52f70f",
+   "name": "홍가짜장",
+   "branch": null,
+   "address": "대전광역시 동구 동대전로 278 (가양동)",
+   "district": "대전 동구",
+   "sgg": "30110",
+   "food": "홍가짜장, 홍가짬뽕, 짬짜면, 새우볶음밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-a5f2f9a945014495",
+   "name": "대박칼만두",
+   "branch": null,
+   "address": "강원특별자치도 원주시 문막읍 건등로 20-19 대박칼만두",
+   "district": "강원 원주시",
+   "sgg": "51130",
+   "food": "만두전골",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-0ebc40ef1eab8170",
+   "name": "만두랑",
+   "branch": null,
+   "address": "서울특별시 서초구 남부순환로356길 39 39 2층",
+   "district": "서울 서초구",
+   "sgg": "11650",
+   "food": "만두전골",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-2c8062ca1b242050",
+   "name": "안골식당",
+   "branch": null,
+   "address": "충청남도 천안시 동남구 먹거리2길 6-1 (신부동) 2층",
+   "district": "충남 천안시 동남구",
+   "sgg": "44131",
+   "food": "만두전골",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-6b8d3e05fd6c926c",
+   "name": "박가네의령소바",
+   "branch": null,
+   "address": "경상남도 통영시 무전7길 112 (무전동) 1층",
+   "district": "경남 통영시",
+   "sgg": "48220",
+   "food": "냉소바, 육개장",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-7491f511aa5bdb5f",
+   "name": "홍미부엌",
+   "branch": null,
+   "address": "전남광주통합특별시 해남군 해남읍 중앙2로 16 2층, 홍미부엌",
+   "district": "전남 해남군",
+   "sgg": "12790",
+   "food": "냉소바, 일식우동",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-ea9a36fd2b262eb6",
+   "name": "모밀촌",
+   "branch": null,
+   "address": "인천광역시 남동구 용천로 148 (간석동) 1층 일부호",
+   "district": "인천 남동구",
+   "sgg": "28200",
+   "food": "메밀소바, 수제돈까스",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-eeaf62948c59269a",
+   "name": "명품수제왕돈까스",
+   "branch": null,
+   "address": "부산광역시 사상구 사상로 208-1 102호(괘법동,사상티오피)",
+   "district": "부산 사상구",
+   "sgg": "26530",
+   "food": "왕돈까스, 치즈돈가스, 소바",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-59dbecae84e30a03",
+   "name": "돈뚜막",
+   "branch": null,
+   "address": "강원특별자치도 강릉시 하슬라로232번길 7-13 (교동) 1층",
+   "district": "강원 강릉시",
+   "sgg": "51150",
+   "food": "치킨덮밥, 우삼겹덮밥, 메밀소바",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-3ffce7bfccfac09b",
+   "name": "면사랑",
+   "branch": null,
+   "address": "대전광역시 서구 둔산북로 36 (둔산동) 대영프라자126호",
+   "district": "대전 서구",
+   "sgg": "30170",
+   "food": "쌀국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-a4e00e3467ef026d",
+   "name": "OK스시",
+   "branch": null,
+   "address": "서울특별시 은평구 응암로4길 22 102호(응암동)",
+   "district": "서울 은평구",
+   "sgg": "11380",
+   "food": "모듬초밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-7dd0e73aed0eefdf",
+   "name": "남해초밥",
+   "branch": null,
+   "address": "경상남도 남해군 남해읍 화전로 53 남해초밥",
+   "district": "경남 남해군",
+   "sgg": "48840",
+   "food": "모둠초밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-b324a7578925ca82",
+   "name": "오늘도횟집",
+   "branch": null,
+   "address": "경기도 의정부시 민락로 389 (낙양동) 1층",
+   "district": "경기 의정부시",
+   "sgg": "41150",
+   "food": "모듬초밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-a6dff906d8652ed6",
+   "name": "초밥마을",
+   "branch": null,
+   "address": "전남광주통합특별시 북구 우치로 72 (중흥동) 1층",
+   "district": "광주 북구",
+   "sgg": "12300",
+   "food": "점심특선, 모듬초밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-0f83565ba46591bf",
+   "name": "우공초밥 포항남구점",
+   "branch": null,
+   "address": "경상북도 포항시 남구 상공로 47-1 (상도동) 1층",
+   "district": "경북 포항시 남구",
+   "sgg": "47111",
+   "food": "모듬초밥, 가성비초밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-2741a1d9813923f4",
+   "name": "롤큰롤초밥전문점",
+   "branch": null,
+   "address": "충청남도 보령시 큰오랏1길 30 (동대동)",
+   "district": "충남 보령시",
+   "sgg": "44180",
+   "food": "모듬초밥, 우동, 캘리포니아롤",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-514f12ac9b783506",
+   "name": "수택골목냉면",
+   "branch": null,
+   "address": "경기도 구리시 검배로84번길 29 (수택동)",
+   "district": "경기 구리시",
+   "sgg": "41310",
+   "food": "비빔냉면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-c881d769aa86c0ec",
+   "name": "청아정",
+   "branch": null,
+   "address": "울산광역시 울주군 온양읍 온양로 178 1층",
+   "district": "울산 울주군",
+   "sgg": "31710",
+   "food": "냉면, 비빔냉면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-094d402d9c04e5d8",
+   "name": "강원칡냉면",
+   "branch": null,
+   "address": "강원특별자치도 영월군 영월읍 단종로 44 .",
+   "district": "강원 영월군",
+   "sgg": "51750",
+   "food": "물냉면, 비빔냉면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-9c997cb083768825",
+   "name": "복가득뚱보갈비",
+   "branch": null,
+   "address": "경상남도 창원시 마산합포구 노산서18길 114 (교방동)",
+   "district": "경남 창원시 마산합포구",
+   "sgg": "48125",
+   "food": "물냉면, 비빔냉면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-f31724eb5b53b489",
+   "name": "우돈명가",
+   "branch": null,
+   "address": "충청북도 청주시 상당구 월평로250번길 1 (용암동) (용암동)",
+   "district": "충북 청주시 상당구",
+   "sgg": "43111",
+   "food": "물냉면, 비빔냉면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-78ecea9e77375b7c",
+   "name": "널위한식탁",
+   "branch": null,
+   "address": "충청남도 천안시 서북구 서부16길 59 (성정동) 105호",
+   "district": "충남 천안시 서북구",
+   "sgg": "44133",
+   "food": "제육덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d7bd4861903f6c52",
+   "name": "이모네식당",
+   "branch": null,
+   "address": "서울특별시 성북구 안암로73-3 .",
+   "district": "서울 성북구",
+   "sgg": "11290",
+   "food": "제육덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-9fee939d992ee3cb",
+   "name": "냠냠분식",
+   "branch": null,
+   "address": "경상남도 통영시 동충2길 41-7 (항남동) 냠냠분식",
+   "district": "경남 통영시",
+   "sgg": "48220",
+   "food": "소고기무국, 제육덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-edbb2b44243c3e52",
+   "name": "해와달",
+   "branch": null,
+   "address": "인천광역시 미추홀구 주안로90번길 39 (주안동)",
+   "district": "인천 미추홀구",
+   "sgg": "28177",
+   "food": "수제돈가스, 제육덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-c662728324ae0f33",
+   "name": "세모분식",
+   "branch": null,
+   "address": "경기도 평택시 중앙시장로9번길 22-4 세모분식",
+   "district": "경기 평택시",
+   "sgg": "41220",
+   "food": "돌솥비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-a2d1cc3a26c5d62a",
+   "name": "정일품",
+   "branch": null,
+   "address": "경상남도 통영시 광도면 죽림1로 17-18 (죽림주공아파트) 104호",
+   "district": "경남 통영시",
+   "sgg": "48220",
+   "food": "돌솥비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-1dd3b9f6901072ed",
+   "name": "어머니손맛",
+   "branch": null,
+   "address": "전북특별자치도 전주시 덕진구 용산1길 13 (금암동)",
+   "district": "전북 전주시 덕진구",
+   "sgg": "52113",
+   "food": "백반, 돌솥비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-2d1017785f0dbbc8",
+   "name": "팔공식당",
+   "branch": null,
+   "address": "대구광역시 동구 송라로32길 5 (신암동)",
+   "district": "대구 동구",
+   "sgg": "27140",
+   "food": "돌솥비빔밥, 소면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-1ba8c7f854edb784",
+   "name": "도가우동&소바",
+   "branch": null,
+   "address": "경상북도 포항시 남구 문예로 65 (대도동) 1층",
+   "district": "경북 포항시 남구",
+   "sgg": "47111",
+   "food": "우동",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-4cc12b1e6dd6023a",
+   "name": "두레마을 우동집",
+   "branch": null,
+   "address": "경기도 의정부시 신흥로240번길 21 (의정부동) 1층",
+   "district": "경기 의정부시",
+   "sgg": "41150",
+   "food": "우동",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-752d67f2f08dcbac",
+   "name": "신신분식",
+   "branch": null,
+   "address": "인천광역시 제물포구 자유공원로27번길 1 (내동)",
+   "district": "인천 제물포구",
+   "sgg": "28125",
+   "food": "우동",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-01ab9244fae37e1a",
+   "name": "24시해장국",
+   "branch": null,
+   "address": "울산광역시 남구 번영로156번길 23 (달동) 1층",
+   "district": "울산 남구",
+   "sgg": "31140",
+   "food": "순두부찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-529715e4e7249a61",
+   "name": "명동보쌈국수",
+   "branch": null,
+   "address": "전남광주통합특별시 광산구 임방울대로800번길 78 (월계동) 명동보쌈국수",
+   "district": "광주 광산구",
+   "sgg": "12330",
+   "food": "순두부찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-cee3d71c4769104a",
+   "name": "삼공팔공식당",
+   "branch": null,
+   "address": "경기도 양평군 용문면 용문시장5길 14 .",
+   "district": "경기 양평군",
+   "sgg": "41830",
+   "food": "순두부찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-6a71dc15f80ab4ef",
+   "name": "감동국수집",
+   "branch": null,
+   "address": "경기도 김포시 봉화로 26 (사우동) 감동국수집",
+   "district": "경기 김포시",
+   "sgg": "41570",
+   "food": "잔치국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-2ec8eb1d80065a5f",
+   "name": "국수마을",
+   "branch": null,
+   "address": "경상북도 포항시 남구 효자동5번길 10 나동 국수마을",
+   "district": "경북 포항시 남구",
+   "sgg": "47111",
+   "food": "잔치국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "menu-dandan-starfield-goyang",
+   "name": "탄탄면공방 스타필드 고양점",
+   "branch": null,
+   "address": "경기도 고양시 덕양구 고양대로 1955 3층",
+   "district": "경기 고양시 덕양구",
+   "sgg": "41281",
+   "food": "탄탄면",
+   "source": {
+    "type": "menu",
+    "url": "https://www.starfield.co.kr/goyang/tenant/tenantDetail/TN201707171919508199.do"
+   },
+   "addressEvidenceUrl": "https://www.starfield.co.kr/goyang/tenant/tenantDetail/TN201707171919508199.do",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "menu-salon-ananti-chord",
+   "name": "살롱 드 이터널저니 아난티 코드",
+   "branch": null,
+   "address": "경기도 가평군 설악면 유명로 1007-90",
+   "district": "경기 가평군",
+   "sgg": "41820",
+   "food": "에그인헬 (브런치)",
+   "source": {
+    "type": "menu",
+    "url": "https://cdn.ananti.kr/brand_mkt/chord/cd_salonbrunchmenu_2606_2.pdf"
+   },
+   "addressEvidenceUrl": "https://eternaljourney.ananti.kr/html/intro/chord.html",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "menu-monpetitplat",
+   "name": "몽쁘띠쁠라",
+   "branch": null,
+   "address": "서울특별시 종로구 동숭길 101 현대엘리베이터 빌딩 B1층",
+   "district": "서울 종로구",
+   "sgg": "11110",
+   "food": "바질페스토 파스타",
+   "source": {
+    "type": "menu",
+    "url": "https://monpetitplat.co.kr/menu"
+   },
+   "addressEvidenceUrl": "https://monpetitplat.co.kr/menu",
    "checkedAt": "2026-11-28"
   }
  ]

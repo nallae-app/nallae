@@ -33,19 +33,16 @@ function chooseMode(mode) {
     button.setAttribute('aria-pressed', String(button.dataset.mode === mode)),
   );
   document.querySelector('#at-home').hidden = mode !== 'cook';
-  document.querySelector('#eat-out').hidden = mode !== 'dine';
-}
-function placeRow(place) {
-  const li = document.createElement('li');
-  const map = document.createElement('a');
-  map.textContent = place.region + ' · ' + place.name + ' ↗';
-  map.href = searchUrl(place.address + ' ' + place.name);
-  map.target = '_blank';
-  map.rel = 'noopener noreferrer';
-  const address = document.createElement('small');
-  address.textContent = place.address;
-  li.append(map, address);
-  return li;
+  const dining = document.querySelector('#eat-out');
+  dining.hidden = mode !== 'dine';
+  if (dining.hidden) JippiDiningList.hide();
+  else {
+    JippiDiningList.show(issue(activeOffset).dine.name);
+    if (window.matchMedia('(max-width: 719px)').matches &&
+        dining.getBoundingClientRect().top > window.innerHeight * 0.55) {
+      dining.scrollIntoView({block: 'start'});
+    }
+  }
 }
 function renderShopping() {
   const first = issue(0),
@@ -116,17 +113,14 @@ function selectDay(offset) {
       ? '두부 한 모로, 두 번의 저녁.'
       : menu.name + ' 한 끼';
   document.querySelector('#cook-note').textContent = menu.intro;
-  document.querySelector('#out-title').textContent = out.name;
+  document.querySelector('#out-title').textContent = out.name + ' 파는 곳';
   document.querySelector('#out-note').textContent = out.note;
   document.querySelector('#out-next').textContent =
     other.label + '의 외식 · ' + other.dine.name;
   const link = document.querySelector('#map-search');
   link.href = searchUrl(out.name);
   link.textContent = '카카오맵에서 ' + out.name + ' 찾기 ↗';
-  document.querySelector('#examples').hidden = !out.places?.length;
-  document
-    .querySelector('#places')
-    .replaceChildren(...(out.places || []).map(placeRow));
+  if (!document.querySelector('#eat-out').hidden) JippiDiningList.show(out.name);
   action.querySelector('span').textContent =
     (menu.short || menu.name) + ' 만들기';
   next.setAttribute(

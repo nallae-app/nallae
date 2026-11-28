@@ -1662,7 +1662,7 @@ function updateExploreStatus() {
     status.textContent='식당 '+allPlaceItems().length+'곳'; status.classList.remove('failed','stale');
     status.setAttribute('aria-label',status.textContent+'. 출처와 자료 기준일 보기');
     document.getElementById('collection-alert').hidden=true; noteExploreMissing();
-    document.getElementById('sources-detail').textContent='영상 소개·운영자 추천 확인일 '+(placesData.listCheckedAt||'미제공')+' · 백년가게 지정 자료 2026-08-20, 업종 자료 2022-07-13 · 행정안전부 착한가격업소 자료 2026-09-30. 맛·위생·현재 영업을 보증하지 않아요.';
+    document.getElementById('sources-detail').textContent='영상 소개·운영자 추천 확인일 '+(placesData.listCheckedAt||'미제공')+' · 백년가게 지정 자료 2026-08-20, 업종 자료 2022-07-13 · 행정안전부 착한가격업소 자료 2026-09-30 · 매장 공식 메뉴는 각 카드에 확인일을 표시해요. 맛·위생·현재 영업을 보증하지 않아요.';
     return;
   }
   const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:foodIndex, date=new Date(exploreLayer==='weather'?weatherData?.base:data?.updated);
@@ -1965,13 +1965,13 @@ async function loadFood(code) {
 let placesQuery='', placesSource='', placesShowAll=false, placesForCode, placesOnlySaved=false, placesLimit=40, placeMapItems=[];
 const savedPlaces=new Set();
 try { const saved=JSON.parse(localStorage.getItem('nallae-saved-places-v1')||'[]');if(Array.isArray(saved))saved.filter(id=>typeof id==='string'&&id.length<200).slice(0,500).forEach(id=>savedPlaces.add(id)); } catch(_) {}
-const PLACE_SOURCE={video:'영상 소개',operator:'운영자 추천',heritage:'백년가게 지정',goodprice:'착한가격업소'};
+const PLACE_SOURCE={video:'영상 소개',operator:'운영자 추천',heritage:'백년가게 지정',goodprice:'착한가격업소',menu:'매장 공식 메뉴'};
 function renderPlaces() {
   const all=allPlaceItems(), code=selection?.center.code;
   if(placesForCode!==code) { placesForCode=code; placesShowAll=false; } // 지역을 바꾸면 선택 지역으로 다시 거른다
   titleEl.textContent=selection?regionTitle(selection.center)+' 맛집 찾기':'전국 맛집 찾기';
   subEl.textContent='동네나 먹고 싶은 메뉴로 식당을 찾아보세요';
-  exploreTools.innerHTML=sourceDisclosure('전국 수록 '+all.length+'곳 · 수록 기준과 출처','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 지삐 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 수록 지역부터 순차 제공하며 전국 모든 식당 목록은 아니에요. 백년가게는 2026년 지정 목록과 2022년 음식 업종 자료의 상호·지역을 대조한 곳이며 현재 메뉴·영업을 보증하지 않아요. 착한가격업소는 행정안전부 지정 현황(2026-09-30)의 메뉴와 주소를 실었어요. 방문 전 메뉴와 영업 여부를 확인해 주세요. 정렬: 지역·이름 순.')
+  exploreTools.innerHTML=sourceDisclosure('전국 수록 '+all.length+'곳 · 수록 기준과 출처','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 지삐 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 수록 지역부터 순차 제공하며 전국 모든 식당 목록은 아니에요. 백년가게는 2026년 지정 목록과 2022년 음식 업종 자료의 상호·지역을 대조한 곳이며 현재 메뉴·영업을 보증하지 않아요. 착한가격업소는 행정안전부 지정 현황(2026-09-30)의 메뉴와 주소를 실었어요. 매장 공식 메뉴는 해당 지점이나 운영 시설이 공개한 메뉴와 주소를 대조했어요. 방문 전 메뉴와 영업 여부를 확인해 주세요. 정렬: 지역·이름 순.')
     +'<div class="food-controls"><label class="food-search"><input aria-label="지역·음식·식당 이름 검색" type="search" data-places-search placeholder="지역·음식·식당명, 예: 부산, 냉면" value="'+escapeHtml(placesQuery)+'"></label><div class="explore-toggle">'+['',...Object.keys(PLACE_SOURCE)].map(k=>'<button type="button" data-places-source="'+k+'" aria-pressed="'+(placesSource===k)+'">'+(k?PLACE_SOURCE[k]:'전체')+'</button>').join('')+'</div></div>';
   exploreTools.querySelector('.source-disclosure p').textContent += ' · 지도 위치 확인 '+all.filter(x=>placeLocation(x)).length+'/'+all.length+'곳. 포인트는 장소 또는 주소 건물 위치이며 입구를 뜻하지 않아요. 좌표를 확인하지 못한 곳도 주소 목록에서 볼 수 있어요.';
   if(selection&&foodIndex?.counts?.[code]>0)exploreTools.insertAdjacentHTML('beforeend','<button type="button" class="food-map" data-more-food>이 동네 식품안심업소 '+foodIndex.counts[code].toLocaleString('ko-KR')+'곳도 보기 · 맛 평가 아님</button>');
@@ -2025,10 +2025,10 @@ map.getContainer().addEventListener('click',e=>{
   if(el){setSheetStage(2);el.scrollIntoView({block:'nearest',behavior:'instant'});el.querySelector('[data-place-map]')?.focus({preventScroll:true});}
 });
 function placeCard(x) {
-  const officialUrl={heritage:'https://www.data.go.kr/data/15132695/fileData.do',goodprice:'https://www.data.go.kr/data/3045247/fileData.do'}[x.source.type];
-  const src=officialUrl ? PLACE_SOURCE[x.source.type]+' · <a class="food-map" href="'+officialUrl+'" target="_blank" rel="noopener noreferrer">공식 자료 ↗</a>' : x.source.type==='video'
+  const officialUrl=x.source.type==='menu' && /^https:\/\/(?:www\.starfield\.co\.kr|cdn\.ananti\.kr|monpetitplat\.co\.kr)\//.test(x.source.url) ? x.source.url : {heritage:'https://www.data.go.kr/data/15132695/fileData.do',goodprice:'https://www.data.go.kr/data/3045247/fileData.do'}[x.source.type];
+  const src=officialUrl ? PLACE_SOURCE[x.source.type]+' · <a class="food-map" href="'+escapeAttr(officialUrl)+'" target="_blank" rel="noopener noreferrer">공식 자료 ↗</a>' : x.source.type==='video'
     ? escapeHtml(x.source.channel||'영상')+' 영상 소개'+(x.source.url&&/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(x.source.url)?' · <a class="food-map" href="'+escapeAttr(x.source.url)+'" target="_blank" rel="noopener noreferrer">공식 영상 보기 ↗</a>':'')
-    : '운영자 추천 · 주관적 의견';
+    : (x.source.type==='menu'?'매장 공식 메뉴':'운영자 추천 · 주관적 의견');
   return '<li class="festival-card place-card" data-place-id="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name+(x.branch?' '+x.branch:''))+'</h3><p>'+escapeHtml(x.food||'음식 분류 미확인')+' · '+escapeHtml(x.district)+'</p><p class="card-address">'+escapeHtml(x.address)+'</p><p class="place-source">'+src+'</p><button type="button" class="save-place" data-save-place="'+escapeHtml(x.id)+'" aria-pressed="'+savedPlaces.has(x.id)+'">'+(savedPlaces.has(x.id)?'♥ 저장했어요':'♡ 가보고 싶어요')+'</button>'+(placeLocation(x)?'<button type="button" data-place-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<p class="place-checked">지도 위치 미확인 · 주소로 찾아보세요</p>')+addressLink(x.address)+'<p class="place-checked">'+(x.sourceDate?'지정 자료 '+escapeHtml(x.sourceDate)+(x.kindDate?' · 업종 자료 '+escapeHtml(x.kindDate):''):'정보 확인 '+escapeHtml(x.checkedAt))+'</p></li>';
 }
 feedEl.addEventListener('click',e=>{const b=e.target.closest('[data-place-map]');if(!b)return;const x=allPlaceItems().find(x=>x.id===b.dataset.placeMap),p=x&&placeLocation(x);if(!p)return;atHome=false;selectionAutoFit=false;setSheetStage(0);clearTimeout(sheetFitTimer);map.setView([p.lat,p.lon],17,{animate:false});renderPlaceMarkers();placeMarkerById.get(x.id)?.openPopup();});
