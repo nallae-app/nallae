@@ -190,6 +190,116 @@ map.createPane('pulses').style.zIndex = 650;
 const paperCourseMap=()=>mode==='explore'&&exploreLayer==='outing'&&outingTheme!=='travel'&&!overseasView&&root.dataset.theme==='dark';
 const baseStyle = { color: token('border-sgg'), weight: 0.35, opacity:.48, fillColor: token('land'), fillOpacity: 1 };
 let provinceLayer, selectionOutline;
+// 좌표와 관측값은 각 시·군·구의 것이다. 저배율에서는 하나의 대표 지점만 고른다.
+const weatherRepresentatives = new Map([
+  ['11110','서울'], ['26230','부산'], ['50110','제주'], ['51110','춘천'], ['12210','광주'],
+  ['30140','대전'], ['47170','안동'], ['52111','전주'], ['27110','대구'], ['28200','인천'],
+  ['48121','창원'], ['41115','수원'], ['43111','청주'], ['44800','홍성'], ['31110','울산'], ['36110','세종'],
+]);
+const weatherMarkers = new Map();
+const observedPrecipitation = ['강수 없음','비','비·눈','눈','소나기','빗방울','빗방울·눈날림','눈날림'];
+
+function weatherFreshness(source, failed, hours, now=Date.now()) {
+  const age=now-Date.parse(source?.base);
+  if (!Number.isFinite(age) || age<0) return 'unknown';
+  if (age>=hours*3600000) return 'old';
+  return failed?'unverified':'current';
+}
+function weatherTime(value) {
+  const stamp=Date.parse(value);
+  if (!Number.isFinite(stamp)) return '시각 미제공';
+  const date=new Date(stamp+9*3600000);
+  return (date.getUTCMonth()+1)+'월 '+date.getUTCDate()+'일 '+String(date.getUTCHours()).padStart(2,'0')+':'+String(date.getUTCMinutes()).padStart(2,'0');
+}
+function weatherStamp(state) {
+  return ({current:'관측',old:'지난 관측',unverified:'갱신 확인 필요',unknown:'관측 시각 확인 필요'})[state];
+}
+function weatherTemperatureIcon() {
+  return '<svg class="temperature-icon" viewBox="0 0 20 24" aria-hidden="true"><path d="M7 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0Z"/><path d="M10 8v9"/><circle cx="10" cy="18" r="1.2"/></svg>';
+}
+function weatherPointPosition(point,width,size,occupied,blocked,allowShift,selected) {
+  const height=44, half=width/2;
+  if(point.x<0||point.x>size.x||point.y<0||point.y>size.y||blocked.some(r=>point.x>r.left&&point.x<r.right&&point.y>r.top&&point.y<r.bottom))return null;
+  const placements=[[0,0]];
+  if(allowShift||selected) {
+    const shiftX=half+8,shiftY=height/2+10;
+    placements.push([shiftX,0],[-shiftX,0],[0,shiftY],[0,-shiftY],[shiftX,-shiftY],[-shiftX,shiftY]);
+    if(selected)placements.push([0,58],[0,-83],[-80,0],[80,0]);
+  }
+  for(const [dx,dy] of placements){
+    const x=point.x+dx,y=point.y+dy;
+    const box={left:x-half-2,right:x+half+2,top:y-height/2-2,bottom:y+height/2+2};
+    if(box.left<2||box.right>size.x-2||box.top<2||box.bottom>size.y-2) continue;
+    if(occupied.some(r=>box.left<r.right&&box.right>r.left&&box.top<r.bottom&&box.bottom>r.top))continue;
+    occupied.push(box);return [dx,dy];
+  }
+  return null;
+}
+function renderWeatherMarkers() {
+  const size=map.getSize(), mapBox=map.getContainer().getBoundingClientRect();
+  function obstacleBox(node) {
+    const rect=node?.getBoundingClientRect();
+    return rect?.width&&rect.height?{left:rect.left-mapBox.left,right:rect.right-mapBox.left,top:rect.top-mapBox.top,bottom:rect.bottom-mapBox.top}:null;
+  }
+  const blocked=[panel,document.querySelector('.topbar'),document.querySelector('.controls')].map(obstacleBox).filter(Boolean);
+  const occupied=[...blocked,...[bukangi.getElement(),...map.getPane('decor').querySelectorAll('.rain-scene-marker')].map(obstacleBox).filter(Boolean)];
+  const detail=map.getZoom()>=MUNI_ZOOM;
+  const selectionCode=selection?.center.code, state=weatherFreshness(weatherData,exploreFailed.has('weather'),2);
+  const accepted=new Set();
+  const cells=regionLabels.filter(r=>r.kind==='sgg'&&(detail||weatherRepresentatives.has(r.code)||r.code===selectionCode));
+  const representatives=[...weatherRepresentatives.keys()];
+  const priority=r=>r.code===selectionCode?-2:weatherRepresentatives.has(r.code)?representatives.indexOf(r.code):100;
+  cells.sort((a,b)=>priority(a)-priority(b)||b.area-a.area||a.code.localeCompare(b.code));
+  for(const cell of cells) {
+    const point=map.latLngToContainerPoint(cell.at), region=muniByCode.get(cell.code);
+    const observation=weatherData?.sgg?.[cell.code], hasTemp=Number.isFinite(observation?.t);
+    const name=detail||!weatherRepresentatives.has(cell.code)?region.name:weatherRepresentatives.get(cell.code);
+    const value=hasTemp?Math.round(observation.t)+'°':'미제공';
+    const mark=hasTemp?(state==='old'?'지난 ':state!=='current'?'확인 ':''):'';
+    const labelText=mark+value;
+    // 실제 버튼 크기와 같은 배치 단위를 사용해 터치 영역까지 겹치지 않게 한다.
+    const width=Math.max(56,Array.from(name).length*12+14,Array.from(labelText).length*9+30);
+    const offset=weatherPointPosition(point,width,size,occupied,blocked,!detail,cell.code===selectionCode);
+    if(!offset)continue;
+    accepted.add(cell.code);
+    const pty=hasTemp&&state==='current'?observation.pty:null;
+    let marker=weatherMarkers.get(cell.code);
+    if(!marker) {
+      const button=document.createElement('button');
+      button.type='button';button.className='weather-map-point';
+      L.DomEvent.disableClickPropagation(button);
+      button.addEventListener('click',event=>{
+        if(mobileSheet.matches&&sheetStage===0)setSheetStage(1,false);
+        select(region,false); resetSelectedFeed(); fitSheet();
+        if(event.detail===0){titleEl.tabIndex=-1;titleEl.focus({preventScroll:true});}
+      });
+      marker=L.marker(cell.at,{pane:'labels',interactive:false,keyboard:false,
+        icon:L.divIcon({className:'weather-map-anchor',html:button,iconSize:[0,0],iconAnchor:[0,0]})}).addTo(map);
+      marker.weatherButton=button;
+      weatherMarkers.set(cell.code,marker);
+    }
+    const button=marker.weatherButton, condition=observedPrecipitation[pty];
+    const [dx,dy]=offset;
+    const key=[name,labelText,pty,state,weatherData?.base,cell.code===selectionCode,dx,dy].join('|');
+    if(marker.weatherKey!==key) {
+      marker.weatherKey=key;
+      button.style.width=width+'px';button.style.left=dx+'px';button.style.top=dy+'px';
+      const anchor=marker.getElement();
+      anchor.style.setProperty('--stem-size',Math.hypot(dx,dy)+'px');
+      anchor.style.setProperty('--stem-direction',Math.atan2(dy,dx)+'rad');
+      button.dataset.state=hasTemp?state:'missing';
+      button.dataset.weatherRegion=cell.code;
+      button.setAttribute('aria-pressed',String(cell.code===selectionCode));
+      const info=hasTemp?weatherStamp(state)+' '+value+(condition?' · '+condition:'')+' · '+weatherTime(weatherData.base):'관측 미제공';
+      button.setAttribute('aria-label',label(region)+' · '+info+' · 날씨 상세');
+      const art=weatherArtwork(pty,true);
+      button.innerHTML='<span class="weather-map-name">'+escapeHtml(name)+'</span><span class="weather-map-reading">'+(art|| (hasTemp?weatherTemperatureIcon():''))+'<strong>'+escapeHtml(labelText)+'</strong></span>';
+    }
+    if(accepted.size>=(detail?24:size.x<600?7:10)) break;
+  }
+  for(const [code,marker] of weatherMarkers) if(!accepted.has(code)){marker.remove();weatherMarkers.delete(code);}
+}
+
 const regionLabels = [];
 let labelFrame, outlinedRegion;
 function scheduleLabels() {
@@ -213,6 +323,16 @@ function renderLabels() {
     selectionOutline = selection ? L.geoJSON(selection.center.feature, { pane:"selection", interactive:false, style:{color:token("brand"),weight:2,fill:false} }).addTo(map) : null;
   }
   selectionOutline?.setStyle({color:paperCourseMap()?'#FFD16D':token("brand")});
+  const weatherLayer = mode==='explore' && exploreLayer==='weather' && Boolean(weatherData || forecastData);
+  if (weatherLayer) {
+    for (const entry of regionLabels) entry.el.hidden = true;
+    renderWeatherMarkers();
+    return;
+  }
+  if (weatherMarkers.size) {
+    for (const marker of weatherMarkers.values()) marker.remove();
+    weatherMarkers.clear();
+  }
   const occupied = replayEl.hidden ? [] : [replayEl.getBoundingClientRect()];
   const controlsBounds=document.querySelector('.controls').getBoundingClientRect();
   if(controlsBounds.width)occupied.push(controlsBounds);
@@ -227,8 +347,7 @@ function renderLabels() {
   const measure = [];
   for (const r of sorted) {
     const selected = selection?.center.code === r.code;
-    const wth=mode==='explore' && exploreLayer==='weather' && r.kind!=='sido' && map.getZoom()>=MUNI_ZOOM ? weatherData?.sgg?.[r.code] : null;
-    const text=r.name+(Number.isFinite(wth?.t)?' '+Math.round(wth.t)+'°'+(wth.pty>0?' '+precipSymbol(wth.pty):''):'');
+    const text=r.name;
     r.eligible = zoomed || r.kind === 'sido' || selected || Boolean(previewRegion&&r.kind==='sgg'&&r.code.startsWith(previewRegion));
     if (r.text !== text || r.selected !== selected || !r.width) {
       r.text = text;
@@ -1109,7 +1228,7 @@ function refitAfterSheet() {
 }
 // 모드·탐험 레이어를 바꾼 직후 현재 단계 높이를 다시 맞춘다 (ResizeObserver와 같은 계산)
 function fitSheet() { if (!sheetDrag && mobileSheet.matches) applySheetHeight(sheetHeights()); }
-panel.addEventListener('transitionend',e=>{if(e.propertyName==='height')syncTravelMap();});
+panel.addEventListener('transitionend',e=>{if(e.propertyName==='height'){syncTravelMap();scheduleLabels();}});
 function feedTouchAction() {
   const top = panel.classList.contains('sheet-scroll') ? panel.scrollTop : feedEl.scrollTop;
   feedEl.classList.toggle('sheet-pull', mobileSheet.matches && sheetStage === 2 && top <= 0);
@@ -1270,7 +1389,7 @@ try{const radius=Number(localStorage.getItem('nallae-fuel-radius'));if([5000,100
 if(sectionEntry) {
   if(requestedView==='places') exploreLayer='places';
   else if(requestedView==='utilities') {
-    if(['places','outing'].includes(exploreLayer)) exploreLayer='weather';
+    if(params.get('layer')==='weather'||['places','outing'].includes(exploreLayer)) exploreLayer='weather';
   } else exploreLayer='outing';
   savedView=requestedView==='saved';
 }
@@ -1388,7 +1507,7 @@ const exploreFailed=new Set(); let exploreReady=false;
 const fuelColors=['#b5d9d1','#c7ded5','#e0e4da','#d7dce6','#d9cee5'];
 const productName=()=>fuelProduct==='B027'?'휘발유':'경유';
 const money=v=>Number.isFinite(v)?v.toLocaleString('ko-KR',{maximumFractionDigits:0})+'원':'미제공';
-const availableLayers=()=>[['places','맛집 찾기',placesData],['outing','놀거리·데이트',outingIndex||discoveryCatalog||overseasData||overseasView],['festival','축제',festivals.length],['weather','날씨',weatherData],['fuel','주유소',fuelData||exploreReady],['parking','주차장',parkingIndex],['food','식품안심업소',foodIndex]].filter(x=>x[2]);
+const availableLayers=()=>[['places','맛집 찾기',placesData],['outing','놀거리·데이트',outingIndex||discoveryCatalog||overseasData||overseasView],['festival','축제',festivals.length],['weather','날씨',weatherData||forecastData],['fuel','주유소',fuelData||exploreReady],['parking','주차장',parkingIndex],['food','식품안심업소',foodIndex]].filter(x=>x[2]);
 
 const parkingCache=new Map(), parkingPending=new Set(), parkingErrors=new Set();
 const parkingMarkers=L.layerGroup().addTo(map);
@@ -1543,11 +1662,11 @@ function updateExploreStatus() {
     status.textContent='식당 '+allPlaceItems().length+'곳'; status.classList.remove('failed','stale');
     status.setAttribute('aria-label',status.textContent+'. 출처와 자료 기준일 보기');
     document.getElementById('collection-alert').hidden=true; noteExploreMissing();
-    document.getElementById('sources-detail').textContent='영상 소개·운영자 추천 확인일 '+(placesData.listCheckedAt||'미제공')+' · 백년가게 지정 자료 2026-08-20, 업종 자료 2022-07-13을 대조했어요. 맛·위생·현재 영업을 보증하지 않아요.';
+    document.getElementById('sources-detail').textContent='영상 소개·운영자 추천 확인일 '+(placesData.listCheckedAt||'미제공')+' · 백년가게 지정 자료 2026-08-20, 업종 자료 2022-07-13 · 행정안전부 착한가격업소 자료 2026-09-30. 맛·위생·현재 영업을 보증하지 않아요.';
     return;
   }
-  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:foodIndex, date=new Date(data?.updated);
-  const status=document.getElementById('collection-status'), stale=!validDate(date)||Date.now()-date>(exploreLayer==='weather'?2:exploreLayer==='fuel'?6:48)*3600000;
+  const data=exploreLayer==='fuel'?fuelData:exploreLayer==='weather'?weatherData:exploreLayer==='parking'?parkingIndex:foodIndex, date=new Date(exploreLayer==='weather'?weatherData?.base:data?.updated);
+  const status=document.getElementById('collection-status'), stale=exploreLayer==='weather'?weatherFreshness(weatherData,exploreFailed.has('weather'),2)!=='current':!validDate(date)||Date.now()-date>(exploreLayer==='fuel'?6:48)*3600000;
   status.textContent=!exploreReady?'불러오는 중':validDate(date)?ago(date):'시각 미제공'; status.classList.remove('failed'); status.classList.toggle('stale',stale);
   status.setAttribute('aria-label','자료 확인 시각: '+status.textContent+'. 상세 보기');
   const alert=document.getElementById('collection-alert'); alert.hidden=!stale;
@@ -1587,86 +1706,110 @@ function renderExplore() {
   if(exploreLayer==='outing'&&(overseasView||savedView&&outingTheme==='travel')){syncCategories();newButton.hidden=true;renderTravel();return;}
   if(exploreLayer==='festival') return renderFestivals();
   syncCategories(); newButton.hidden=true; updateExploreStatus();
-  titleEl.textContent=selection?regionTitle(selection.center):'동네 탐험';
-  subEl.textContent=exploreLayer==='weather'?'동네 날씨 실황(최근 관측)':exploreLayer==='fuel'?'주변 주유소 · 거리순·최저가순':exploreLayer==='parking'?'동네 주차장':exploreLayer==='places'?'영상에 소개된 식당·운영자 추천 (지역별 순차 제공)':'동네 식품안심업소';
+  titleEl.textContent=selection?regionTitle(selection.center):exploreLayer==='weather'?'날씨 지도':'동네 탐험';
+  subEl.textContent=exploreLayer==='weather'?'지도에서 동네를 누르면 실황과 예보를 볼 수 있어요':exploreLayer==='fuel'?'주변 주유소 · 거리순·최저가순':exploreLayer==='parking'?'동네 주차장':exploreLayer==='places'?'영상에 소개된 식당·운영자 추천 (지역별 순차 제공)':'동네 식품안심업소';
   if(exploreLayer==='outing') renderOutings(); else if(exploreLayer==='weather') renderWeather(); else if(exploreLayer==='fuel') renderFuel(); else if(exploreLayer==='parking') renderParking(); else if(exploreLayer==='places') renderPlaces(); else renderFood();
 }
 // extra: 요약 줄 오른쪽에 붙는 보기 전용 범례(색 띠) — 따로 한 줄을 쓰지 않아 지도 자리를 아낀다
 function sourceDisclosure(summary, detail = summary, extra = '') { return '<details class="source-disclosure"><summary><span class="disclosure-text">'+escapeHtml(summary)+'</span>'+extra+'</summary><p>'+escapeHtml(detail)+'</p></details>'; }
 // 한국 자료의 시각은 기기 시간대와 관계없이 한국 시간(UTC+9)으로 표기한다
-const kstHour = d => String((d.getUTCHours()+9)%24).padStart(2,'0')+'시';
 setInterval(async()=>{
-  try {
-    const data=await fetchJsonData('data/'+(DEMO?'demo-weather':'weather')+'.json'); if(!data.sgg) throw Error('weather data'); weatherData=data;
-    try { const next=await fetchJsonData('data/'+(DEMO?'demo-forecast':'forecast')+'.json'); if(next.sgg) forecastData=next; } catch (_) {}
-    exploreFailed.delete('weather');updateBeforeOuting();
-    if(mode==='explore'&&exploreLayer==='weather') renderExplore();
-  } catch (_) { exploreFailed.add('weather');updateBeforeOuting(); }
+  await loadExploreData(['weather','forecast']);
+  updateBeforeOuting();
 },3600000);
-function precipSymbol(pty) { return [3,7].includes(pty)?'❄':[2,6].includes(pty)?'☂❄':'☂'; }
 function weatherColor(code) {
-  const t=weatherData?.sgg?.[code]?.t; if(!Number.isFinite(t)) return null;
+  const t=weatherData?.sgg?.[code]?.t;
+  if(!Number.isFinite(t) || weatherFreshness(weatherData,exploreFailed.has('weather'),2)!=='current') return null;
   const stops=[[167,201,226],[216,226,222],[244,222,169],[239,185,142]], x=Math.max(0,Math.min(3,(t+10)/15)), i=Math.min(2,Math.floor(x)), f=x-i;
   return 'rgb('+stops[i].map((v,j)=>Math.round(v+(stops[i+1][j]-v)*f)).join(',')+')';
 }
 const koreaDate=date=>new Date(date.getTime()+9*3600000).toISOString().slice(0,10);
 // 오늘의 지역별 예보를 보여주는 장식. 실제 비구름·강수 범위·강도를 뜻하지 않는다.
 const rainScene = L.layerGroup().addTo(map);
+// 실황 마커와 단기예보는 같은 원본 우산·눈사람을 각각의 자료에 맞춰 사용한다.
+function weatherArtwork(pty, compact=false) {
+  if (![1,2,3,4,5,6,7].includes(pty)) return '';
+  const kind = ({5:1,6:2,7:3})[pty] || pty;
+  const umbrella = kind !== 3 ? '<g class="rain-umbrella"><path class="umbrella-handle" d="M53 7v40q0 10 9 4"/><path d="M28 28a25 25 0 0 1 50 0Q72 22 65 28Q53 21 41 28Q34 22 28 28Z"/><circle class="weather-eye" cx="47" cy="17" r="1.4"/><circle class="weather-eye" cx="59" cy="17" r="1.4"/><ellipse class="weather-cheek" cx="43" cy="20" rx="2.4" ry="1.4"/><ellipse class="weather-cheek" cx="63" cy="20" rx="2.4" ry="1.4"/><path class="umbrella-smile" d="M50 20q3 3 6 0"/></g>' : '';
+  const drops = kind !== 3 ? [22,36,73,87].map((x,i)=>'<path class="rain-drop" style="animation-delay:-'+(i*.29)+'s" d="M'+x+' 2q-6 7 0 8q6-1 0-8Z"/>').join('') : '';
+  const flakes = kind !== 1 && kind !== 4 ? [24,44,65,83].map((x,i)=>'<g class="snow-flake" style="animation-delay:-'+i*.8+'s"><path d="M'+x+' 10v12m-5-9 10 6m-10 0 10-6"/></g>').join('') : '';
+  const snowman = kind === 3 ? '<g class="snowman"><path class="snowman-arm" d="M39 39 29 33m40 6 10-6"/><ellipse class="snowman-body" cx="54" cy="43" rx="15" ry="13"/><circle class="snowman-body" cx="54" cy="22" r="10"/><path class="snowman-scarf" d="M44 30q10 5 20 0v5q-10 4-20 0Zm14 4 6 1-1 10-6-2Z"/><circle class="snowman-eye" cx="50" cy="21" r="1.3"/><circle class="snowman-eye" cx="58" cy="21" r="1.3"/><path class="snowman-nose" d="m53 24 8 2-8 1Z"/><circle class="snowman-eye" cx="54" cy="41" r="1.3"/><circle class="snowman-eye" cx="54" cy="47" r="1.3"/></g>' : '';
+  const view=compact?'23 0 62 57':'0 0 108 60';
+  return '<svg viewBox="'+view+'" aria-hidden="true">'+umbrella+drops+snowman+flakes+'</svg>';
+}
 function updateRainScene() {
   rainScene.clearLayers();
   if (document.hidden || mode !== 'explore' || exploreLayer !== 'weather' || !selection) return;
   const region = selection.center, preview = DEMO && (params.has('rain') || params.has('snow'));
-  const age = Date.now() - new Date(forecastData?.base).getTime();
+  const age = Date.now() - Date.parse(forecastData?.base);
   const day = forecastData?.sgg?.[region.code]?.[koreaDate(new Date())];
-  if (!preview && (!(age >= 0 && age <= 36*3600000) || ![1,2,3,4].includes(day?.pty))) return;
+  if (!preview && (exploreFailed.has('forecast') || !(age >= 0 && age <= 36*3600000) || ![1,2,3,4].includes(day?.pty))) return;
   if (!map.getBounds().contains(region.center)) return;
   const kind = preview ? (params.has('snow') ? 3 : 1) : day.pty;
   const name = kind === 3 ? '눈' : kind === 2 ? '비·눈' : '비';
   const caption = name + (preview ? ' 연출 미리보기' : ' 예보');
   const text = preview ? name+' 연출 미리보기. 실제 날씨가 아니에요.' : '오늘 '+name+' 예보 연출. 현재 강수나 정확한 범위가 아니에요.';
-  const umbrella = kind !== 3 ? '<g class="rain-umbrella"><path class="umbrella-handle" d="M53 7v40q0 10 9 4"/><path d="M28 28a25 25 0 0 1 50 0Q72 22 65 28Q53 21 41 28Q34 22 28 28Z"/><circle class="weather-eye" cx="47" cy="17" r="1.4"/><circle class="weather-eye" cx="59" cy="17" r="1.4"/><ellipse class="weather-cheek" cx="43" cy="20" rx="2.4" ry="1.4"/><ellipse class="weather-cheek" cx="63" cy="20" rx="2.4" ry="1.4"/><path class="umbrella-smile" d="M50 20q3 3 6 0"/></g>' : '';
-  const drops = kind !== 3 ? [22,36,73,87].map((x,i)=>'<path class="rain-drop" style="animation-delay:-'+(i*.29)+'s" d="M'+x+' 2q-6 7 0 8q6-1 0-8Z"/>').join('') : '';
-  const flakes = kind !== 1 && kind !== 4 ? [24,44,65,83].map((x,i)=>'<g class="snow-flake" style="animation-delay:-'+i*.8+'s"><path d="M'+x+' 10v12m-5-9 10 6m-10 0 10-6"/></g>').join('') : '';
-  const snowman = kind === 3 ? '<g class="snowman"><path class="snowman-arm" d="M39 39 29 33m40 6 10-6"/><ellipse class="snowman-body" cx="54" cy="43" rx="15" ry="13"/><circle class="snowman-body" cx="54" cy="22" r="10"/><path class="snowman-scarf" d="M44 30q10 5 20 0v5q-10 4-20 0Zm14 4 6 1-1 10-6-2Z"/><circle class="snowman-eye" cx="50" cy="21" r="1.3"/><circle class="snowman-eye" cx="58" cy="21" r="1.3"/><path class="snowman-nose" d="m53 24 8 2-8 1Z"/><circle class="snowman-eye" cx="54" cy="41" r="1.3"/><circle class="snowman-eye" cx="54" cy="47" r="1.3"/></g>' : '';
-  L.marker(region.center, { pane:'decor', interactive:false, keyboard:false, icon:L.divIcon({className:'rain-scene-marker',iconSize:[108,80],iconAnchor:[54,65],html:'<span class="rain-scene" role="img" aria-label="'+text+'"><svg viewBox="0 0 108 60" aria-hidden="true">'+umbrella+drops+snowman+flakes+'</svg><span class="rain-scene-caption">'+(preview?'':'오늘 ')+caption+'</span></span>'}) }).addTo(rainScene);
+  L.marker(region.center, { pane:'decor', interactive:false, keyboard:false, icon:L.divIcon({className:'rain-scene-marker',iconSize:[108,80],iconAnchor:[54,65],html:'<span class="rain-scene" role="img" aria-label="'+text+'">'+weatherArtwork(kind)+'<span class="rain-scene-caption">'+(preview?'':'오늘 ')+caption+'</span></span>'}) }).addTo(rainScene);
 }
 map.on('moveend zoomend', updateRainScene);
 document.addEventListener('visibilitychange', updateRainScene);
 function forecastHour() {
- const date=new Date(forecastData?.base);
- return validDate(date)?'단기예보 '+kstHour(date)+' 발표':'단기예보 발표 시각 미제공';
+  const state=weatherFreshness(forecastData,exploreFailed.has('forecast'),36);
+  const note=state==='old'?' · 지난 발표':state==='unverified'?' · 갱신 확인 필요':state==='unknown'?' · 시각 확인 필요':'';
+  return '단기예보 '+weatherTime(forecastData?.base)+' 발표'+note;
 }
 function forecastCards(code) {
- if(!forecastData) return '';
- return '<h4 class="weather-kind">예보</h4><div class="forecast-days">'+[0,1].map(offset=>{
-  const d=forecastData.sgg?.[code]?.[koreaDate(new Date(Date.now()+offset*86400000))], name=offset?'내일':'오늘';
+ const state=weatherFreshness(forecastData,exploreFailed.has('forecast'),36);
+ return '<h4 class="weather-kind">오늘·내일 예보</h4><div class="forecast-days">'+[0,1].map(offset=>{
+  const d=forecastData?.sgg?.[code]?.[koreaDate(new Date(Date.now()+offset*86400000))], name=offset?'내일':'오늘';
   if(!d) return '<section><h4>'+name+'</h4><p>예보 미제공</p></section>';
-  const sky=d.pty>0?({1:'비',2:'비/눈',3:'눈',4:'소나기'}[d.pty]||'강수'):({1:'맑음',3:'구름많음',4:'흐림'}[d.sky]||'하늘 미제공');
-  const symbol=d.pty>0?precipSymbol(d.pty):({1:'☀',3:'☁',4:'☁'}[d.sky]||'');
-  // 최저·최고 중 하나만 있으면(17시 발표의 오늘 등) 어느 쪽인지 밝힌다
+  const midday={1:'맑음',3:'구름많음',4:'흐림'}[d.sky];
+  const sky=d.pty>0?'한때 '+(observedPrecipitation[d.pty]||'강수'):midday?'낮 12시 '+midday:'하늘 미제공';
+  const art=state==='current'?weatherArtwork(d.pty,true):'';
+  const skyIcon=state==='current'&&!(d.pty>0)?({1:'☀',3:'☁',4:'☁'}[d.sky]||''):'';
   const lo=Number.isFinite(d.tmn), hi=Number.isFinite(d.tmx);
   const temps=lo&&hi ? d.tmn+'° / '+d.tmx+'°' : lo ? '최저 '+d.tmn+'°' : hi ? '최고 '+d.tmx+'°' : '';
-  return '<section><h4>'+name+'</h4><p>'+symbol+' '+sky+'</p>'+(temps?'<strong>'+temps+'</strong>':'')+(Number.isFinite(d.pop)?'<p>강수확률 '+d.pop+'%</p>':'')+'</section>';
- }).join('')+'</div><p class="forecast-source">'+forecastHour()+'</p>';
+  return '<section><h4>'+name+'</h4><p class="forecast-condition">'+(art?'<span class="weather-inline-art">'+art+'</span>':skyIcon?'<span aria-hidden="true">'+skyIcon+'</span>':'')+sky+'</p>'+(temps?'<strong>'+temps+'</strong>':'')+(Number.isFinite(d.pop)?'<p>최대 강수확률 '+d.pop+'%</p>':'')+'</section>';
+ }).join('')+'</div>'+(forecastData?'<p class="forecast-source">'+forecastHour()+'</p>':'');
 }
 function forecastSummary() {
- if(!forecastData) return '';
- const day=koreaDate(new Date(Date.now()+86400000)),groups=new Map();let count=0;
- Object.entries(forecastData.sgg).forEach(([code,days])=>{const d=days[day],m=muniByCode.get(code);if(!m||!d||!(d.pop>=60||d.pty>0))return;count++;const name=sidos.get(m.sido)?.short||m.sido;groups.set(name,(groups.get(name)||0)+1);});
- return '<li class="festival-card"><h3>내일 비 소식 있는 곳</h3><p>'+count+'개 시·군·구'+(count?' · '+escapeHtml([...groups].map(([name,n])=>name+' '+n+'곳').join(', ')):'')+'</p><p>'+forecastHour()+'</p></li>';
+ if(!forecastData || weatherFreshness(forecastData,exploreFailed.has('forecast'),36)!=='current') return '';
+ const day=koreaDate(new Date(Date.now()+86400000)),groups=new Map();let count=0,available=0;
+ Object.entries(forecastData.sgg).forEach(([code,days])=>{
+   const d=days?.[day],m=muniByCode.get(code);
+   if(!m||!d||(!Number.isFinite(d.pop)&&!Number.isFinite(d.pty)))return;
+   available++;
+   if(!(d.pop>=60||d.pty>0))return;
+   count++;const name=sidos.get(m.sido)?.short||m.sido;groups.set(name,(groups.get(name)||0)+1);
+ });
+ if(!available)return '';
+ return '<li class="festival-card"><h3>내일 강수 예보</h3><p>자료가 있는 '+available+'곳 중 '+count+'곳'+(count?' · '+escapeHtml([...groups].map(([name,n])=>name+' '+n+'곳').join(', ')):'')+'</p><p>강수형태가 있거나 최대 강수확률 60% 이상 · '+forecastHour()+'</p></li>';
 }
+let lastWeatherTimeKey='';
+function weatherTimeKey() {
+  return [weatherFreshness(weatherData,exploreFailed.has('weather'),2),weatherFreshness(forecastData,exploreFailed.has('forecast'),36),koreaDate(new Date())].join('|');
+}
+function updateWeatherTime() {
+  if(!document.hidden && mode==='explore' && exploreLayer==='weather' && (weatherData || forecastData) && lastWeatherTimeKey!==weatherTimeKey())renderExplore();
+}
+document.addEventListener('visibilitychange',updateWeatherTime);
+setInterval(updateWeatherTime,60000);
 function renderWeather() {
-  const code=selection?.center.code, region=muniByCode.get(code), w=weatherData.sgg[code];
-  const hour=validDate(new Date(weatherData.base))?kstHour(new Date(weatherData.base))+' 발표':'발표 시각 미제공';
-  exploreTools.innerHTML=sourceDisclosure('실황 '+hour+(forecastData?' · '+forecastHour():'')+' · 기상청','기상청 초단기실황 · '+hour+(forecastData?' · '+forecastHour():'')+' · 시·군·구 대표 지점 격자(5km) 값이라 동네 안에서도 다를 수 있어요 · 시각은 한국 시간이에요','<span class="weather-legend" role="img" aria-label="지도 색: 기온이 낮을수록 파랑, 높을수록 주황">차가움 <i></i> 따뜻함</span>');
-  exploreTools.querySelector('.source-disclosure p').textContent += ' · 지도 우산·눈사람은 선택 지역의 오늘 비·눈 예보 연출이며 현재 강수 위치나 강도를 뜻하지 않아요. 지역을 선택하면 확인할 수 있어요.';
-  const rows=Object.entries(weatherData.sgg).filter(([c,v])=>muniByCode.has(c)&&Number.isFinite(v.t)).sort((a,b)=>a[1].t-b[1].t);
-  const line=([c,v])=>'<p>'+escapeHtml(label(muniByCode.get(c)))+' <strong>'+v.t+'°</strong>'+(v.pty>0?' '+precipSymbol(v.pty):'')+'</p>';
+  lastWeatherTimeKey=weatherTimeKey();
+  const code=selection?.center.code, region=muniByCode.get(code), data=weatherData?.sgg||{}, w=data[code];
+  const state=weatherFreshness(weatherData,exploreFailed.has('weather'),2), current=state==='current';
+  const rows=Object.entries(data).filter(([c,v])=>muniByCode.has(c)&&Number.isFinite(v?.t)).sort((a,b)=>a[1].t-b[1].t);
+  const observation=weatherData?weatherStamp(state)+' · '+weatherTime(weatherData.base):'관측 미제공';
+  exploreTools.innerHTML=sourceDisclosure('기상청 · '+observation, '기상청 초단기실황 · '+observation+' (한국 시간). '+rows.length+'개 시·군·구의 대표 격자 값이에요. 확대하면 더 많은 동네가 보여요. 우산·눈사람은 지도 표식 안에서는 관측, 날짜가 붙은 상세와 예보 연출에서는 예보를 뜻해요.'+(forecastData?' '+forecastHour()+' (한국 시간).':''));
+  const retry=(!weatherData||!forecastData||!current||exploreFailed.has('forecast')||rows.length<munis.length)?'<button type="button" data-entry-retry data-weather-retry>날씨 다시 받기</button>':'';
+  const line=([c,v])=>'<p>'+escapeHtml(label(muniByCode.get(c)))+' <strong>'+v.t+'°</strong>'+(v.pty>0?' · '+(observedPrecipitation[v.pty]||'강수'):'')+'</p>';
   if(code) {
-    feedEl.innerHTML='<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+(w&&Number.isFinite(w.t)?'<p class="weather-kind">최근 관측 · 실황 '+escapeHtml(hour)+'</p><strong class="temperature">'+w.t+'°</strong> '+(w.pty>0?precipSymbol(w.pty):'')+'<p>습도 '+(w.reh??'미제공')+(w.reh==null?'':'%')+' · 바람 '+(w.wsd??'미제공')+(w.wsd==null?'':'m/s')+' · 1시간 강수 '+(w.rn??'미제공')+(w.rn==null?'':'mm')+'</p>':'<p>이 지역의 현재 날씨 자료가 없어요.</p>')+'<p>'+hour+'</p>'+forecastCards(code)+'</li>';
+    const art=current&&w?weatherArtwork(w.pty,true):'';
+    const reading=w&&Number.isFinite(w.t)?'<p class="weather-kind">'+observation+'</p><div class="weather-detail-reading"><strong class="temperature">'+w.t+'°</strong>'+(art?'<span class="weather-inline-art">'+art+'</span>':'')+'<span>'+(observedPrecipitation[w.pty]||'강수형태 미제공')+'</span></div><p>습도 '+(Number.isFinite(w.reh)?w.reh+'%':'미제공')+' · 바람 '+(Number.isFinite(w.wsd)?w.wsd+'m/s':'미제공')+' · 1시간 강수 '+(Number.isFinite(w.rn)?w.rn+'mm':'미제공')+'</p>':'<p>이 동네의 관측값이 없어요.</p>';
+    feedEl.innerHTML='<li class="festival-card weather-card"><h3>'+escapeHtml(region?label(region):code)+'</h3>'+reading+forecastCards(code)+retry+'</li>';
   } else {
     const wet=rows.filter(([,v])=>v.pty>0);
-    feedEl.innerHTML=forecastSummary()+'<li class="festival-card"><h3>가장 따뜻한 곳</h3>'+rows.slice(-3).reverse().map(line).join('')+'</li><li class="festival-card"><h3>가장 쌀쌀한 곳</h3>'+rows.slice(0,3).map(line).join('')+'</li>'+(wet.length?'<li class="festival-card"><h3>비·눈 오는 곳</h3>'+wet.map(line).join('')+'</li>':'');
+    feedEl.innerHTML='<li class="festival-card"><h3>전국 날씨 지도</h3><p>'+observation+' · '+rows.length+' / '+munis.length+'곳</p><p>표식을 누르면 그 동네의 오늘·내일 예보를 볼 수 있어요.</p>'+retry+'</li>'+forecastSummary()+(rows.length?'<li class="festival-card"><h3>높게 관측된 기온</h3>'+rows.slice(-3).reverse().map(line).join('')+'</li><li class="festival-card"><h3>낮게 관측된 기온</h3>'+rows.slice(0,3).map(line).join('')+'</li>':'')+(wet.length?'<li class="festival-card"><h3>비·눈을 관측한 곳</h3>'+wet.map(line).join('')+'</li>':'');
   }
 }
 exploreTools.addEventListener('click',e=>{const b=e.target.closest('[data-legend]');if(b) exploreTools.querySelector('.legend-detail').textContent=b.dataset.legend;});
@@ -1822,14 +1965,14 @@ async function loadFood(code) {
 let placesQuery='', placesSource='', placesShowAll=false, placesForCode, placesOnlySaved=false, placesLimit=40, placeMapItems=[];
 const savedPlaces=new Set();
 try { const saved=JSON.parse(localStorage.getItem('nallae-saved-places-v1')||'[]');if(Array.isArray(saved))saved.filter(id=>typeof id==='string'&&id.length<200).slice(0,500).forEach(id=>savedPlaces.add(id)); } catch(_) {}
-const PLACE_SOURCE={video:'영상 소개',operator:'운영자 추천',heritage:'백년가게 지정'};
+const PLACE_SOURCE={video:'영상 소개',operator:'운영자 추천',heritage:'백년가게 지정',goodprice:'착한가격업소'};
 function renderPlaces() {
   const all=allPlaceItems(), code=selection?.center.code;
   if(placesForCode!==code) { placesForCode=code; placesShowAll=false; } // 지역을 바꾸면 선택 지역으로 다시 거른다
   titleEl.textContent=selection?regionTitle(selection.center)+' 맛집 찾기':'전국 맛집 찾기';
-  subEl.textContent='영상 소개 · 운영자 추천 · 백년가게 지정 근거로 골라보세요';
-  exploreTools.innerHTML=sourceDisclosure('전국 수록 '+all.length+'곳 · 영상 소개·추천·백년가게','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 지삐 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 수록 지역부터 순차 제공하며 전국 모든 식당 목록은 아니에요. 백년가게는 2026년 지정 목록과 2022년 음식 업종 자료의 상호·지역을 대조한 곳이며 현재 메뉴·영업을 보증하지 않아요. 정렬: 지역·이름 순.')
-    +'<div class="food-controls"><label class="food-search"><input aria-label="지역·음식·식당 이름 검색" type="search" data-places-search placeholder="지역·음식·식당명, 예: 부산, 냉면" value="'+escapeHtml(placesQuery)+'"></label><div class="explore-toggle">'+['','video','operator','heritage'].map(k=>'<button type="button" data-places-source="'+k+'" aria-pressed="'+(placesSource===k)+'">'+(k?PLACE_SOURCE[k]:'전체')+'</button>').join('')+'</div></div>';
+  subEl.textContent='동네나 먹고 싶은 메뉴로 식당을 찾아보세요';
+  exploreTools.innerHTML=sourceDisclosure('전국 수록 '+all.length+'곳 · 수록 기준과 출처','영상 소개는 공식 영상 설명란의 상호·주소를 확인한 곳, 운영자 추천은 지삐 운영자의 주관적 의견이에요. 맛·위생·현재 영업을 보증하지 않으니 방문 전에 매장 정보를 확인해 주세요. 식품안심업소(위생등급)와는 다른 목록이에요. 수록 지역부터 순차 제공하며 전국 모든 식당 목록은 아니에요. 백년가게는 2026년 지정 목록과 2022년 음식 업종 자료의 상호·지역을 대조한 곳이며 현재 메뉴·영업을 보증하지 않아요. 착한가격업소는 행정안전부 지정 현황(2026-09-30)의 메뉴와 주소를 실었어요. 방문 전 메뉴와 영업 여부를 확인해 주세요. 정렬: 지역·이름 순.')
+    +'<div class="food-controls"><label class="food-search"><input aria-label="지역·음식·식당 이름 검색" type="search" data-places-search placeholder="지역·음식·식당명, 예: 부산, 냉면" value="'+escapeHtml(placesQuery)+'"></label><div class="explore-toggle">'+['',...Object.keys(PLACE_SOURCE)].map(k=>'<button type="button" data-places-source="'+k+'" aria-pressed="'+(placesSource===k)+'">'+(k?PLACE_SOURCE[k]:'전체')+'</button>').join('')+'</div></div>';
   exploreTools.querySelector('.source-disclosure p').textContent += ' · 지도 위치 확인 '+all.filter(x=>placeLocation(x)).length+'/'+all.length+'곳. 포인트는 장소 또는 주소 건물 위치이며 입구를 뜻하지 않아요. 좌표를 확인하지 못한 곳도 주소 목록에서 볼 수 있어요.';
   if(selection&&foodIndex?.counts?.[code]>0)exploreTools.insertAdjacentHTML('beforeend','<button type="button" class="food-map" data-more-food>이 동네 식품안심업소 '+foodIndex.counts[code].toLocaleString('ko-KR')+'곳도 보기 · 맛 평가 아님</button>');
   exploreTools.querySelector('.food-controls').classList.add('places-controls');
@@ -1882,10 +2025,11 @@ map.getContainer().addEventListener('click',e=>{
   if(el){setSheetStage(2);el.scrollIntoView({block:'nearest',behavior:'instant'});el.querySelector('[data-place-map]')?.focus({preventScroll:true});}
 });
 function placeCard(x) {
-  const src=x.source.type==='heritage' ? '백년가게 지정 · <a class="food-map" href="https://www.data.go.kr/data/15132695/fileData.do" target="_blank" rel="noopener noreferrer">공식 자료 ↗</a>' : x.source.type==='video'
+  const officialUrl={heritage:'https://www.data.go.kr/data/15132695/fileData.do',goodprice:'https://www.data.go.kr/data/3045247/fileData.do'}[x.source.type];
+  const src=officialUrl ? PLACE_SOURCE[x.source.type]+' · <a class="food-map" href="'+officialUrl+'" target="_blank" rel="noopener noreferrer">공식 자료 ↗</a>' : x.source.type==='video'
     ? escapeHtml(x.source.channel||'영상')+' 영상 소개'+(x.source.url&&/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(x.source.url)?' · <a class="food-map" href="'+escapeAttr(x.source.url)+'" target="_blank" rel="noopener noreferrer">공식 영상 보기 ↗</a>':'')
     : '운영자 추천 · 주관적 의견';
-  return '<li class="festival-card place-card" data-place-id="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name+(x.branch?' '+x.branch:''))+'</h3><p>'+escapeHtml(x.food||'음식 분류 미확인')+' · '+escapeHtml(x.district)+'</p><p class="card-address">'+escapeHtml(x.address)+'</p><p class="place-source">'+src+'</p><button type="button" class="save-place" data-save-place="'+escapeHtml(x.id)+'" aria-pressed="'+savedPlaces.has(x.id)+'">'+(savedPlaces.has(x.id)?'♥ 저장했어요':'♡ 가보고 싶어요')+'</button>'+(placeLocation(x)?'<button type="button" data-place-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<p class="place-checked">지도 위치 미확인 · 주소로 찾아보세요</p>')+addressLink(x.address)+'<p class="place-checked">'+(x.sourceDate?'지정 자료 '+escapeHtml(x.sourceDate)+' · 업종 자료 '+escapeHtml(x.kindDate):'정보 확인 '+escapeHtml(x.checkedAt))+'</p></li>';
+  return '<li class="festival-card place-card" data-place-id="'+escapeHtml(x.id)+'"><h3>'+escapeHtml(x.name+(x.branch?' '+x.branch:''))+'</h3><p>'+escapeHtml(x.food||'음식 분류 미확인')+' · '+escapeHtml(x.district)+'</p><p class="card-address">'+escapeHtml(x.address)+'</p><p class="place-source">'+src+'</p><button type="button" class="save-place" data-save-place="'+escapeHtml(x.id)+'" aria-pressed="'+savedPlaces.has(x.id)+'">'+(savedPlaces.has(x.id)?'♥ 저장했어요':'♡ 가보고 싶어요')+'</button>'+(placeLocation(x)?'<button type="button" data-place-map="'+escapeHtml(x.id)+'">지도에서 보기</button>':'<p class="place-checked">지도 위치 미확인 · 주소로 찾아보세요</p>')+addressLink(x.address)+'<p class="place-checked">'+(x.sourceDate?'지정 자료 '+escapeHtml(x.sourceDate)+(x.kindDate?' · 업종 자료 '+escapeHtml(x.kindDate):''):'정보 확인 '+escapeHtml(x.checkedAt))+'</p></li>';
 }
 feedEl.addEventListener('click',e=>{const b=e.target.closest('[data-place-map]');if(!b)return;const x=allPlaceItems().find(x=>x.id===b.dataset.placeMap),p=x&&placeLocation(x);if(!p)return;atHome=false;selectionAutoFit=false;setSheetStage(0);clearTimeout(sheetFitTimer);map.setView([p.lat,p.lon],17,{animate:false});renderPlaceMarkers();placeMarkerById.get(x.id)?.openPopup();});
 exploreTools.addEventListener('input',e=>{ if(e.target.matches('[data-places-search]')) { placesQuery=e.target.value; placesLimit=40; renderPlaceCards(); } });
@@ -2345,6 +2489,7 @@ function renderFestivalMarkers() {
   }
 }
 function syncModeNavigation() {
+  if (weatherMarkers.size) scheduleLabels();
   const places=!savedView&&mode==='explore'&&exploreLayer==='places',outings=!savedView&&mode==='explore'&&exploreLayer==='outing';
   if(mode==='explore'&&!savedView&&!['places','outing'].includes(exploreLayer))lastUtilityLayer=exploreLayer;
   for(const [selector,active] of [['[data-open-places]',places],['[data-open-outings]',outings]]) {
@@ -2360,6 +2505,7 @@ function syncModeNavigation() {
 }
 function applyMode() {
   cancelRoutePicking();
+  scheduleLabels();
   syncTravelMap();
   rootMode();
   outingMarkers.clearLayers();
@@ -2493,7 +2639,7 @@ feedEl.addEventListener('click', async event => {
   const retry=event.target.closest('[data-entry-retry]');
   if(!retry)return;
   retry.disabled=true;
-  try { await loadExploreData(); } finally { retry.disabled=false; }
+  try { await loadExploreData(retry.hasAttribute('data-weather-retry')?['weather','forecast']:undefined); } finally { retry.disabled=false; }
 });
 if(requestedView==='settings') document.getElementById('settings-dialog').showModal();
 document.querySelector('.main-navigation').addEventListener('click',event=>{

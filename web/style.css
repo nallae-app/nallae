@@ -1052,10 +1052,26 @@ dialog::backdrop { background:#0B1B3366; backdrop-filter:blur(3px); }
   :root[data-map-controls-placement="header"] .map-controls.controls button span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 }
 
-.topbar .jigi-hello img { vertical-align: middle; object-fit: contain; }
 
 .panel-footer.main-navigation { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .main-navigation .meal-home-link {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 3px; min-height: 48px; color: var(--text-muted); font-size: 11px; text-decoration: none;
 }
+
+.weather-map-anchor { pointer-events:none; background:none; border:0; }
+.weather-map-point { position:absolute; top:0; left:0; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; justify-content:center; height:44px; padding:2px 4px; box-sizing:border-box; gap:0; pointer-events:auto; cursor:pointer; color:var(--text); background:var(--surface); border:1px solid var(--border-sgg); border-radius:11px; font:inherit; box-shadow:0 1px 4px #10252c30; }
+.weather-map-anchor::before { content:''; position:absolute; width:var(--stem-size,0px); height:1.5px; background:var(--text-muted); transform-origin:0 50%; transform:rotate(var(--stem-direction,0rad)); }
+.weather-map-point[hidden] {display:none;}
+.weather-map-point:focus-visible,.weather-map-point[aria-pressed="true"] { outline:2px solid var(--brand); outline-offset:1px; }
+.weather-map-name { font-size:11px; font-weight:650; line-height:15px; white-space:nowrap; }
+.weather-map-reading { display:flex; align-items:center; justify-content:center; gap:2px; font-size:14px; line-height:18px; white-space:nowrap; }
+.weather-map-reading svg { display:block; width:23px; height:19px; }
+.weather-map-reading .temperature-icon { width:10px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; }
+.weather-map-point:not([data-state="current"]) .weather-map-reading { color:var(--text-muted); font-size:11px; }
+.weather-detail-reading,.forecast-condition { display:flex; align-items:center; gap:.36em; }
+.weather-inline-art { display:inline-flex; width:44px; height:32px; align-items:center; }
+.weather-inline-art svg { width:100%;height:100%; }
+:is(.weather-map-reading,.weather-inline-art) :is(.rain-umbrella,.snowman,.snow-flake,.rain-drop) { animation:none; }
+.weather-map-reading svg:not(.temperature-icon),.weather-inline-art svg { overflow:visible; }
+.weather-card [data-weather-retry],.festival-card [data-weather-retry] { border:1px solid var(--border-sgg); border-radius:9px; padding:6px 10px; color:var(--text); background:var(--surface); font:inherit; }

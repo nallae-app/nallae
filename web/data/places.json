@@ -1,7 +1,7 @@
 {
  "scope": "전국 일부 지역",
  "listCheckedAt": "2026-10-22",
- "note": "손으로 확인한 목록. 영상 소개는 공식 영상 설명란의 상호·주소, 운영자 추천은 날래 운영자의 주관적 의견. 맛·위생·현재 영업 보증 아님. 좌표 없음.",
+ "note": "영상 소개는 공식 영상 설명란, 운영자 추천은 운영자의 의견, 착한가격업소는 행정안전부 지정 현황의 음식점·메뉴·주소를 사용한다. 영업 여부는 방문 전에 확인.",
  "items": [
   {
    "id": "v-DpGJEDKsf1o-화목순대국",
@@ -744,6 +744,1221 @@
    "addressEvidence": "공식 영상 설명란 상호·주소 확인: 윤밀원 / 경기 성남시 분당구 백현로 154 1층",
    "addressEvidenceUrl": "https://www.youtube.com/watch?v=Mlh01V0vxeI",
    "checkedAt": "2026-10-22"
+  },
+  {
+   "id": "goodprice-9b7ef287f3da2c3c",
+   "name": "전주콩나물국밥",
+   "branch": null,
+   "address": "서울특별시 종로구 자하문로 3 (내자동)",
+   "district": "서울 종로구",
+   "sgg": "11110",
+   "food": "콩나물국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-9682659d45837be0",
+   "name": "오복식당",
+   "branch": null,
+   "address": "서울특별시 마포구 희우정로10길 35 (망원동) 1층 일부호",
+   "district": "서울 마포구",
+   "sgg": "11440",
+   "food": "순두부",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-96304727d0d02734",
+   "name": "한우공감",
+   "branch": null,
+   "address": "서울특별시 성동구 용답중앙길 57-1 (용답동) 1층",
+   "district": "서울 성동구",
+   "sgg": "11200",
+   "food": "김치찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-87c965812a893941",
+   "name": "다시사랑한다면",
+   "branch": null,
+   "address": "서울특별시 강남구 언주로 407 (역삼동)",
+   "district": "서울 강남구",
+   "sgg": "11680",
+   "food": "잔치국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-ed4fd19ccf6d3df4",
+   "name": "일심해장국 본점",
+   "branch": null,
+   "address": "서울특별시 동대문구 장한로 179 (장안동) 1층",
+   "district": "서울 동대문구",
+   "sgg": "11230",
+   "food": "해장국",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-b052cb816fc611a5",
+   "name": "옥땡김밥",
+   "branch": null,
+   "address": "전남광주통합특별시 동구 무등로 503-1 (산수동) 1층",
+   "district": "광주 동구",
+   "sgg": "12210",
+   "food": "김밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-710d96ddb1cee719",
+   "name": "무등회관",
+   "branch": null,
+   "address": "전남광주통합특별시 서구 죽봉대로111번길 12 (광천동)",
+   "district": "광주 서구",
+   "sgg": "12240",
+   "food": "돌솥비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-f44a9758fb20cb3b",
+   "name": "국수가 맛있는 집",
+   "branch": null,
+   "address": "전남광주통합특별시 여수시 거북선공원2길 11 (학동)",
+   "district": "전남 여수시",
+   "sgg": "12130",
+   "food": "잔치국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-c616d7e8ad1670e2",
+   "name": "세광식당",
+   "branch": null,
+   "address": "전남광주통합특별시 순천시 북문길 40 (동외동)",
+   "district": "전남 순천시",
+   "sgg": "12150",
+   "food": "돼지국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-34bd9b73b25ad258",
+   "name": "유달손칼국수",
+   "branch": null,
+   "address": "전남광주통합특별시 목포시 상동로 65 (상동) 유달손칼국수",
+   "district": "전남 목포시",
+   "sgg": "12110",
+   "food": "멸치칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-704796e938d40a66",
+   "name": "조선옥숯불갈비",
+   "branch": null,
+   "address": "전남광주통합특별시 광양시 광영로 22 (광영동)",
+   "district": "전남 광양시",
+   "sgg": "12190",
+   "food": "된장찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-4d4c4da7d9692c13",
+   "name": "명성짜장",
+   "branch": null,
+   "address": "부산광역시 해운대구 재반로255번길 6-1 (반여동)",
+   "district": "부산 해운대구",
+   "sgg": "26350",
+   "food": "짬뽕",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-defe3bb45cee5088",
+   "name": "회국수할매집",
+   "branch": null,
+   "address": "부산광역시 부산진구 서면문화로 5 (부전동)",
+   "district": "부산 부산진구",
+   "sgg": "26230",
+   "food": "회국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-9f0e9d6805135dbc",
+   "name": "무진장횟집",
+   "branch": null,
+   "address": "부산광역시 동래구 명륜로98번길 41 (수안동)",
+   "district": "부산 동래구",
+   "sgg": "26260",
+   "food": "회덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-93164566a62d6f01",
+   "name": "달콤언니",
+   "branch": null,
+   "address": "부산광역시 수영구 수영로554번길 7 (광안동) 1층",
+   "district": "부산 수영구",
+   "sgg": "26500",
+   "food": "칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-e91870a300d880de",
+   "name": "동방밀면",
+   "branch": null,
+   "address": "부산광역시 영도구 꿈나무길 239 (영선동2가)",
+   "district": "부산 영도구",
+   "sgg": "26200",
+   "food": "밀면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-75fcafd47f292f6d",
+   "name": "배사공멸치국수",
+   "branch": null,
+   "address": "대구광역시 중구 관덕정길 10 (남산동) 남산동",
+   "district": "대구 중구",
+   "sgg": "27110",
+   "food": "잔치국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-28840b5087697c1f",
+   "name": "김근식육식당",
+   "branch": null,
+   "address": "대구광역시 수성구 명덕로 452 (수성동3가) 1층(수성2.3가)",
+   "district": "대구 수성구",
+   "sgg": "27260",
+   "food": "돼지찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-c4d4a53081c0e03c",
+   "name": "우주네분식",
+   "branch": null,
+   "address": "대구광역시 군위군 의흥면 읍내4길 9-1 2층",
+   "district": "대구 군위군",
+   "sgg": "27720",
+   "food": "의흥대추돈까스",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-ec51acd018557e29",
+   "name": "정성가득 김밥달인",
+   "branch": null,
+   "address": "대구광역시 달성군 유가읍 테크노상업로 84 101호",
+   "district": "대구 달성군",
+   "sgg": "27710",
+   "food": "달인김밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-26ebd0e592861b0d",
+   "name": "현푸드 부자식당",
+   "branch": null,
+   "address": "대구광역시 남구 중앙대로47길 5 (대명동) 1층",
+   "district": "대구 남구",
+   "sgg": "27200",
+   "food": "비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-0438efb3217aab5c",
+   "name": "하루국수",
+   "branch": null,
+   "address": "인천광역시 미추홀구 주안중로50번길 19 (주안동) 2층",
+   "district": "인천 미추홀구",
+   "sgg": "28177",
+   "food": "콩나물비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d6bd83991c29efd4",
+   "name": "혼밥밥상",
+   "branch": null,
+   "address": "인천광역시 영종구 하늘중앙로225번길 11 (중산동) 2층 206,207호",
+   "district": "인천 영종구",
+   "sgg": "28155",
+   "food": "백반",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d2cd9b5f3f19c73d",
+   "name": "홍천닭갈비",
+   "branch": null,
+   "address": "인천광역시 계양구 계산로 149 (계산동) 영동프라자 1층",
+   "district": "인천 계양구",
+   "sgg": "28245",
+   "food": "닭갈비",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d93148c2fbc1ed1d",
+   "name": "김밥나라",
+   "branch": null,
+   "address": "인천광역시 남동구 용천로 82 , 1층 (구월동)",
+   "district": "인천 남동구",
+   "sgg": "28200",
+   "food": "김밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-d1deae4c1ee9d808",
+   "name": "명동식당",
+   "branch": null,
+   "address": "인천광역시 제물포구 답동로30번길 25 (경동) 1층",
+   "district": "인천 제물포구",
+   "sgg": "28125",
+   "food": "칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-7715132c82420dd1",
+   "name": "오징어어때",
+   "branch": null,
+   "address": "대전광역시 중구 중앙로130번길 36 (대흥동) 1층",
+   "district": "대전 중구",
+   "sgg": "30140",
+   "food": "활어회덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-bc1453f593e054b7",
+   "name": "진달래반점",
+   "branch": null,
+   "address": "대전광역시 서구 월평동로 45 (진달래상가 B-4) (월평3동)",
+   "district": "대전 서구",
+   "sgg": "30170",
+   "food": "짜장면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-9f68ada40f8a43bc",
+   "name": "미가칼국수",
+   "branch": null,
+   "address": "대전광역시 동구 백룡로 3 (자양동)",
+   "district": "대전 동구",
+   "sgg": "30110",
+   "food": "칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-f06e7273c4d3dd53",
+   "name": "시장이레손만두",
+   "branch": null,
+   "address": "대전광역시 유성구 구즉로 74-15 나-108호(송강동)",
+   "district": "대전 유성구",
+   "sgg": "30200",
+   "food": "만두",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-3d25e949333425eb",
+   "name": "은진손두부",
+   "branch": null,
+   "address": "대전광역시 대덕구 덕암로234번길 30 (덕암동)",
+   "district": "대전 대덕구",
+   "sgg": "30230",
+   "food": "김치찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-8dabdf7090606bac",
+   "name": "경주잔치집",
+   "branch": null,
+   "address": "울산광역시 북구 송정16길 8 (송정동) 1층",
+   "district": "울산 북구",
+   "sgg": "31200",
+   "food": "잔치국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-31a0830e99315187",
+   "name": "동호손칼국수",
+   "branch": null,
+   "address": "울산광역시 남구 월평로37번길 8 (신정동) 1층",
+   "district": "울산 남구",
+   "sgg": "31140",
+   "food": "손칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-c3adce23a7c6e8e1",
+   "name": "자금성",
+   "branch": null,
+   "address": "울산광역시 중구 구교9길 64 (반구동) 1층",
+   "district": "울산 중구",
+   "sgg": "31110",
+   "food": "자장면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-6bfa6ea0a80d236d",
+   "name": "늘봄식당",
+   "branch": null,
+   "address": "울산광역시 울주군 서생면 진하길 2 1층",
+   "district": "울산 울주군",
+   "sgg": "31710",
+   "food": "된장찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-5210ebcb416ad2c6",
+   "name": "초당밀면 칼국수 전문점",
+   "branch": null,
+   "address": "울산광역시 동구 대송11길 4 (화정동) 1층",
+   "district": "울산 동구",
+   "sgg": "31170",
+   "food": "밀면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-37d2d788865de93f",
+   "name": "부산면가",
+   "branch": null,
+   "address": "세종특별자치시 호려울로 29 (보람동) 110호",
+   "district": "세종 세종시",
+   "sgg": "36110",
+   "food": "옛날칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-90b873dbfcae1638",
+   "name": "농부의한우",
+   "branch": null,
+   "address": "세종특별자치시 금남면 세종로 470 1층",
+   "district": "세종 세종시",
+   "sgg": "36110",
+   "food": "국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-837a6855fc0feaf4",
+   "name": "행복한곰탕",
+   "branch": null,
+   "address": "세종특별자치시 절재로 194 (어진동) 중앙타운 317호",
+   "district": "세종 세종시",
+   "sgg": "36110",
+   "food": "곰탕",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-93f616d2a69b3c57",
+   "name": "스페이스",
+   "branch": null,
+   "address": "세종특별자치시 한누리대로 311 110호~111호",
+   "district": "세종 세종시",
+   "sgg": "36110",
+   "food": "갈릭누들파스타",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-cffbfaac39ecf69c",
+   "name": "대신식당",
+   "branch": null,
+   "address": "세종특별자치시 연서면 당산로 349 1층",
+   "district": "세종 세종시",
+   "sgg": "36110",
+   "food": "김치찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-c65445063090ceb6",
+   "name": "도담칡냉면",
+   "branch": null,
+   "address": "경기도 수원시 장안구 수성로382번길 32-3 (영화동) .",
+   "district": "경기 수원시 장안구",
+   "sgg": "41111",
+   "food": "냉면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-1fd065b820588093",
+   "name": "구좌리얼크니손칼국수",
+   "branch": null,
+   "address": "경기도 성남시 분당구 쇳골로 25 (금곡동) 1층",
+   "district": "경기 성남시 분당구",
+   "sgg": "41135",
+   "food": "샤브손칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-f84c8dd5ecba3e4a",
+   "name": "양푼이생태탕",
+   "branch": null,
+   "address": "경기도 고양시 일산서구 탄중로221번길 13 (탄현동) 1층",
+   "district": "경기 고양시 일산서구",
+   "sgg": "41287",
+   "food": "생태찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-8462b09af43110d4",
+   "name": "영동식당",
+   "branch": null,
+   "address": "경기도 양평군 용문면 용문시장6길 1 ,",
+   "district": "경기 양평군",
+   "sgg": "41830",
+   "food": "뼈다귀해장국",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-bcfd2db9bbe52ac9",
+   "name": "제일분식",
+   "branch": null,
+   "address": "경기도 파주시 문산읍 문향로 57 자유시장 44호",
+   "district": "경기 파주시",
+   "sgg": "41480",
+   "food": "김밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-17bbb5eb544e329c",
+   "name": "도리식당",
+   "branch": null,
+   "address": "강원특별자치도 강릉시 지변길 16 (지변동)",
+   "district": "강원 강릉시",
+   "sgg": "51150",
+   "food": "김치찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-66f21d1e33febc8a",
+   "name": "경아식당",
+   "branch": null,
+   "address": "강원특별자치도 속초시 중앙로147번길 16 2층 158호",
+   "district": "강원 속초시",
+   "sgg": "51210",
+   "food": "돌솥비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-eef5f1d618b6236a",
+   "name": "낭만국시",
+   "branch": null,
+   "address": "강원특별자치도 춘천시 명동길29번길 3 (죽림동)",
+   "district": "강원 춘천시",
+   "sgg": "51110",
+   "food": "칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-4a69bc1da5c898d2",
+   "name": "삼천원국밥",
+   "branch": null,
+   "address": "강원특별자치도 원주시 단구로 378 삼천원국밥",
+   "district": "강원 원주시",
+   "sgg": "51130",
+   "food": "콩나물국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-726e98755addb683",
+   "name": "토리분식",
+   "branch": null,
+   "address": "강원특별자치도 동해시 선돌길 27 (북평동) 1층",
+   "district": "강원 동해시",
+   "sgg": "51170",
+   "food": "오징어덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-13c8ede13b9a7f1b",
+   "name": "봉평메밀 율량점",
+   "branch": null,
+   "address": "충청북도 청주시 청원구 율량로138번길 62-20 (주성동)",
+   "district": "충북 청주시 청원구",
+   "sgg": "43114",
+   "food": "메밀막국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-557b77586311ad63",
+   "name": "금강감자탕",
+   "branch": null,
+   "address": "충청북도 충주시 남산로 58 (용산동)",
+   "district": "충북 충주시",
+   "sgg": "43130",
+   "food": "김치찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-621231054765eaf1",
+   "name": "청풍호 청정한우",
+   "branch": null,
+   "address": "충청북도 제천시 금성면 청풍호로 743",
+   "district": "충북 제천시",
+   "sgg": "43150",
+   "food": "황기사골곰탕",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-74fd7b98caa63e23",
+   "name": "우리돼지마늘순대",
+   "branch": null,
+   "address": "충청북도 단양군 단양읍 도전4길 17-1 우리돼지마늘순대",
+   "district": "충북 단양군",
+   "sgg": "43800",
+   "food": "순대국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-508c4239c1890bf9",
+   "name": "맛디아식당",
+   "branch": null,
+   "address": "충청북도 음성군 음성읍 중앙로 132번길 14 맛디아식당",
+   "district": "충북 음성군",
+   "sgg": "43770",
+   "food": "칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-7ca911a08075b7b4",
+   "name": "낙지도사",
+   "branch": null,
+   "address": "충청남도 천안시 동남구 백석로 184 (봉명동)",
+   "district": "충남 천안시 동남구",
+   "sgg": "44131",
+   "food": "낙지덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-0da67e6b15f843d0",
+   "name": "창경식당",
+   "branch": null,
+   "address": "충청남도 공주시 대통1길 3 (봉황동) 1층",
+   "district": "충남 공주시",
+   "sgg": "44150",
+   "food": "소고기국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-f1adc1be8b5fdea7",
+   "name": "돼지고기김치찌개",
+   "branch": null,
+   "address": "충청남도 아산시 신창면 순천향로 41 1층",
+   "district": "충남 아산시",
+   "sgg": "44200",
+   "food": "돼지고기김치찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-6dba008775f71e1f",
+   "name": "유진식당",
+   "branch": null,
+   "address": "충청남도 보령시 대흥로 19 (대천동)",
+   "district": "충남 보령시",
+   "sgg": "44180",
+   "food": "순두부찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-e2defdbff1f9917e",
+   "name": "동문칼국수",
+   "branch": null,
+   "address": "충청남도 서산시 시장1로 4-6 (동문동) -",
+   "district": "충남 서산시",
+   "sgg": "44210",
+   "food": "칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-e8c7a5a5a3fb1cce",
+   "name": "만나별미",
+   "branch": null,
+   "address": "전북특별자치도 전주시 완산구 거마평로 122",
+   "district": "전북 전주시 완산구",
+   "sgg": "52111",
+   "food": "돈가스",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-527c2f8e5845fdf8",
+   "name": "웅이집",
+   "branch": null,
+   "address": "전북특별자치도 군산시 오룡로 60-1 명산동",
+   "district": "전북 군산시",
+   "sgg": "52130",
+   "food": "콩나물국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-b9345291ae8973b8",
+   "name": "짜장천짬뽕천",
+   "branch": null,
+   "address": "전북특별자치도 익산시 인북로9길 11 짜장천짬뽕천",
+   "district": "전북 익산시",
+   "sgg": "52140",
+   "food": "짜장",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-3707471fa408a958",
+   "name": "면사랑국수",
+   "branch": null,
+   "address": "전북특별자치도 남원시 향단로 59 (하정동) 하정동",
+   "district": "전북 남원시",
+   "sgg": "52190",
+   "food": "수제비",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-2a2e9a7bfbb12b3e",
+   "name": "육교집",
+   "branch": null,
+   "address": "전북특별자치도 정읍시 서부산업도로 243 육교집",
+   "district": "전북 정읍시",
+   "sgg": "52180",
+   "food": "국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-db2442b4baf37399",
+   "name": "오미손칼국수",
+   "branch": null,
+   "address": "경상북도 경주시 원효로 169 (황오동)",
+   "district": "경북 경주시",
+   "sgg": "47130",
+   "food": "손칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-2e8d99d8852062cc",
+   "name": "태백가든",
+   "branch": null,
+   "address": "경상북도 포항시 북구 아치로 50-8 태백가든",
+   "district": "경북 포항시 북구",
+   "sgg": "47113",
+   "food": "돼지갈비",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-01ec1b8425c0c6b3",
+   "name": "무주무손국수",
+   "branch": null,
+   "address": "경상북도 안동시 무주무4길 29-10 (수하동)",
+   "district": "경북 안동시",
+   "sgg": "47170",
+   "food": "손국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-54bec95f4e332778",
+   "name": "둥실원식당",
+   "branch": null,
+   "address": "경상북도 구미시 금오산로12길 5-1 (원평동)",
+   "district": "경북 구미시",
+   "sgg": "47190",
+   "food": "자장면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-7c40213b768acdf9",
+   "name": "양산박",
+   "branch": null,
+   "address": "경상북도 영주시 시청로 32-1",
+   "district": "경북 영주시",
+   "sgg": "47210",
+   "food": "콩나물비빔밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-572ac1cb06e8aa41",
+   "name": "구서방네손칼국수",
+   "branch": null,
+   "address": "경상남도 창원시 마산합포구 해안대로 1 (월남동5가) 1층 구서방네손칼국수",
+   "district": "경남 창원시 마산합포구",
+   "sgg": "48125",
+   "food": "칼국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-b809d9bd47f07b66",
+   "name": "박가시락국밥",
+   "branch": null,
+   "address": "경상남도 진주시 진주대로 1139 (봉곡동) 박가시락국밥",
+   "district": "경남 진주시",
+   "sgg": "48170",
+   "food": "시래기국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-435e2a2c095280da",
+   "name": "무전회식당",
+   "branch": null,
+   "address": "경상남도 통영시 안개로 15-8 (무전동) 무전회식당",
+   "district": "경남 통영시",
+   "sgg": "48220",
+   "food": "생선물회",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-83ab7a1d3046339e",
+   "name": "거제냉밀면",
+   "branch": null,
+   "address": "경상남도 거제시 거제중앙로25길 5 (고현동)",
+   "district": "경남 거제시",
+   "sgg": "48310",
+   "food": "물냉면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-f9592e85cebf7486",
+   "name": "사리원밀면",
+   "branch": null,
+   "address": "경상남도 김해시 삼안로255번길 16 (삼방동)",
+   "district": "경남 김해시",
+   "sgg": "48250",
+   "food": "밀면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-52e0001a6ca795ec",
+   "name": "파랑새",
+   "branch": null,
+   "address": "제주특별자치도 제주시 도남로 78",
+   "district": "제주 제주시",
+   "sgg": "50110",
+   "food": "고기국수",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-62127de6ab114868",
+   "name": "신영음식점",
+   "branch": null,
+   "address": "제주특별자치도 서귀포시 중앙로 71번길 4",
+   "district": "제주 서귀포시",
+   "sgg": "50130",
+   "food": "된장찌개",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-569234816cf254c8",
+   "name": "윤정이네국밥",
+   "branch": null,
+   "address": "제주특별자치도 제주시 한림읍 중산간서로 4960 1층",
+   "district": "제주 제주시",
+   "sgg": "50110",
+   "food": "돼지국밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-b04bce6413463b4e",
+   "name": "제쭈서귀포신시가지점",
+   "branch": null,
+   "address": "제주특별자치도 서귀포시 김정문화로 65 (서호동) 제쭈서귀포신시가지점",
+   "district": "제주 서귀포시",
+   "sgg": "50130",
+   "food": "제육덮밥",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
+  },
+  {
+   "id": "goodprice-e4741bc39940bda8",
+   "name": "은혜중화요리",
+   "branch": null,
+   "address": "제주특별자치도 제주시 인다2길 20 1층",
+   "district": "제주 제주시",
+   "sgg": "50110",
+   "food": "자장면",
+   "source": {
+    "type": "goodprice",
+    "url": "https://www.data.go.kr/data/3045247/fileData.do"
+   },
+   "sourceDate": "2026-09-30",
+   "checkedAt": "2026-11-28"
   }
  ]
 }

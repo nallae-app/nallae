@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-app-version="95">
+<html lang="ko" data-app-version="96">
 <head>
   <meta charset="utf-8">
   <script>
@@ -30,16 +30,17 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/favicon-light-32.png" type="image/png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-v2.png">
-  <link rel="stylesheet" href="meals/style.css?v=95">
-  <script src="meals/app.js?v=95" defer></script>
-  <script src="release-update.js?v=95" defer></script>
+  <link rel="stylesheet" href="meals/style.css?v=96">
+  <script src="meals/menu-calendar.js?v=96" defer></script>
+  <script src="meals/app.js?v=96" defer></script>
+  <script src="release-update.js?v=96" defer></script>
 </head>
 <body><div class="issue">
-<header class="mast"><button type="button" class="brand brand-tap" data-egg aria-label="지삐의 한마디" aria-expanded="false" aria-controls="brand-note"><img src="meals/symbol.png" alt="" width="38" height="38"><strong>지삐</strong></button><p><time id="issue-date"></time><span>요일별 식탁</span></p><a class="settings-link" href="explore.html?view=settings" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 .7-2h4.6L15 4l2 .9 2-.4 2.3 4-1.4 1.6v3.8l1.4 1.6-2.3 4-2-.4-2 .9-.7 2H9.7L9 20l-2-.9-2 .4-2.3-4 1.4-1.6v-3.8L2.7 8.5 5 4.5l2 .4Z"/><circle cx="12" cy="12" r="3"/></svg></a></header>
+<header class="mast"><button type="button" class="brand brand-tap" data-egg aria-label="지삐의 한마디" aria-expanded="false" aria-controls="brand-note"><img src="meals/symbol.png" alt="" width="38" height="38"><strong>지삐</strong></button><p><time id="issue-date"></time><span>이번 주 식탁</span></p><a class="settings-link" href="explore.html?view=settings" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 .7-2h4.6L15 4l2 .9 2-.4 2.3 4-1.4 1.6v3.8l1.4 1.6-2.3 4-2-.4-2 .9-.7 2H9.7L9 20l-2-.9-2 .4-2.3-4 1.4-1.6v-3.8L2.7 8.5 5 4.5l2 .4Z"/><circle cx="12" cy="12" r="3"/></svg></a></header>
 <p id="brand-note" class="little-note" hidden>지삐지기면 백전백승</p>
 <main class="meal-home">
   <section class="editorial" aria-labelledby="title">
-    <div class="issuebar"><button type="button" class="greeting" data-egg aria-label="부캉이의 인사. 지기야, 오늘 뭐 할까?" aria-expanded="false" aria-controls="friend-note"><img src="icons/bukangi.svg" alt="" width="34" height="25"><span>지기야, 오늘 뭐 할까?</span></button>
+    <div class="issuebar"><button type="button" class="greeting" data-egg aria-expanded="false" aria-controls="friend-note"><span>지기야, 오늘 뭐 할까?</span></button>
       <div class="dates" role="group" aria-label="식사 날짜"><button data-offset="0" aria-pressed="true">오늘</button><button data-offset="1" aria-pressed="false">내일</button></div>
     </div>
     <p id="friend-note" class="little-note" hidden>지삐 지기와 함께라면 백전백승</p>
@@ -63,6 +64,7 @@
     <p class="series">밖에서 먹기</p><h2 id="out-title">오늘은 칼국수 한 그릇.</h2>
     <p class="dish-note" id="out-note"></p>
     <a class="action" id="map-search" target="_blank" rel="noopener noreferrer"></a>
+    <a class="meal-weather-link" href="explore.html?view=utilities&amp;layer=weather">나가기 전 날씨 지도 <span aria-hidden="true">→</span></a>
     <details class="shopping" id="examples"><summary>이 메뉴가 등록된 식당</summary>
       <ul id="places"></ul>
       <p class="source">지정 목록 2026.08 · 메뉴 자료 2022.07<br>방문 전 메뉴와 영업시간을 확인하세요. <a href="https://www.data.go.kr/data/15132695/fileData.do" target="_blank" rel="noopener noreferrer">백년가게 자료 ↗</a></p>
